@@ -1,0 +1,20 @@
+{
+  "name": "qieflow-ai-auditor-server",
+  "version": "1.0.0",
+  "description": "Off-chain AI Auditor worker node and telemetry API server for QieFlow",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.12.1",
+    "express": "^4.19.2",
+    "openai": "^4.47.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

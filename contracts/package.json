@@ -1,0 +1,17 @@
+{
+  "name": "qieflow-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for QieFlow - subscription payment streams with AI Safety pauses on QIE chain",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:qietestnet": "hardhat run scripts/deploy.ts --network qieTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.3"
+  }
+}

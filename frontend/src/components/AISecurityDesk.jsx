@@ -12,11 +12,22 @@ export default function AISecurityDesk({
   const [telemetryLogs, setTelemetryLogs] = useState([]);
   const [serverOnline, setServerOnline] = useState(false);
   const [serverConfig, setServerConfig] = useState({
-    rpcUrl: "http://127.0.0.1:8545",
+    rpcUrl: "https://rpc1testnet.qie.digital/",
     registryAddress: contracts.registry,
     auditorAddress: contracts.auditor,
     aiPrivateKey: ""
   });
+
+  // Synchronize configuration form fields when active contract network switches
+  useEffect(() => {
+    const isTestnet = contracts.registry.toLowerCase() === "0x5650da53061edab0747549c81c8df774cf41aee9";
+    setServerConfig(prev => ({
+      ...prev,
+      rpcUrl: isTestnet ? "https://rpc1testnet.qie.digital/" : "http://127.0.0.1:8545",
+      registryAddress: contracts.registry,
+      auditorAddress: contracts.auditor
+    }));
+  }, [contracts]);
   
   const [selectedStream, setSelectedStream] = useState("");
   const [anomalyReason, setAnomalyReason] = useState("Pricing anomaly: stream billing rate inflated without DID consent");

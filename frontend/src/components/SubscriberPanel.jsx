@@ -40,7 +40,7 @@ export default function SubscriberPanel({
     setRate("");
   };
 
-  const isAllowanceApproved = parseFloat(qusdAllowance) > 10000;
+  const isAllowanceApproved = parseFloat(qusdAllowance) > 0;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>

@@ -194,7 +194,7 @@ export default function App() {
               QieFlow operates on the **QIE Testnet (Chain ID: 1983)** or a local Hardhat chain (Chain ID: 31337). 
               Please switch your MetaMask network connection.
             </p>
-            <button className="btn btn-primary" onClick={qieflow.connectWallet}>
+            <button className="btn btn-primary" onClick={qieflow.switchToQieTestnet}>
               Switch Network in MetaMask
             </button>
           </div>

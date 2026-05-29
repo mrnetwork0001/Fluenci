@@ -72,22 +72,22 @@ export function useQieFlow() {
         params: [{ chainId: "0x7BF" }] // 1983 in hex
       });
     } catch (err) {
-      // 4902: chain has not been added
-      if (err.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: "0x7BF",
-              chainName: "QIE Testnet",
-              nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
-              rpcUrls: ["https://rpc1testnet.qie.digital/"],
-              blockExplorerUrls: ["https://testnet.qie.digital/"]
-            }]
-          });
-        } catch (addErr) {
-          console.error("Failed to add network", addErr);
-        }
+      console.warn("Switch network failed, attempting to add QIE Testnet...", err);
+      // Fallback to adding the network on any switch error
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x7BF",
+            chainName: "QIE Testnet",
+            nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
+            rpcUrls: ["https://rpc1testnet.qie.digital/"],
+            blockExplorerUrls: ["https://testnet.qie.digital/"]
+          }]
+        });
+      } catch (addErr) {
+        console.error("Failed to add network", addErr);
+        setError("Failed to automatically add QIE Testnet. Please check MetaMask.");
       }
     }
   };
@@ -436,6 +436,7 @@ export function useQieFlow() {
     resumeStream,
     terminateStream,
     updateContractAddresses,
+    switchToQieTestnet,
     refreshData: () => {
       fetchAccountState();
       fetchSubscriptions();

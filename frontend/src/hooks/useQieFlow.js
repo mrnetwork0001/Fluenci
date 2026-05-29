@@ -29,6 +29,21 @@ const QIEPASS_ABI = [
   "function registerIdentity(address user, bool status) external"
 ];
 
+const CONTRACT_ADDRESSES_BY_CHAIN = {
+  1983: { // QIE Testnet
+    registry: "0x5650DA53061EdAB0747549c81c8df774Cf41AeE9",
+    qusd: "0x5784640BD820d5e48C918C1AaD52aD7DDb562cBA",
+    qiepass: "0x5D5f0BA355B52938e140B5500A27Bd3F70A420e2",
+    auditor: "0x75474b0Be53403F0c8e66249266445e00bD7Cc70"
+  },
+  31337: { // Localhost Hardhat
+    registry: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    qusd: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    qiepass: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    auditor: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+  }
+};
+
 export function useQieFlow() {
   const [account, setAccount] = useState("");
   const [chainId, setChainId] = useState(0);
@@ -43,17 +58,20 @@ export function useQieFlow() {
 
   // Dynamic contract addresses configuration
   const [contracts, setContracts] = useState({
-    registry: localStorage.getItem("qieflow_registry") || "",
-    qusd: localStorage.getItem("qieflow_qusd") || "",
-    qiepass: localStorage.getItem("qieflow_qiepass") || "",
-    auditor: localStorage.getItem("qieflow_auditor") || ""
+    registry: "",
+    qusd: "",
+    qiepass: "",
+    auditor: ""
   });
+
+  // Automatically update contract addresses based on connected network chainId
+  useEffect(() => {
+    const config = CONTRACT_ADDRESSES_BY_CHAIN[chainId] || CONTRACT_ADDRESSES_BY_CHAIN[1983];
+    setContracts(config);
+  }, [chainId]);
 
   const updateContractAddresses = (newConfig) => {
     setContracts(newConfig);
-    Object.entries(newConfig).forEach(([key, val]) => {
-      localStorage.setItem(`qieflow_${key}`, val);
-    });
   };
 
   const getProviderAndSigner = async () => {

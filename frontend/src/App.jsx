@@ -285,9 +285,19 @@ export default function App() {
           background: "rgba(7, 10, 19, 0.8)",
           textAlign: "center",
           fontSize: "0.8rem",
-          color: "var(--text-muted)"
+          color: "var(--text-muted)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          alignItems: "center"
         }}
       >
+        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px" }}>
+          <span>Registry: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.registry}</strong></span>
+          <span>qUSD: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qusd}</strong></span>
+          <span>QiePass: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qiepass}</strong></span>
+          <span>Auditor: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.auditor}</strong></span>
+        </div>
         <p>© 2026 QieFlow Protocol. Built for QIE Blockchain Hackathon. All rights reserved.</p>
       </footer>
     </div>

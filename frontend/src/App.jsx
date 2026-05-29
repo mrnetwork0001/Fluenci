@@ -6,12 +6,12 @@ import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
 
-// Default local Hardhat deployment addresses
+// Default QIE Testnet deployment addresses
 const DEFAULT_HARDHAT_CONTRACTS = {
-  registry: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  qusd: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  qiepass: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  auditor: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+  registry: "0x5650DA53061EdAB0747549c81c8df774Cf41AeE9",
+  qusd: "0x5784640BD820d5e48C918C1AaD52aD7DDb562cBA",
+  qiepass: "0x5D5f0BA355B52938e140B5500A27Bd3F70A420e2",
+  auditor: "0x75474b0Be53403F0c8e66249266445e00bD7Cc70"
 };
 
 export default function App() {

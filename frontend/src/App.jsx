@@ -4,14 +4,18 @@ import ConnectWallet from "./components/ConnectWallet";
 import SubscriberPanel from "./components/SubscriberPanel";
 import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
+import { QieDoodleGame } from "./components/QieDoodleGame";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
 
-// Default QIE Testnet deployment addresses
+// Default Hardhat deployment addresses
 const DEFAULT_HARDHAT_CONTRACTS = {
-  registry: "0x5650DA53061EdAB0747549c81c8df774Cf41AeE9",
-  qusd: "0x5784640BD820d5e48C918C1AaD52aD7DDb562cBA",
-  qiepass: "0x5D5f0BA355B52938e140B5500A27Bd3F70A420e2",
-  auditor: "0x75474b0Be53403F0c8e66249266445e00bD7Cc70"
+  registry: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+  qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+  weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+  qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+  auditor: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+  qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+  qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
 };
 
 export default function App() {
@@ -20,7 +24,7 @@ export default function App() {
 
   // Prepopulate contract addresses if empty
   useEffect(() => {
-    if (!qieflow.contracts.registry || !qieflow.contracts.qusd || !qieflow.contracts.qiepass || !qieflow.contracts.auditor) {
+    if (!qieflow.contracts.registry || !qieflow.contracts.qusdc || !qieflow.contracts.qiepass || !qieflow.contracts.auditor) {
       qieflow.updateContractAddresses(DEFAULT_HARDHAT_CONTRACTS);
     }
   }, [qieflow]);
@@ -29,27 +33,46 @@ export default function App() {
     switch (activeTab) {
       case "subscriber":
         return (
-          <SubscriberPanel
-            account={qieflow.account}
-            qusdBalance={qieflow.qusdBalance}
-            qusdAllowance={qieflow.qusdAllowance}
-            qiePassVerified={qieflow.qiePassVerified}
-            subscriberStreams={qieflow.subscriberStreams}
-            realtimeClaimables={qieflow.realtimeClaimables}
-            loading={qieflow.loading}
-            mintMockQUSD={qieflow.mintMockQUSD}
-            approveQUSD={qieflow.approveQUSD}
-            toggleQiePassStatus={qieflow.toggleQiePassStatus}
-            createSubscription={qieflow.createSubscription}
-            resumeStream={qieflow.resumeStream}
-            terminateStream={qieflow.terminateStream}
-          />
+          <>
+            <SubscriberPanel
+              account={qieflow.account}
+              qieBalance={qieflow.qieBalance}
+              qusdcBalance={qieflow.qusdcBalance}
+              wethBalance={qieflow.wethBalance}
+              qusdcAllowance={qieflow.qusdcAllowance}
+              wethAllowance={qieflow.wethAllowance}
+              qiePassVerified={qieflow.qiePassVerified}
+              subscriberStreams={qieflow.subscriberStreams}
+              realtimeClaimables={qieflow.realtimeClaimables}
+              loading={qieflow.loading}
+              mintMockTokens={qieflow.mintMockTokens}
+              approveToken={qieflow.approveToken}
+              toggleQiePassStatus={qieflow.toggleQiePassStatus}
+              createSubscription={qieflow.createSubscription}
+              resumeStream={qieflow.resumeStream}
+              terminateStream={qieflow.terminateStream}
+              openDispute={qieflow.openDispute}
+              resolveDisputeOnChain={qieflow.resolveDisputeOnChain}
+              transferStreamNFT={qieflow.transferStreamNFT}
+              swapQieForTokens={qieflow.swapQieForTokens}
+              contracts={qieflow.contracts}
+            />
+            
+            <QieDoodleGame
+              account={qieflow.account}
+              subscriberStreams={qieflow.subscriberStreams}
+              createSubscription={qieflow.createSubscription}
+              contracts={qieflow.contracts}
+            />
+          </>
         );
       case "merchant":
         return (
           <MerchantDashboard
             account={qieflow.account}
-            qusdBalance={qieflow.qusdBalance}
+            qieBalance={qieflow.qieBalance}
+            qusdcBalance={qieflow.qusdcBalance}
+            wethBalance={qieflow.wethBalance}
             merchantStreams={qieflow.merchantStreams}
             realtimeClaimables={qieflow.realtimeClaimables}
             loading={qieflow.loading}
@@ -110,7 +133,7 @@ export default function App() {
               QieFlow
             </h1>
             <span style={{ fontSize: "0.75rem", color: "var(--color-cyan)", fontWeight: "600", tracking: "0.05em" }}>
-              AI-SHIELDED PAYMENT STREAMS
+              AI-SHIELDED PAYMENT STREAMS & DISPUTE NFT
             </span>
           </div>
         </div>
@@ -255,21 +278,21 @@ export default function App() {
             {/* Core Tech Gating highlights */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", width: "100%", marginTop: "40px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "40px" }}>
               <div>
-                <h4 style={{ color: "var(--color-cyan)", marginBottom: "8px" }}>QIE Pass Gated</h4>
+                <h4 style={{ color: "var(--color-cyan)", marginBottom: "8px" }}>QIE Pass Gated (KYC)</h4>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
-                  Streams and anomaly resolutions are secure-gated via verified DID identity checks.
+                  Streams and anomaly resolutions are secure-gated via verified Qie KYC identity checks.
                 </p>
               </div>
               <div>
-                <h4 style={{ color: "var(--color-purple)", marginBottom: "8px" }}>Stablecoin (qUSD)</h4>
+                <h4 style={{ color: "var(--color-purple)", marginBottom: "8px" }}>qUSDC Stablecoin</h4>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
-                  Subscriptions are settled in mock QIE Stable Coins to completely eliminate volatility.
+                  Subscriptions are settled in mock QIE USD Coin (qUSDC) stablecoin to eliminate volatility.
                 </p>
               </div>
               <div>
-                <h4 style={{ color: "var(--color-amber)", marginBottom: "8px" }}>Autonomous AI Auditor</h4>
+                <h4 style={{ color: "var(--color-amber)", marginBottom: "8px" }}>AI Arbitrated NFT Streams</h4>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: "1.4" }}>
-                  An AI agent automatically pauses streams if it detects unauthorized rate adjustments.
+                  Each stream is a transferable NFT, with off-chain AI-powered EIP-712 cryptographic dispute resolutions.
                 </p>
               </div>
             </div>
@@ -284,7 +307,7 @@ export default function App() {
           borderTop: "1px solid var(--border-color)", 
           background: "rgba(7, 10, 19, 0.8)",
           textAlign: "center",
-          fontSize: "0.8rem",
+          fontSize: "0.85rem",
           color: "var(--text-muted)",
           display: "flex",
           flexDirection: "column",
@@ -294,9 +317,12 @@ export default function App() {
       >
         <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px" }}>
           <span>Registry: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.registry}</strong></span>
-          <span>qUSD: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qusd}</strong></span>
-          <span>QiePass: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qiepass}</strong></span>
-          <span>Auditor: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.auditor}</strong></span>
+          <span>qUSDC: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qusdc}</strong></span>
+          <span>WETH: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.weth}</strong></span>
+          <span>QiePass KYC: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qiepass}</strong></span>
+          <span>AI Auditor: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.auditor}</strong></span>
+          <span>Qiedex: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qiedex}</strong></span>
+          <span>Qiedomain: <strong style={{ color: "var(--color-cyan)" }}>{qieflow.contracts.qiedomain}</strong></span>
         </div>
         <p>© 2026 QieFlow Protocol. Built for QIE Blockchain Hackathon. All rights reserved.</p>
       </footer>

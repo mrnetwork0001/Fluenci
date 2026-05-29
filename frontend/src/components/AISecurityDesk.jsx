@@ -72,8 +72,6 @@ export default function AISecurityDesk({
     // Save locally
     updateContractAddresses({
       registry: serverConfig.registryAddress,
-      qusd: contracts.qusd, // keep stablecoin
-      qiepass: contracts.qiepass, // keep qiepass
       auditor: serverConfig.auditorAddress
     });
 

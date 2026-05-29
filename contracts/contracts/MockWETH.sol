@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract MockQUSD {
-    string public name = "Mock QIE Stable Coin";
-    string public symbol = "qUSD";
-    uint8 public decimals = 6;
+contract MockWETH {
+    string public name = "Mock Wrapped QIE/WETH";
+    string public symbol = "MockWETH";
+    uint8 public decimals = 18;
     uint256 public totalSupply;
 
     mapping(address => uint256) public balanceOf;

@@ -95,7 +95,7 @@ export default function App() {
     }
   };
 
-  const isSupportedNetwork = qieflow.chainId === 1983 || qieflow.chainId === 31337;
+  const isSupportedNetwork = qieflow.chainId === 1983 || qieflow.chainId === 1990 || qieflow.chainId === 31337;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -173,6 +173,8 @@ export default function App() {
           chainId={qieflow.chainId}
           connectWallet={qieflow.connectWallet}
           loading={qieflow.loading}
+          switchToQieTestnet={qieflow.switchToQieTestnet}
+          switchToQieMainnet={qieflow.switchToQieMainnet}
         />
       </header>
 

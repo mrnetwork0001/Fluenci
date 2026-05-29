@@ -61,6 +61,15 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
     auditor: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
     qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
     qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
+  },
+  1990: { // QIE Mainnet
+    registry: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+    qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    auditor: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+    qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+    qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
   }
 };
 
@@ -134,6 +143,34 @@ export function useQieFlow() {
       } catch (addErr) {
         console.error("Failed to add network", addErr);
         setError("Failed to automatically add QIE Testnet. Please check MetaMask.");
+      }
+    }
+  };
+
+  // Switch network to QIE Mainnet
+  const switchToQieMainnet = async () => {
+    if (!window.ethereum) return;
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x7C6" }] // 1990 in hex
+      });
+    } catch (err) {
+      console.warn("Switch network failed, attempting to add QIE Mainnet...", err);
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x7C6",
+            chainName: "QIE Mainnet",
+            nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
+            rpcUrls: ["https://rpc1mainnet.qie.digital"],
+            blockExplorerUrls: ["https://mainnet.qie.digital/"]
+          }]
+        });
+      } catch (addErr) {
+        console.error("Failed to add network", addErr);
+        setError("Failed to automatically add QIE Mainnet. Please check MetaMask.");
       }
     }
   };
@@ -659,6 +696,7 @@ export function useQieFlow() {
     terminateStream,
     updateContractAddresses,
     switchToQieTestnet,
+    switchToQieMainnet,
     refreshData: () => {
       fetchAccountState();
       fetchSubscriptions();

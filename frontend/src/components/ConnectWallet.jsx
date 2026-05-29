@@ -1,19 +1,50 @@
 import React from "react";
-import { Wallet, ShieldAlert, CheckCircle } from "lucide-react";
+import { Wallet, ShieldAlert, CheckCircle, RefreshCw } from "lucide-react";
 
-export default function ConnectWallet({ account, chainId, connectWallet, loading }) {
+export default function ConnectWallet({ 
+  account, 
+  chainId, 
+  connectWallet, 
+  loading,
+  switchToQieTestnet,
+  switchToQieMainnet
+}) {
   const getNetworkName = (id) => {
     if (id === 1983) return "QIE Testnet";
+    if (id === 1990) return "QIE Mainnet";
     if (id === 31337) return "Localhost (31337)";
     return `Unknown Network (${id})`;
   };
 
-  const isSupportedNetwork = chainId === 1983 || chainId === 31337;
+  const isSupportedNetwork = chainId === 1983 || chainId === 1990 || chainId === 31337;
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
       {account ? (
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          
+          {/* Network Selector / Switch buttons */}
+          <div style={{ display: "flex", gap: "6px" }}>
+            {chainId !== 1990 && (
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: "6px 12px", fontSize: "0.75rem", background: "rgba(157, 78, 221, 0.05)", borderColor: "rgba(157, 78, 221, 0.2)", color: "var(--color-purple)" }}
+                onClick={switchToQieMainnet}
+              >
+                QIE Mainnet
+              </button>
+            )}
+            {chainId !== 1983 && (
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: "6px 12px", fontSize: "0.75rem", background: "rgba(0, 242, 254, 0.05)", borderColor: "rgba(0, 242, 254, 0.2)", color: "var(--color-cyan)" }}
+                onClick={switchToQieTestnet}
+              >
+                QIE Testnet
+              </button>
+            )}
+          </div>
+
           {/* Network Indicator */}
           <div 
             className="glass-card" 
@@ -24,7 +55,8 @@ export default function ConnectWallet({ account, chainId, connectWallet, loading
               alignItems: "center", 
               gap: "8px",
               background: "rgba(255, 255, 255, 0.02)",
-              fontSize: "0.85rem"
+              fontSize: "0.85rem",
+              borderColor: isSupportedNetwork ? "rgba(16, 185, 129, 0.2)" : "rgba(244, 63, 94, 0.2)"
             }}
           >
             {isSupportedNetwork ? (
@@ -32,7 +64,7 @@ export default function ConnectWallet({ account, chainId, connectWallet, loading
             ) : (
               <ShieldAlert size={16} color="var(--color-rose)" />
             )}
-            <span style={{ color: isSupportedNetwork ? "var(--text-primary)" : "var(--color-rose)" }}>
+            <span style={{ color: isSupportedNetwork ? "var(--text-primary)" : "var(--color-rose)", fontWeight: "bold" }}>
               {getNetworkName(chainId)}
             </span>
           </div>

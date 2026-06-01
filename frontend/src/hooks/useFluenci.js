@@ -131,6 +131,7 @@ export function useFluenci() {
           blockExplorerUrls: ["https://testnet.qie.digital/"]
         }]
       });
+      setError("");
     } catch (err) {
       console.error("Failed to add or sync QIE Testnet network", err);
       setError("Failed to add or sync QIE Testnet. Please check MetaMask.");
@@ -151,6 +152,7 @@ export function useFluenci() {
           blockExplorerUrls: ["https://mainnet.qie.digital/"]
         }]
       });
+      setError("");
     } catch (err) {
       console.error("Failed to add or sync QIE Mainnet network", err);
       setError("Failed to add or sync QIE Mainnet. Please check MetaMask.");

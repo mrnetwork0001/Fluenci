@@ -347,8 +347,39 @@ export default function App() {
       {/* Main Content Area */}
       <main style={{ flexGrow: 1, padding: "40px", maxWidth: "1200px", width: "100%", margin: "0 auto" }}>
         
-        {/* Error alert banner */}
-        {fluenci.error && (
+        {/* Error alert banners */}
+        {fluenci.error && (fluenci.error.includes("rpc1testnet") || fluenci.error.includes("timed out") || fluenci.error.includes("request failed") || fluenci.error.includes("Failed to fetch") || fluenci.error.includes("coalesce") || fluenci.error.includes("32603")) ? (
+          <div 
+            className="glass-card" 
+            style={{ 
+              marginBottom: "24px", 
+              borderColor: "var(--color-amber)", 
+              background: "rgba(245, 158, 11, 0.05)",
+              color: "var(--color-amber)",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              textAlign: "left"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <Shield size={22} color="var(--color-amber)" />
+              <strong style={{ fontSize: "1.1rem" }}>MetaMask Connection Issues (RPC Misconfiguration)</strong>
+            </div>
+            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.4" }}>
+              Your MetaMask wallet is attempting to connect via the offline **QIE Testnet RPC (`rpc1testnet.qie.digital`)**.
+              Please click the button below to allow MetaMask to automatically sync to the working **`rpc4testnet`** node.
+            </p>
+            <button 
+              className="btn btn-primary" 
+              style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: "0.85rem" }}
+              onClick={fluenci.switchToQieTestnet}
+            >
+              Sync & Repair MetaMask RPC Configuration
+            </button>
+          </div>
+        ) : fluenci.error && (
           <div 
             className="glass-card" 
             style={{ 

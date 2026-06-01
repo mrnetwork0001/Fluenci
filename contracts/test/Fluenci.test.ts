@@ -4,18 +4,18 @@ import {
   MockQiePass, 
   MockQUSDC, 
   MockWETH, 
-  QieFlowRegistry, 
-  QieFlowAIAuditor, 
+  FluenciRegistry, 
+  FluenciAIAuditor, 
   MockQieDex, 
   MockQieDomain 
 } from "../typechain-types";
 
-describe("QieFlow Integration Test Suite", function () {
+describe("Fluenci Integration Test Suite", function () {
   let qiePass: MockQiePass;
   let qusdc: MockQUSDC;
   let weth: MockWETH;
-  let registry: QieFlowRegistry;
-  let auditor: QieFlowAIAuditor;
+  let registry: FluenciRegistry;
+  let auditor: FluenciAIAuditor;
   let dex: MockQieDex;
   let domainRegistry: MockQieDomain;
   
@@ -48,13 +48,13 @@ describe("QieFlow Integration Test Suite", function () {
     await weth.waitForDeployment();
 
     // 4. Deploy Registry
-    const QieFlowRegistryFactory = await ethers.getContractFactory("QieFlowRegistry");
-    registry = await QieFlowRegistryFactory.deploy(await qiePass.getAddress()) as QieFlowRegistry;
+    const FluenciRegistryFactory = await ethers.getContractFactory("FluenciRegistry");
+    registry = await FluenciRegistryFactory.deploy(await qiePass.getAddress()) as FluenciRegistry;
     await registry.waitForDeployment();
 
     // 5. Deploy AI Auditor
-    const QieFlowAIAuditorFactory = await ethers.getContractFactory("QieFlowAIAuditor");
-    auditor = await QieFlowAIAuditorFactory.deploy(await registry.getAddress()) as QieFlowAIAuditor;
+    const FluenciAIAuditorFactory = await ethers.getContractFactory("FluenciAIAuditor");
+    auditor = await FluenciAIAuditorFactory.deploy(await registry.getAddress()) as FluenciAIAuditor;
     await auditor.waitForDeployment();
 
     // 6. Connect Registry to AI Auditor

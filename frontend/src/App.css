@@ -1,1 +1,306 @@
-/* Cleared default App styles */
+/* Fluent UI Styles for Landing Page */
+
+/* Grid background pattern */
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 80px;
+  position: relative;
+  padding-bottom: 80px;
+}
+
+/* Hero Badge */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(0, 242, 254, 0.05);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.05);
+}
+
+/* Gradient Title */
+.gradient-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffffff 30%, #a78bfa 70%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 24px;
+  text-shadow: 0 0 40px rgba(157, 78, 221, 0.1);
+}
+
+.gradient-title-accent {
+  background: linear-gradient(135deg, #00f2fe 0%, #9d4edd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtitle */
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 650px;
+  margin: 0 auto 36px auto;
+}
+
+/* Grid Layout for Hero Area */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 40px;
+  align-items: center;
+  width: 100%;
+  margin-top: 40px;
+}
+
+@media (max-width: 968px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .hero-subtitle {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Interactive Telemetry Box */
+.telemetry-mock-box {
+  position: relative;
+  background: rgba(8, 12, 24, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 242, 254, 0.03);
+  overflow: hidden;
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.telemetry-mock-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.2), transparent);
+}
+
+/* Dot grid overlay decoration */
+.dot-grid {
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: calc(100% + 200px);
+  height: calc(100% + 200px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Sections */
+.landing-section {
+  width: 100%;
+  z-index: 1;
+  position: relative;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.section-header h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.section-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Feature Step Cards */
+.step-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .step-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.step-card {
+  background: rgba(15, 20, 35, 0.5);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px 24px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(157, 78, 221, 0.3);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px rgba(157, 78, 221, 0.05);
+}
+
+.step-number {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-title);
+}
+
+.step-icon-wrapper {
+  background: rgba(255, 255, 255, 0.03);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-cyan);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.step-card:hover .step-icon-wrapper {
+  color: #fff;
+  background: linear-gradient(135deg, #00f2fe 0%, #9d4edd 100%);
+  border-color: transparent;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+}
+
+.step-card h3 {
+  font-size: 1.25rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.step-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Compare Matrix */
+.matrix-card {
+  background: rgba(12, 16, 28, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.matrix-table th {
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.matrix-table td {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.matrix-feature-name {
+  font-weight: 500;
+  color: #fff;
+}
+
+.matrix-standard-col {
+  color: var(--color-rose);
+}
+
+.matrix-fluenci-col {
+  background: rgba(0, 242, 254, 0.01);
+  color: var(--color-cyan);
+  font-weight: 600;
+}
+
+/* CTA pulse effect */
+.btn-cta-pulse {
+  position: relative;
+}
+
+.btn-cta-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 10px;
+  border: 1px solid var(--color-cyan);
+  animation: ctaPulseEffect 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes ctaPulseEffect {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+/* Micro-interaction updates */
+.metric-pill {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.metric-pill-red {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--color-rose);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+.metric-pill-green {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}

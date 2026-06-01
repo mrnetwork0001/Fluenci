@@ -11,14 +11,14 @@ interface IQiePass {
     function verifyIdentity(address user) external view returns (bool);
 }
 
-interface IQieFlowAIAuditor {
+interface IFluenciAIAuditor {
     function trustedAiWorker() external view returns (address);
 }
 
-contract QieFlowRegistry {
+contract FluenciRegistry {
     // --- ERC-721 State & Events ---
-    string public constant name = "QieFlow Subscription NFT";
-    string public constant symbol = "QFLOW";
+    string public constant name = "Fluenci Subscription NFT";
+    string public constant symbol = "FLUENCI";
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
@@ -246,7 +246,7 @@ contract QieFlowRegistry {
         bytes32 messageHash = getMessageHash(subId, subscriberRefund, merchantShare);
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
         address signer = recoverSigner(ethSignedMessageHash, signature);
-        require(signer == IQieFlowAIAuditor(aiAuditor).trustedAiWorker(), "Invalid AI Auditor signature");
+        require(signer == IFluenciAIAuditor(aiAuditor).trustedAiWorker(), "Invalid AI Auditor signature");
 
         // Process merchant payout share if any
         if (merchantShare > 0) {

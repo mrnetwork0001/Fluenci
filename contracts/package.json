@@ -1,7 +1,7 @@
 {
-  "name": "qieflow-contracts",
+  "name": "fluenci-contracts",
   "version": "1.0.0",
-  "description": "Smart contracts for QieFlow - subscription payment streams with AI Safety pauses on QIE chain",
+  "description": "Smart contracts for Fluenci - subscription payment streams with AI Safety pauses on QIE chain",
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",

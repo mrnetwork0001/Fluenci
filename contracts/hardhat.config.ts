@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
       chainId: 31337
     },
     qieTestnet: {
-      url: "https://rpc1testnet.qie.digital/",
+      url: "https://rpc4testnet.qie.digital/",
       chainId: 1983,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     }

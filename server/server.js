@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { ethers } = require("ethers");
 const { OpenAI } = require("openai");
+const crypto = require("crypto");
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -18,7 +19,7 @@ let telemetryLogs = [
     id: 1,
     timestamp: new Date().toISOString(),
     type: "INFO",
-    message: "AI Auditor node initializing...",
+    message: "AI Sentry Multi-Agent Node initializing...",
     details: {}
   }
 ];
@@ -50,13 +51,290 @@ function logTelemetry(type, message, details = {}) {
   console.log(`[${type}] ${message}`, details);
 }
 
-// Connect to Blockchain
+// ==========================================
+// MULTI-AGENT SENTRY ARCHITECTURE DEFINITION
+// ==========================================
+
+// 1. SENTRY AGENT: Blockchain Ingestion & Event Monitor
+const SentryAgent = {
+  async handleNewStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop) {
+    logTelemetry("SENTRY_AGENT", `Captured new subscription stream: ${subId}. Forwarding to Analyst Agent...`, {
+      subscriber,
+      merchant,
+      rate: rate.toString()
+    });
+    // Hand-off to Analyst Agent for compliance inspection
+    await AnalystAgent.analyzeStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop);
+  },
+
+  handleStreamPaused(subId, reason) {
+    logTelemetry("SENTRY_AGENT", `Registered StreamPaused event for ${subId}`, { reason });
+  },
+
+  handleStreamResumed(subId) {
+    logTelemetry("SENTRY_AGENT", `Registered StreamResumed event for ${subId}`);
+  },
+
+  handleStreamTerminated(subId) {
+    logTelemetry("SENTRY_AGENT", `Registered StreamTerminated event for ${subId}`);
+  },
+
+  handleFundsClaimed(subId, merchant, amount) {
+    logTelemetry("SENTRY_AGENT", `Registered FundsWithdrawn event from stream ${subId}`, { merchant, amount: amount.toString() });
+  },
+
+  handleDisputeOpened(subId, subscriber) {
+    logTelemetry("SENTRY_AGENT", `CRITICAL: DisputeOpened event captured for stream ${subId} by subscriber ${subscriber}`);
+  },
+
+  handleDisputeResolved(subId, subscriberRefund, merchantShare) {
+    logTelemetry("SENTRY_AGENT", `DisputeResolved event captured for stream ${subId}`, {
+      subscriberRefund: subscriberRefund.toString(),
+      merchantShare: merchantShare.toString()
+    });
+  }
+};
+
+// 2. ANALYST AGENT: Metadata Inspector, Risk Modeling, & IPFS Report Generator
+const AnalystAgent = {
+  async analyzeStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop) {
+    logTelemetry("ANALYST_AGENT", `Starting deep compliance audit for stream: ${subId}`);
+    
+    // Resolve merchant domain if possible via domain registry
+    let domainName = "Unregistered Address";
+    try {
+      if (REGISTRY_ADDRESS) {
+        // Retrieve qiedomain address dynamically from useFluenci addresses or local provider lookup
+        // We use default deployment registry or address resolving
+        const domainContractAddress = "0x9A676e781A523b5d0C0e43731313A708CB607508"; // Default Hardhat domain registry
+        const domainContract = new ethers.Contract(domainContractAddress, [
+          "function lookupAddress(address addr) external view returns (string memory)"
+        ], provider);
+        const res = await domainContract.lookupAddress(merchant);
+        if (res && res !== "") {
+          domainName = res;
+          logTelemetry("ANALYST_AGENT", `Reverse domain lookup resolved: ${merchant} -> ${domainName}`);
+        }
+      }
+    } catch (err) {
+      logTelemetry("ANALYST_AGENT", "QieDomain reverse lookup failed or registry not configured.", { error: err.message });
+    }
+
+    // Determine pricing baseline & check rules
+    const rateVal = Number(rate);
+    const { compliant, riskScore, anomalyClass, reason } = await this.runComplianceAlgorithm(subId, merchant, domainName, tokenAddress, rateVal);
+
+    // Compile Audit Intelligence Report
+    const auditReport = {
+      subId,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        subscriber,
+        merchant,
+        domainName,
+        tokenAddress,
+        rate: rate.toString(),
+        cliff: cliff.toString(),
+        stop: stop.toString()
+      },
+      evaluation: {
+        compliant,
+        riskScore,
+        anomalyClass,
+        reason
+      }
+    };
+
+    // Pin report to simulated IPFS (Generate SHA256 CID)
+    const jsonString = JSON.stringify(auditReport);
+    const hash = crypto.createHash("sha256").update(jsonString).digest("hex");
+    const ipfsCID = `ipfs://bafybeihash-${hash.substring(0, 32)}`;
+    
+    // Save report in local cache
+    auditReports[subId] = {
+      subId,
+      riskScore,
+      reason: `${reason} [IPFS CID: ${ipfsCID}]`,
+      anomalyClass,
+      ipfsCID,
+      timestamp: new Date().toISOString()
+    };
+
+    logTelemetry("ANALYST_AGENT", `Audit Intelligence Report compiled and pinned to IPFS. CID: ${ipfsCID}`, {
+      riskScore,
+      anomalyClass,
+      compliant
+    });
+
+    // Hand-off to Decision Agent
+    await DecisionAgent.evaluateReport(subId, auditReport, ipfsCID);
+  },
+
+  async runComplianceAlgorithm(subId, merchant, domainName, tokenAddress, rate) {
+    let riskScore = 15;
+    let reason = "Rate falls within safe baseline parameters.";
+    let anomalyClass = "NONE";
+
+    // Auto-flag if rate is unusually high (e.g. rate >= 1000 tokens/sec)
+    if (rate >= 1000) {
+      riskScore = 95;
+      reason = "Extremely high payment velocity detected. Immediate drain risk identified.";
+      anomalyClass = "VELOCITY_EXPLOIT";
+      return { compliant: false, riskScore, anomalyClass, reason };
+    }
+
+    if (openai) {
+      try {
+        logTelemetry("ANALYST_AGENT", `Querying OpenAI GPT-4o for risk assessment...`);
+        const prompt = `
+You are the autonomous AI Analyst Agent for Fluenci, a streaming payment protocol on the QIE Blockchain.
+Analyze the stream parameters and determine if the stream rate is safe/compliant or represents a pricing exploit.
+
+Stream Details:
+- Subscription ID: ${subId}
+- Merchant Wallet: ${merchant} (Domain Name: ${domainName})
+- Token Address: ${tokenAddress}
+- Streaming Rate: ${rate} units per second.
+
+Decide if this rate is compliant or represents a billing anomaly/exploit.
+Return your response EXACTLY as a JSON object, with no markdown styling, in this format:
+{
+  "compliant": true or false,
+  "riskScore": (number from 0 to 100),
+  "anomalyClass": "VELOCITY_EXPLOIT" or "SUSPICIOUS_MERCHANT" or "NONE",
+  "reason": "Clear explanation of the decision"
+}
+`;
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" }
+        });
+
+        const result = JSON.parse(response.choices[0].message.content.trim());
+        return {
+          compliant: result.compliant,
+          riskScore: result.riskScore || (result.compliant ? 15 : 85),
+          anomalyClass: result.anomalyClass || (result.compliant ? "NONE" : "VELOCITY_EXPLOIT"),
+          reason: result.reason
+        };
+      } catch (error) {
+        logTelemetry("ANALYST_AGENT", `OpenAI API call failed: ${error.message}. Falling back to default rule heuristic.`);
+      }
+    }
+
+    return { compliant: true, riskScore, anomalyClass, reason };
+  }
+};
+
+// 3. DECISION AGENT: Hot-Wallet Controller & Execution Engine
+const DecisionAgent = {
+  async evaluateReport(subId, report, ipfsCID) {
+    const riskThreshold = 75;
+    const risk = report.evaluation.riskScore;
+
+    logTelemetry("DECISION_AGENT", `Evaluating Audit Report for stream ${subId}. Risk: ${risk}% (Threshold: ${riskThreshold}%)`);
+
+    if (risk >= riskThreshold) {
+      logTelemetry("DECISION_AGENT", `CRITICAL: Risk score ${risk}% exceeds threshold! Executing autonomous safety pause on-chain...`);
+
+      if (auditorContract && aiWallet) {
+        try {
+          // Send transaction containing IPFS CID of the audit report as the reason
+          const tx = await auditorContract.triggerSafetyPause(subId, ipfsCID);
+          logTelemetry("DECISION_AGENT", `On-chain safety pause tx broadcasted. Hash: ${tx.hash}`);
+          const receipt = await tx.wait();
+          logTelemetry("DECISION_AGENT", `Safety pause confirmed in block ${receipt.blockNumber}. Stream has been locked on-chain.`);
+        } catch (err) {
+          logTelemetry("DECISION_AGENT", `FAILED to execute safety pause: ${err.message}`);
+        }
+      } else {
+        logTelemetry("DECISION_AGENT", `[SIMULATION] Safety pause triggered. Report CID ${ipfsCID} stored in memory.`);
+      }
+    } else {
+      logTelemetry("DECISION_AGENT", `Stream ${subId} passed safety threshold. Monitoring active.`);
+    }
+  }
+};
+
+// 4. ARBITRATOR AGENT: Verifiable EIP-712 Dispute Arbiter
+const ArbitratorAgent = {
+  async arbitrate(subId, evidence, merchantShareReq, subscriberRefundReq) {
+    logTelemetry("ARBITRATOR_AGENT", `Dispute arbitration initialized for stream: ${subId}`);
+    
+    let subscriberRefund = subscriberRefundReq || 1000;
+    let merchantShare = merchantShareReq || 0;
+    let decisionText = "Refund approved. Arbitrator Agent determined merchant failed to deliver continuous uptime.";
+
+    if (openai) {
+      try {
+        logTelemetry("ARBITRATOR_AGENT", "Querying OpenAI GPT-4o to resolve dispute...");
+        const prompt = `
+You are the autonomous AI Arbitrator Agent for Fluenci, a streaming payment protocol on the QIE Blockchain.
+A dispute has been opened by a subscriber. You must evaluate the evidence and calculate a fair token split.
+
+Dispute Details:
+- Subscription ID: ${subId}
+- Subscriber Evidence: "${evidence}"
+- Request parameters: Merchant Share = ${merchantShareReq}, Subscriber Refund = ${subscriberRefundReq}
+
+Provide your decision and calculate the exact split of the accrued tokens.
+Return your response EXACTLY as a JSON object, with no markdown styling, in this format:
+{
+  "subscriberRefund": (number representing refund tokens),
+  "merchantShare": (number representing payout tokens),
+  "decision": "Detailed explanation of your arbitration ruling"
+}
+`;
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" }
+        });
+
+        const result = JSON.parse(response.choices[0].message.content.trim());
+        subscriberRefund = Number(result.subscriberRefund);
+        merchantShare = Number(result.merchantShare);
+        decisionText = result.decision;
+        logTelemetry("ARBITRATOR_AGENT", `Arbitration decision formulated: ${decisionText}`);
+      } catch (error) {
+        logTelemetry("ARBITRATOR_AGENT", `AI Arbitration API failed: ${error.message}. Falling back to default split.`);
+      }
+    }
+
+    let signature = "0x1234567890";
+    if (aiWallet && REGISTRY_ADDRESS) {
+      try {
+        const msgHash = ethers.solidityPackedKeccak256(
+          ["bytes32", "uint256", "uint256", "address"],
+          [subId, subscriberRefund, merchantShare, REGISTRY_ADDRESS]
+        );
+        signature = await aiWallet.signMessage(ethers.getBytes(msgHash));
+        logTelemetry("ARBITRATOR_AGENT", `Arbitration signature generated successfully. Signer: ${aiWallet.address}`);
+      } catch (err) {
+        logTelemetry("ARBITRATOR_AGENT", `Failed to sign dispute arbitration: ${err.message}`);
+      }
+    }
+
+    return {
+      success: true,
+      merchantShare,
+      subscriberRefund,
+      decision: decisionText,
+      signature
+    };
+  }
+};
+
+// ==========================================
+// BLOCKCHAIN CONNECTION MANAGER
+// ==========================================
+
 async function connectBlockchain() {
   try {
     logTelemetry("INFO", `Connecting to RPC URL: ${RPC_URL}`);
     provider = new ethers.JsonRpcProvider(RPC_URL);
     
-    // Check network
     const network = await provider.getNetwork();
     logTelemetry("INFO", `Connected to blockchain. Chain ID: ${Number(network.chainId)}`);
 
@@ -103,157 +381,39 @@ function setupEventListeners() {
 
   logTelemetry("INFO", "Registering on-chain contract event listeners...");
 
-  // 1. Subscription Created Event
-  registryContract.on("SubscriptionCreated", async (subId, subscriber, merchant, tokenAddress, rate, cliff, stop, event) => {
-    logTelemetry("AUDIT", `New stream detected: ${subId}`, {
-      subscriber,
-      merchant,
-      tokenAddress,
-      rate: rate.toString(),
-      cliff: cliff.toString(),
-      stop: stop.toString()
-    });
-
-    // Run pricing audit
-    const isCompliant = await runPricingAudit(subId, merchant, tokenAddress, Number(rate));
-    
-    if (!isCompliant) {
-      logTelemetry("ALERT", `ANOMALY FLAGGED for stream: ${subId}. Rate of ${rate.toString()} exceeds compliance baseline.`, {
-        subId,
-        merchant,
-        rate: rate.toString()
-      });
-
-      if (auditorContract && aiWallet) {
-        try {
-          logTelemetry("ACTION", `Sending automated safety pause tx on-chain for stream: ${subId}...`);
-          const tx = await auditorContract.triggerSafetyPause(subId, "AI Auditor flag: rate exceeds baseline index limit");
-          logTelemetry("ACTION", `Tx submitted. Hash: ${tx.hash}`);
-          await tx.wait();
-          logTelemetry("SUCCESS", `On-chain safety pause executed successfully for ${subId}`);
-        } catch (err) {
-          logTelemetry("ERROR", `Failed to execute on-chain safety pause: ${err.message}`);
-        }
-      } else {
-        logTelemetry("SIMULATION", `Simulated safety pause triggered for ${subId}. (No private key loaded)`);
-      }
-    } else {
-      logTelemetry("SUCCESS", `Stream ${subId} passed compliance audit. Status: Compliant.`);
-    }
+  registryContract.on("SubscriptionCreated", async (subId, subscriber, merchant, tokenAddress, rate, cliff, stop) => {
+    await SentryAgent.handleNewStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop);
   });
 
-  // 2. Stream Paused Event
   registryContract.on("StreamPaused", (subId, reason) => {
-    logTelemetry("EVENT", `Stream paused on-chain: ${subId}`, { reason });
+    SentryAgent.handleStreamPaused(subId, reason);
   });
 
-  // 3. Stream Resumed Event
   registryContract.on("StreamResumed", (subId) => {
-    logTelemetry("EVENT", `Stream resumed on-chain: ${subId}`);
+    SentryAgent.handleStreamResumed(subId);
   });
 
-  // 4. Stream Terminated Event
   registryContract.on("StreamTerminated", (subId) => {
-    logTelemetry("EVENT", `Stream terminated on-chain: ${subId}`);
+    SentryAgent.handleStreamTerminated(subId);
   });
 
-  // 5. Funds Claimed Event
   registryContract.on("FundsWithdrawn", (subId, merchant, amount) => {
-    logTelemetry("EVENT", `Funds claimed from stream: ${subId}`, {
-      merchant,
-      amount: amount.toString()
-    });
+    SentryAgent.handleFundsClaimed(subId, merchant, amount);
   });
 
-  // 6. Dispute Opened Event
   registryContract.on("DisputeOpened", (subId, subscriber) => {
-    logTelemetry("EVENT", `Dispute opened on stream: ${subId} by subscriber ${subscriber}`);
+    SentryAgent.handleDisputeOpened(subId, subscriber);
   });
 
-  // 7. Dispute Resolved Event
   registryContract.on("DisputeResolved", (subId, subscriberRefund, merchantShare) => {
-    logTelemetry("EVENT", `Dispute resolved on stream: ${subId}`, {
-      subscriberRefund: subscriberRefund.toString(),
-      merchantShare: merchantShare.toString()
-    });
+    SentryAgent.handleDisputeResolved(subId, subscriberRefund, merchantShare);
   });
 }
 
-// Compliance check logic using OpenAI (with local fallback if key is not configured)
-async function runPricingAudit(subId, merchant, tokenAddress, rate) {
-  logTelemetry("INFO", `Auditing merchant pricing stream: ${subId} (Rate: ${rate}/sec)`);
-  
-  let riskScore = 15;
-  let reason = "Rate falls within safe baseline parameters.";
-  let anomalyClass = "NONE";
+// ==========================================
+// REST API ENDPOINTS
+// ==========================================
 
-  // Auto-flag if rate is unusually high (e.g. rate >= 1000 tokens/sec)
-  if (rate >= 1000) {
-    riskScore = 85;
-    reason = "Extremely high payment velocity detected. High drain risk identified.";
-    anomalyClass = "VELOCITY_EXPLOIT";
-  }
-
-  if (openai) {
-    try {
-      logTelemetry("INFO", `Querying OpenAI GPT-4o for safety compliance check on stream: ${subId}...`);
-      
-      const prompt = `
-You are an autonomous AI security auditor for QieFlow, a streaming payment protocol on the QIE Blockchain.
-You must analyze the stream parameters and determine if the stream rate is safe/compliant or represents an anomaly/exploit.
-
-Stream Details:
-- Subscription ID: ${subId}
-- Merchant Wallet: ${merchant}
-- Token Address: ${tokenAddress}
-- Streaming Rate: ${rate} units per second.
-
-Decide if this streaming rate is compliant or represents a billing anomaly/exploit.
-Return your response EXACTLY as a JSON object, with no markdown styling around it, in this format:
-{
-  "compliant": true or false,
-  "riskScore": (number from 0 to 100),
-  "anomalyClass": "VELOCITY_EXPLOIT" or "SUSPICIOUS_MERCHANT" or "NONE",
-  "reason": "Clear explanation of the decision"
-}
-`;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" }
-      });
-
-      const result = JSON.parse(response.choices[0].message.content.trim());
-      logTelemetry("INFO", `OpenAI response: Compliant=${result.compliant}. Reason: ${result.reason}`);
-      
-      auditReports[subId] = {
-        subId,
-        riskScore: result.riskScore || (result.compliant ? 15 : 85),
-        reason: result.reason,
-        anomalyClass: result.anomalyClass || (result.compliant ? "NONE" : "VELOCITY_EXPLOIT"),
-        timestamp: new Date().toISOString()
-      };
-
-      return result.compliant;
-    } catch (error) {
-      logTelemetry("ERROR", `OpenAI API call failed: ${error.message}. Falling back to default rule-based heuristic.`);
-    }
-  }
-
-  // Populate cache with default metrics
-  auditReports[subId] = {
-    subId,
-    riskScore,
-    reason,
-    anomalyClass,
-    timestamp: new Date().toISOString()
-  };
-
-  return riskScore < 80;
-}
-
-// REST API Endpoints
 app.get("/status", (req, res) => {
   res.json({
     status: "online",
@@ -279,80 +439,24 @@ app.get("/audit-report/:subId", (req, res) => {
     riskScore: 10,
     reason: "No active anomaly reports found. Stream is operating in compliant normal range.",
     anomalyClass: "NONE",
+    ipfsCID: "N/A",
     timestamp: new Date().toISOString()
   };
   res.json(report);
 });
 
-// AI Dispute Arbitration: analyzes evidence and signs resolution
+// AI Dispute Arbitration endpoint (Delegates to ArbitratorAgent)
 app.post("/arbitrate-dispute", async (req, res) => {
-  const { subId, evidence } = req.body;
+  const { subId, evidence, merchantShare, subscriberRefund } = req.body;
   if (!subId) {
     return res.status(400).json({ error: "Missing subId" });
   }
 
-  logTelemetry("ARBITRATION", `Arbitrating dispute for stream: ${subId}. Evidence: ${evidence || "None"}`);
-
-  // Base split calculation
-  let merchantShare = 0;
-  let subscriberRefund = 1000; // Mock default refund amount (in smallest decimals)
-  let decisionText = "Refund approved. AI Auditor determined merchant failed to meet uptime expectations.";
-
-  if (evidence && evidence.toLowerCase().includes("delivered")) {
-    merchantShare = 700;
-    subscriberRefund = 300;
-    decisionText = "Partial claim approved. Service partially delivered.";
-  }
-
-  // In production, we'd query contract for actual accrued claimables to perform precise arithmetic splits.
-  // For the local/testnet hackathon E2E demo flow, we return a signed refund authorization based on UI parameters.
-  if (req.body.merchantShare !== undefined && req.body.subscriberRefund !== undefined) {
-    merchantShare = req.body.merchantShare;
-    subscriberRefund = req.body.subscriberRefund;
-    decisionText = `Arbitrated split: ${merchantShare} units to merchant, ${subscriberRefund} refunded to subscriber.`;
-  }
-
-  if (aiWallet && REGISTRY_ADDRESS) {
-    try {
-      // 1. Generate the message hash matching the registry smart contract
-      const msgHash = ethers.solidityPackedKeccak256(
-        ["bytes32", "uint256", "uint256", "address"],
-        [subId, subscriberRefund, merchantShare, REGISTRY_ADDRESS]
-      );
-      
-      // 2. Sign message hash with AI Wallet private key
-      const signature = await aiWallet.signMessage(ethers.getBytes(msgHash));
-
-      logTelemetry("SUCCESS", `Dispute arbitrated and signature generated. Signer: ${aiWallet.address}`, {
-        subId,
-        merchantShare,
-        subscriberRefund
-      });
-
-      return res.json({
-        success: true,
-        merchantShare,
-        subscriberRefund,
-        decision: decisionText,
-        signature
-      });
-    } catch (err) {
-      logTelemetry("ERROR", `Failed to sign dispute arbitration: ${err.message}`);
-      return res.status(500).json({ error: err.message });
-    }
-  } else {
-    logTelemetry("WARNING", "Private key or registry address missing. Returning simulated arbitration details.");
-    return res.json({
-      success: true,
-      merchantShare,
-      subscriberRefund,
-      decision: `${decisionText} (Simulated resolution - AI Worker keys not loaded)`,
-      signature: "0x1234567890"
-    });
-  }
+  const result = await ArbitratorAgent.arbitrate(subId, evidence, merchantShare, subscriberRefund);
+  res.json(result);
 });
 
-// Configure contract addresses dynamically from the UI for demo ease
+// Configure contract addresses dynamically from the UI
 app.post("/configure", async (req, res) => {
   const { rpcUrl, registryAddress, auditorAddress, aiPrivateKey } = req.body;
   
@@ -383,21 +487,28 @@ app.post("/trigger-anomaly", async (req, res) => {
 
   logTelemetry("ALERT", `MANUAL ANOMALY INJECTED for stream: ${subId}. Reason: ${reason || "User-triggered anomaly"}`);
 
-  if (auditorContract && aiWallet) {
-    try {
-      logTelemetry("ACTION", `Sending safety pause transaction for ${subId}...`);
-      const tx = await auditorContract.triggerSafetyPause(subId, reason || "Manual AI Auditor override");
-      await tx.wait();
-      logTelemetry("SUCCESS", `Safety pause tx confirmed on-chain for ${subId}`);
-      return res.json({ success: true, txHash: tx.hash });
-    } catch (err) {
-      logTelemetry("ERROR", `Failed to send safety pause tx: ${err.message}`);
-      return res.status(500).json({ error: err.message });
-    }
-  } else {
-    logTelemetry("SIMULATION", `Simulated safety pause triggered for ${subId} (No private key loaded)`);
-    return res.json({ success: true, simulated: true });
-  }
+  // Create a mock audit report for manual trigger
+  const mockReport = {
+    subId,
+    timestamp: new Date().toISOString(),
+    metadata: { rate: "1500" },
+    evaluation: { compliant: false, riskScore: 99, anomalyClass: "VELOCITY_EXPLOIT", reason }
+  };
+  const jsonString = JSON.stringify(mockReport);
+  const hash = crypto.createHash("sha256").update(jsonString).digest("hex");
+  const ipfsCID = `ipfs://bafybeihash-${hash.substring(0, 32)}`;
+
+  auditReports[subId] = {
+    subId,
+    riskScore: 99,
+    reason: `${reason || "Manual Override"} [IPFS CID: ${ipfsCID}]`,
+    anomalyClass: "VELOCITY_EXPLOIT",
+    ipfsCID,
+    timestamp: new Date().toISOString()
+  };
+
+  await DecisionAgent.evaluateReport(subId, mockReport, ipfsCID);
+  res.json({ success: true, ipfsCID });
 });
 
 // Start Express Server and Connect

@@ -26,30 +26,30 @@ async function main() {
   console.log(`MockWETH deployed to: ${wethAddress}`);
 
   // 4. Deploy Registry (Constructor only takes QiePass)
-  const QieFlowRegistry = await ethers.getContractFactory("QieFlowRegistry");
-  const registry = await QieFlowRegistry.deploy(qiePassAddress);
+  const FluenciRegistry = await ethers.getContractFactory("FluenciRegistry");
+  const registry = await FluenciRegistry.deploy(qiePassAddress);
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
-  console.log(`QieFlowRegistry deployed to: ${registryAddress}`);
+  console.log(`FluenciRegistry deployed to: ${registryAddress}`);
 
   // 5. Deploy AI Auditor
-  const QieFlowAIAuditor = await ethers.getContractFactory("QieFlowAIAuditor");
-  const auditor = await QieFlowAIAuditor.deploy(registryAddress);
+  const FluenciAIAuditor = await ethers.getContractFactory("FluenciAIAuditor");
+  const auditor = await FluenciAIAuditor.deploy(registryAddress);
   await auditor.waitForDeployment();
   const auditorAddress = await auditor.getAddress();
-  console.log(`QieFlowAIAuditor deployed to: ${auditorAddress}`);
+  console.log(`FluenciAIAuditor deployed to: ${auditorAddress}`);
 
   // 6. Connect Registry to AI Auditor
   const setAuditorTx = await registry.setAIAuditor(auditorAddress);
   await setAuditorTx.wait();
-  console.log("Registered AI Auditor on QieFlowRegistry");
+  console.log("Registered AI Auditor on FluenciRegistry");
 
   // 7. Set AI worker address
   // AI_PRIVATE_KEY from server env resolves to: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
   const aiWorkerAddress = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
   const setWorkerTx = await auditor.setAiWorker(aiWorkerAddress);
   await setWorkerTx.wait();
-  console.log(`Registered AI worker ${aiWorkerAddress} on QieFlowAIAuditor`);
+  console.log(`Registered AI worker ${aiWorkerAddress} on FluenciAIAuditor`);
 
   // 8. Deploy MockQieDex
   const MockQieDex = await ethers.getContractFactory("MockQieDex");

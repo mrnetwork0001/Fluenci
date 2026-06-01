@@ -1,7 +1,7 @@
 {
-  "name": "qieflow-ai-auditor-server",
+  "name": "fluenci-ai-auditor-server",
   "version": "1.0.0",
-  "description": "Off-chain AI Auditor worker node and telemetry API server for QieFlow",
+  "description": "Off-chain AI Auditor worker node and telemetry API server for Fluenci",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

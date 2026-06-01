@@ -1,4 +1,4 @@
-# QieFlow — Master Build Prompt
+# Fluenci — Master Build Prompt
 ## AI-Shielded Recurring Payments & Subscription Streams on QIE Blockchain
 
 > **Hackathon:** QIE Blockchain Hackathon 2026
@@ -17,7 +17,7 @@ To win, the project must strictly follow the hackathon rules and optimize for ju
    * **QIE Pass:** Gated registration where merchants and subscribers verify their DIDs.
    * **QIE Stable Coin (qUSD):** Settles payments to prevent volatility.
    * **QIE Wallet:** Interacts with MetaMask utilizing the custom testnet RPC.
-3. **The Moat:** Most payment streams execute blindly. QieFlow is unique because it integrates an **autonomous AI Auditor Agent** that actively flags fee changes or anomalies and triggers a contract-level stream pause, which can only be unlocked via a verified **QIE Pass** signature.
+3. **The Moat:** Most payment streams execute blindly. Fluenci is unique because it integrates an **autonomous AI Auditor Agent** that actively flags fee changes or anomalies and triggers a contract-level stream pause, which can only be unlocked via a verified **QIE Pass** signature.
 
 ---
 
@@ -26,13 +26,13 @@ To win, the project must strictly follow the hackathon rules and optimize for ju
 ```
 Subscriber (Verify via QIE Pass)
         │
-        ├──[QieFlowRegistry.sol]   ← Manages subscriptions & streams (settles in qUSD)
+        ├──[FluenciRegistry.sol]   ← Manages subscriptions & streams (settles in qUSD)
         │       │
         │       ├── ratePerSecond  (Streaming rate, e.g., scaled by 1e6)
         │       ├── active         (Subscription status)
         │       └── pausedByAI     (Safety pause triggered by AI Auditor)
         │
-        ├──[QieFlowAIAuditor.sol]  ← Oracle interface: AI agent registers anomalies
+        ├──[FluenciAIAuditor.sol]  ← Oracle interface: AI agent registers anomalies
         │
         └──[MockQUSD.sol]          ← Test stablecoin (qUSD) for streaming settlements
 
@@ -52,13 +52,13 @@ qieflow/
 │   ├── hardhat.config.ts
 │   ├── package.json
 │   ├── contracts/
-│   │   ├── QieFlowRegistry.sol        # ⭐ Core: subscription registers & streams
-│   │   ├── QieFlowAIAuditor.sol       # Oracle gate for AI pauses
+│   │   ├── FluenciRegistry.sol        # ⭐ Core: subscription registers & streams
+│   │   ├── FluenciAIAuditor.sol       # Oracle gate for AI pauses
 │   │   └── MockQUSD.sol               # Mock stablecoin for testnet
 │   ├── scripts/
 │   │   └── deploy.ts                  # Hardhat deployment script
 │   └── test/
-│       └── QieFlow.test.ts            # Integration test suite
+│       └── Fluenci.test.ts            # Integration test suite
 │
 └── frontend/                          # Vite + React App
     ├── package.json
@@ -70,14 +70,14 @@ qieflow/
     │   │   ├── AISecurityDesk.jsx     # AI logging, anomaly flags
     │   │   └── ConnectWallet.jsx      # MetaMask integration (QIE Testnet)
     │   └── hooks/
-    │       └── useQieFlow.js          # Web3 integration hooks
+    │       └── useFluenci.js          # Web3 integration hooks
 ```
 
 ---
 
 ## 📝 Smart Contract Implementation
 
-### Contract 1: `QieFlowRegistry.sol`
+### Contract 1: `FluenciRegistry.sol`
 *Manages payment streams, merchant registries, and verification gates.*
 
 ```solidity
@@ -94,7 +94,7 @@ interface IQiePass {
     function verifyIdentity(address user) external view returns (bool);
 }
 
-contract QieFlowRegistry {
+contract FluenciRegistry {
     address public owner;
     address public qiePass;
     address public qieStableCoin;
@@ -237,20 +237,20 @@ contract QieFlowRegistry {
 
 ---
 
-### Contract 2: `QieFlowAIAuditor.sol`
+### Contract 2: `FluenciAIAuditor.sol`
 *Defines registry metrics for the off-chain AI transaction verification worker.*
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IQieFlowRegistry {
+interface IFluenciRegistry {
     function pauseStreamByAI(bytes32 subId, string calldata reason) external;
 }
 
-contract QieFlowAIAuditor {
+contract FluenciAIAuditor {
     address public owner;
-    address public qieFlowRegistry;
+    address public fluenciRegistry;
     address public trustedAiWorker;
 
     event AnomalyReported(bytes32 indexed subId, string reason, uint256 timestamp);
@@ -267,7 +267,7 @@ contract QieFlowAIAuditor {
 
     constructor(address _registry) {
         owner = msg.sender;
-        qieFlowRegistry = _registry;
+        fluenciRegistry = _registry;
     }
 
     function setAiWorker(address _worker) external onlyOwner {
@@ -278,7 +278,7 @@ contract QieFlowAIAuditor {
      * @notice AI worker reports a billing anomaly and pauses the corresponding stream.
      */
     function triggerSafetyPause(bytes32 subId, string calldata reason) external onlyAiWorker {
-        IQieFlowRegistry(qieFlowRegistry).pauseStreamByAI(subId, reason);
+        IFluenciRegistry(fluenciRegistry).pauseStreamByAI(subId, reason);
         emit AnomalyReported(subId, reason, block.timestamp);
     }
 }
@@ -400,16 +400,16 @@ async function main() {
   console.log(`MockQUSD deployed to: ${await qusd.getAddress()}`);
 
   // 3. Deploy Registry
-  const QieFlowRegistry = await ethers.getContractFactory("QieFlowRegistry");
-  const registry = await QieFlowRegistry.deploy(await qiePass.getAddress(), await qusd.getAddress());
+  const FluenciRegistry = await ethers.getContractFactory("FluenciRegistry");
+  const registry = await FluenciRegistry.deploy(await qiePass.getAddress(), await qusd.getAddress());
   await registry.waitForDeployment();
-  console.log(`QieFlowRegistry deployed to: ${await registry.getAddress()}`);
+  console.log(`FluenciRegistry deployed to: ${await registry.getAddress()}`);
 
   // 4. Deploy AI Auditor
-  const QieFlowAIAuditor = await ethers.getContractFactory("QieFlowAIAuditor");
-  const auditor = await QieFlowAIAuditor.deploy(await registry.getAddress());
+  const FluenciAIAuditor = await ethers.getContractFactory("FluenciAIAuditor");
+  const auditor = await FluenciAIAuditor.deploy(await registry.getAddress());
   await auditor.waitForDeployment();
-  console.log(`QieFlowAIAuditor deployed to: ${await auditor.getAddress()}`);
+  console.log(`FluenciAIAuditor deployed to: ${await auditor.getAddress()}`);
 }
 
 main().catch((error) => {

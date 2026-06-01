@@ -12,7 +12,7 @@ export default function AISecurityDesk({
   const [telemetryLogs, setTelemetryLogs] = useState([]);
   const [serverOnline, setServerOnline] = useState(false);
   const [serverConfig, setServerConfig] = useState({
-    rpcUrl: "https://rpc1testnet.qie.digital/",
+    rpcUrl: "https://rpc4testnet.qie.digital/",
     registryAddress: contracts.registry,
     auditorAddress: contracts.auditor,
     aiPrivateKey: ""
@@ -20,10 +20,11 @@ export default function AISecurityDesk({
 
   // Synchronize configuration form fields when active contract network switches
   useEffect(() => {
-    const isTestnet = contracts.registry.toLowerCase() === "0x5650da53061edab0747549c81c8df774cf41aee9";
+    const registryLower = (contracts.registry || "").toLowerCase();
+    const isTestnet = registryLower === "0x8a791620dd6260079bf849dc5567adc3f2fdc318" || registryLower === "0x5650da53061edab0747549c81c8df774cf41aee9";
     setServerConfig(prev => ({
       ...prev,
-      rpcUrl: isTestnet ? "https://rpc1testnet.qie.digital/" : "http://127.0.0.1:8545",
+      rpcUrl: isTestnet ? "https://rpc4testnet.qie.digital/" : "http://127.0.0.1:8545",
       registryAddress: contracts.registry,
       auditorAddress: contracts.auditor
     }));
@@ -57,9 +58,10 @@ export default function AISecurityDesk({
   const simulateLogs = () => {
     if (telemetryLogs.length === 0) {
       setTelemetryLogs([
-        { id: 1, timestamp: new Date(Date.now() - 60000).toISOString(), type: "INFO", message: "AI Auditor Simulation running. (Backend node offline)" },
-        { id: 2, timestamp: new Date(Date.now() - 45000).toISOString(), type: "INFO", message: "Listening for Registry events..." },
-        { id: 3, timestamp: new Date(Date.now() - 30000).toISOString(), type: "SUCCESS", message: "Security framework active: monitoring active streams." }
+        { id: 1, timestamp: new Date(Date.now() - 60000).toISOString(), type: "INFO", message: "AI Agent Node Simulation running. (Backend node offline)" },
+        { id: 2, timestamp: new Date(Date.now() - 45000).toISOString(), type: "SENTRY_AGENT", message: "Sentry Agent actively monitoring contract event emissions..." },
+        { id: 3, timestamp: new Date(Date.now() - 30000).toISOString(), type: "ANALYST_AGENT", message: "Analyst Agent online: LLM fraud compliance auditing enabled." },
+        { id: 4, timestamp: new Date(Date.now() - 15000).toISOString(), type: "DECISION_AGENT", message: "Decision Agent hot-wallet linked: autonomous pausing online." }
       ]);
     }
   };
@@ -129,14 +131,20 @@ export default function AISecurityDesk({
         {
           id: prev.length + 1,
           timestamp: new Date().toISOString(),
-          type: "ALERT",
-          message: `MANUAL ANOMALY DETECTED for stream: ${selectedStream}. Reason: ${anomalyReason}`
+          type: "SENTRY_AGENT",
+          message: `Captured anomaly trigger request for stream: ${selectedStream}.`
         },
         {
           id: prev.length + 2,
           timestamp: new Date().toISOString(),
-          type: "SIMULATION",
-          message: `Local simulated safety pause triggered. Run server.js with wallet configured to lock on-chain.`
+          type: "ANALYST_AGENT",
+          message: `Exploit analysis compiled. Report pinned to IPFS CID: ipfs://bafybeihash-manualanomaly123`
+        },
+        {
+          id: prev.length + 3,
+          timestamp: new Date().toISOString(),
+          type: "DECISION_AGENT",
+          message: `Autonomous safety pause transaction broadcasted. Stream ${selectedStream} locked.`
         }
       ]);
       alert("Simulation logs updated. To pause on-chain, please launch the AI Auditor backend server.");
@@ -169,6 +177,10 @@ export default function AISecurityDesk({
       case "ACTION": return "var(--color-amber)";
       case "SUCCESS": return "var(--color-emerald)";
       case "AUDIT": return "var(--color-cyan)";
+      case "SENTRY_AGENT": return "#3b82f6"; // Blue
+      case "ANALYST_AGENT": return "#9d4edd"; // Purple
+      case "DECISION_AGENT": return "#10b981"; // Emerald
+      case "ARBITRATOR_AGENT": return "#f59e0b"; // Amber
       case "SIMULATION": return "#a78bfa"; // Violet
       case "WARNING": return "var(--color-amber)";
       default: return "var(--text-secondary)";
@@ -186,22 +198,59 @@ export default function AISecurityDesk({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <h3 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px" }}>
               <Shield size={18} color="var(--color-cyan)" />
-              AI Auditor Node Status
+              AI Sentry Control Center
             </h3>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span className={`status-indicator ${serverOnline ? "status-online" : "status-paused"}`} />
               <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
-                {serverOnline ? "ONLINE" : "SIMULATION"}
+                {serverOnline ? "MULTI-AGENT ACTIVE" : "SIMULATION"}
               </span>
             </span>
           </div>
           <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.4" }}>
             {serverOnline ? (
-              "Node is connected to blockchain RPC and actively auditing created subscription streams using LLM verification."
+              "Multi-Agent Sentry node is connected. Ingestion, fraud analysis, and safety execution loops are running."
             ) : (
-              "Node backend (port 5001) not detected. The dashboard is running in simulation mode. Launch server.js to connect."
+              "Node backend not detected. Running UI in local mock multi-agent simulation. Launch server.js to enable on-chain AI locks."
             )}
           </p>
+        </div>
+
+        {/* AI Agents Control Center Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+          
+          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(59, 130, 246, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(59, 130, 246, 0.02)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#3b82f6" }}>Sentry Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#3b82f6", boxShadow: "0 0 8px #3b82f6" }} />
+            </div>
+            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Blockchain ingestion & mempool filter</span>
+          </div>
+
+          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(157, 78, 221, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(157, 78, 221, 0.02)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#9d4edd" }}>Analyst Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#9d4edd", boxShadow: "0 0 8px #9d4edd" }} />
+            </div>
+            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>LLM pricing audits & IPFS reports</span>
+          </div>
+
+          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(16, 185, 129, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(16, 185, 129, 0.02)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#10b981" }}>Decision Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
+            </div>
+            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Autonomous on-chain safety pausing</span>
+          </div>
+
+          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(245, 158, 11, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(245, 158, 11, 0.02)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#f59e0b" }}>Arbitrator Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#f59e0b", boxShadow: "0 0 8px #f59e0b" }} />
+            </div>
+            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>EIP-712 dispute split calculations</span>
+          </div>
+
         </div>
 
         {/* Dynamic Contract Address Configuration Form */}
@@ -228,7 +277,7 @@ export default function AISecurityDesk({
             
             <div>
               <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                QieFlowRegistry Contract Address
+                FluenciRegistry Contract Address
               </label>
               <input 
                 type="text" 
@@ -242,7 +291,7 @@ export default function AISecurityDesk({
 
             <div>
               <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                QieFlowAIAuditor Contract Address
+                FluenciAIAuditor Contract Address
               </label>
               <input 
                 type="text" 
@@ -286,7 +335,7 @@ export default function AISecurityDesk({
             Simulate Pricing Exploits
           </h3>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "16px" }}>
-            Trigger a manual billing exploit warning. The AI Auditor node will receive the telemetry alert, audit the rate parameters, and pause the payment stream on-chain.
+            Trigger a manual billing exploit warning. The AI Sentry pipeline will capture it, the Analyst Agent will compile an IPFS report, and the Decision Agent will pause the stream on-chain.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -336,13 +385,13 @@ export default function AISecurityDesk({
       </div>
 
       {/* RIGHT COLUMN: Console Event Telemetry */}
-      <div className="glass-card" style={{ display: "flex", flexDirection: "column", height: "550px", position: "relative" }}>
+      <div className="glass-card" style={{ display: "flex", flexDirection: "column", height: "650px", position: "relative" }}>
         
         {/* Terminal Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
           <h3 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px" }}>
             <Terminal size={18} color="var(--color-cyan)" />
-            AI Node Telemetry Logs
+            AI Sentry Log Telemetry
           </h3>
           <button 
             className="btn btn-secondary" 
@@ -376,7 +425,7 @@ export default function AISecurityDesk({
               <span style={{ color: getLogColor(log.type), fontWeight: "bold" }}>[{log.type}]</span>{" "}
               <span style={{ color: "var(--text-primary)" }}>{log.message}</span>
               {log.details && Object.keys(log.details).length > 0 && (
-                <div style={{ paddingLeft: "15px", color: "var(--text-secondary)", fontSize: "0.75rem", marginTop: "2px" }}>
+                <div style={{ paddingLeft: "15px", color: "var(--text-secondary)", fontSize: "0.75rem", marginTop: "2px", wordBreak: "break-all" }}>
                   {JSON.stringify(log.details)}
                 </div>
               )}

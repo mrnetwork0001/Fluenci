@@ -7,7 +7,10 @@ export default function ConnectWallet({
   connectWallet, 
   loading,
   switchToQieTestnet,
-  switchToQieMainnet
+  switchToLocalhost,
+  switchToQieMainnet,
+  showDashboard,
+  onLaunchApp
 }) {
   const getNetworkName = (id) => {
     if (id === 1983) return "QIE Testnet";
@@ -25,13 +28,13 @@ export default function ConnectWallet({
           
           {/* Network Selector / Switch buttons */}
           <div style={{ display: "flex", gap: "6px" }}>
-            {chainId !== 1990 && (
+            {chainId !== 31337 && (
               <button 
                 className="btn btn-secondary" 
-                style={{ padding: "6px 12px", fontSize: "0.75rem", background: "rgba(157, 78, 221, 0.05)", borderColor: "rgba(157, 78, 221, 0.2)", color: "var(--color-purple)" }}
-                onClick={switchToQieMainnet}
+                style={{ padding: "6px 12px", fontSize: "0.75rem", background: "rgba(245, 158, 11, 0.05)", borderColor: "rgba(245, 158, 11, 0.2)", color: "var(--color-amber)" }}
+                onClick={switchToLocalhost}
               >
-                QIE Mainnet
+                Localhost (31337)
               </button>
             )}
             {chainId !== 1983 && (
@@ -86,11 +89,11 @@ export default function ConnectWallet({
       ) : (
         <button 
           className="btn btn-primary" 
-          onClick={connectWallet}
+          onClick={showDashboard ? connectWallet : onLaunchApp}
           disabled={loading}
         >
           <Wallet size={16} />
-          {loading ? "Connecting..." : "Connect MetaMask"}
+          {loading ? "Connecting..." : (showDashboard ? "Connect Wallet" : "Launch App")}
         </button>
       )}
     </div>

@@ -24,7 +24,7 @@ export default function AISecurityDesk({
     const isTestnet = registryLower === "0x8a791620dd6260079bf849dc5567adc3f2fdc318" || registryLower === "0x5650da53061edab0747549c81c8df774cf41aee9";
     setServerConfig(prev => ({
       ...prev,
-      rpcUrl: isTestnet ? "https://rpc4testnet.qie.digital/" : "http://127.0.0.1:8545",
+      rpcUrl: isTestnet ? "https://rpc4testnet.qie.digital/" : "https://rpc1mainnet.qie.digital",
       registryAddress: contracts.registry,
       auditorAddress: contracts.auditor
     }));

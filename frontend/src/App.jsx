@@ -255,7 +255,7 @@ export default function App() {
     }
   };
 
-  const isSupportedNetwork = fluenci.chainId === 1983 || fluenci.chainId === 1990 || fluenci.chainId === 31337;
+  const isSupportedNetwork = fluenci.chainId === 1983 || fluenci.chainId === 1990;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -338,7 +338,6 @@ export default function App() {
           connectWallet={fluenci.connectWallet}
           loading={fluenci.loading}
           switchToQieTestnet={fluenci.switchToQieTestnet}
-          switchToLocalhost={fluenci.switchToLocalhost}
           switchToQieMainnet={fluenci.switchToQieMainnet}
           showDashboard={viewMode === "dashboard"}
           onLaunchApp={() => setViewMode("dashboard")}
@@ -383,15 +382,15 @@ export default function App() {
           >
             <h3 style={{ marginBottom: "10px" }}>Unsupported Blockchain Network Connected</h3>
             <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "16px" }}>
-              Fluenci operates on the **Localhost Hardhat chain (Chain ID: 31337)** or **QIE Testnet (Chain ID: 1983)**. 
+              Fluenci operates on the **QIE Testnet (Chain ID: 1983)** or **QIE Mainnet (Chain ID: 1990)**. 
               Please switch your MetaMask network connection.
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <button className="btn btn-primary" onClick={fluenci.switchToLocalhost}>
-                Switch to Localhost Hardhat
-              </button>
-              <button className="btn btn-secondary" onClick={fluenci.switchToQieTestnet}>
+              <button className="btn btn-primary" onClick={fluenci.switchToQieTestnet}>
                 Switch to QIE Testnet
+              </button>
+              <button className="btn btn-secondary" onClick={fluenci.switchToQieMainnet}>
+                Switch to QIE Mainnet
               </button>
             </div>
           </div>

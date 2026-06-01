@@ -117,59 +117,43 @@ export function useFluenci() {
     return new ethers.JsonRpcProvider("https://rpc4testnet.qie.digital/");
   }, [chainId]);
 
-  // Switch network to QIE Testnet
+  // Switch network to QIE Testnet and force RPC sync
   const switchToQieTestnet = async () => {
     if (!window.ethereum) return;
     try {
       await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x7BF" }] // 1983 in hex
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: "0x7BF",
+          chainName: "QIE Testnet",
+          nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
+          rpcUrls: ["https://rpc4testnet.qie.digital/"],
+          blockExplorerUrls: ["https://testnet.qie.digital/"]
+        }]
       });
     } catch (err) {
-      console.warn("Switch network failed, attempting to add QIE Testnet...", err);
-      try {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x7BF",
-            chainName: "QIE Testnet",
-            nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
-            rpcUrls: ["https://rpc4testnet.qie.digital/"],
-            blockExplorerUrls: ["https://testnet.qie.digital/"]
-          }]
-        });
-      } catch (addErr) {
-        console.error("Failed to add network", addErr);
-        setError("Failed to automatically add QIE Testnet. Please check MetaMask.");
-      }
+      console.error("Failed to add or sync QIE Testnet network", err);
+      setError("Failed to add or sync QIE Testnet. Please check MetaMask.");
     }
   };
 
-  // Switch network to QIE Mainnet
+  // Switch network to QIE Mainnet and force RPC sync
   const switchToQieMainnet = async () => {
     if (!window.ethereum) return;
     try {
       await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x7C6" }] // 1990 in hex
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: "0x7C6",
+          chainName: "QIE Mainnet",
+          nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
+          rpcUrls: ["https://rpc1mainnet.qie.digital"],
+          blockExplorerUrls: ["https://mainnet.qie.digital/"]
+        }]
       });
     } catch (err) {
-      console.warn("Switch network failed, attempting to add QIE Mainnet...", err);
-      try {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x7C6",
-            chainName: "QIE Mainnet",
-            nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
-            rpcUrls: ["https://rpc1mainnet.qie.digital"],
-            blockExplorerUrls: ["https://mainnet.qie.digital/"]
-          }]
-        });
-      } catch (addErr) {
-        console.error("Failed to add network", addErr);
-        setError("Failed to automatically add QIE Mainnet. Please check MetaMask.");
-      }
+      console.error("Failed to add or sync QIE Mainnet network", err);
+      setError("Failed to add or sync QIE Mainnet. Please check MetaMask.");
     }
   };
 

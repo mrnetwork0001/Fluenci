@@ -119,6 +119,16 @@ export function useFluenci() {
     return { provider, signer };
   };
 
+  const getReadProvider = useCallback(() => {
+    if (chainId === 31337) {
+      return new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+    }
+    if (chainId === 1990) {
+      return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
+    }
+    return new ethers.JsonRpcProvider("https://rpc4testnet.qie.digital/");
+  }, [chainId]);
+
   // Switch network to QIE Testnet
   const switchToQieTestnet = async () => {
     if (!window.ethereum) return;
@@ -231,7 +241,7 @@ export function useFluenci() {
     if (!account) return;
 
     try {
-      const { provider } = await getProviderAndSigner();
+      const provider = getReadProvider();
       
       // Native QIE Balance
       const qieBalVal = await provider.getBalance(account);
@@ -277,7 +287,7 @@ export function useFluenci() {
     if (!account || !contracts.registry) return;
 
     try {
-      const { provider } = await getProviderAndSigner();
+      const provider = getReadProvider();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, provider);
 
       // Fetch subscriber streams
@@ -396,9 +406,9 @@ export function useFluenci() {
 
   // Resolve QieDomain (.qie)
   const resolveQieDomain = async (domainName) => {
-    if (!contracts.qiedomain) return address(0);
+    if (!contracts.qiedomain) return ethers.ZeroAddress;
     try {
-      const { provider } = await getProviderAndSigner();
+      const provider = getReadProvider();
       const domainContract = new ethers.Contract(contracts.qiedomain, DOMAIN_ABI, provider);
       const res = await domainContract.resolveDomain(domainName);
       return res;
@@ -450,7 +460,7 @@ export function useFluenci() {
       const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
       
       // Calculate absolute timestamps
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = getReadProvider();
       const block = await provider.getBlock("latest");
       const currentTimestamp = block.timestamp;
       

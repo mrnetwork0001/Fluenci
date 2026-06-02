@@ -5,18 +5,19 @@ import SubscriberPanel from "./components/SubscriberPanel";
 import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
+import TransactionModal from "./components/TransactionModal";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
 import "./App.css";
 
 // Default deployment addresses
 const DEFAULT_HARDHAT_CONTRACTS = {
-  registry: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-  qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-  weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-  qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-  auditor: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
-  qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-  qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
+  registry: "0x2DA9e917568D69626078df6bCb7B71F0DeDA6117",
+  qusdc: "0xB64aE86dc64AEcB67a870192cDCAeC30EBd14b3b",
+  weth: "0x45466425dc303c8c014885ACdEd3d95147eC4993",
+  qiepass: "0x774758CE0Cb704AC54f1cc0cace59d2957d8250A",
+  auditor: "0x75475647f52531D4086296415392E4AA94b92de7",
+  qiedex: "0xE21F69c4394dFA41FC5F31a9B994e0275B47cD34",
+  qiedomain: "0x5b66380309C29D00Ff82388a856fB5e87fF09A7E"
 };
 
 // Live AI Telemetry mock widget for Landing Page
@@ -365,18 +366,20 @@ export default function App() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <Shield size={22} color="var(--color-amber)" />
-              <strong style={{ fontSize: "1.1rem" }}>MetaMask Connection Issues (RPC Misconfiguration)</strong>
+              <strong style={{ fontSize: "1.1rem" }}>Wallet RPC Misconfiguration Detected</strong>
             </div>
             <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.4" }}>
-              Your MetaMask wallet is attempting to connect via the offline **QIE Testnet RPC (`rpc1testnet.qie.digital`)**.
-              Please click the button below to allow MetaMask to automatically sync to the working **`rpc4testnet`** node.
+              Your wallet is trying to reach the <code>rpc1testnet.qie.digital</code> node but it appears to be down.
+              Please check your wallet's <strong>Custom Network / Chain settings</strong> for QIE Testnet (Chain ID 1983)
+              and ensure the RPC URL is set to <code>https://rpc1testnet.qie.digital</code>, then try again.
+              You can also click the button below to attempt an automatic repair.
             </p>
             <button 
               className="btn btn-primary" 
               style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: "0.85rem" }}
               onClick={fluenci.switchToQieTestnet}
             >
-              Sync & Repair MetaMask RPC Configuration
+              Auto-Repair Wallet RPC Configuration
             </button>
           </div>
         ) : fluenci.error && (
@@ -608,6 +611,9 @@ export default function App() {
         </div>
         <p>© 2026 Fluenci Protocol. Built for QIE Blockchain Hackathon. All rights reserved.</p>
       </footer>
+
+      {/* Transaction Progress Modal */}
+      <TransactionModal txState={fluenci.txState} onClose={fluenci.resetTx} />
     </div>
   );
 }

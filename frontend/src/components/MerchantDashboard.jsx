@@ -199,6 +199,11 @@ export default function MerchantDashboard({
                           <span style={{ color: "var(--color-amber)", background: "rgba(245, 158, 11, 0.1)", padding: "4px 8px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             ⚠️ DISPUTED
                           </span>
+                        ) : stream.disputeState === 2 ? (
+                          <span style={{ color: "var(--color-emerald)", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", background: "rgba(16, 185, 129, 0.15)", padding: "4px 8px", borderRadius: "4px", fontWeight: "bold" }}>
+                            <ShieldCheck size={12} />
+                            Dispute Resolved
+                          </span>
                         ) : isPaused ? (
                           <span style={{ color: "var(--color-rose)", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold", background: "rgba(244, 63, 94, 0.1)", padding: "4px 8px", borderRadius: "4px" }}>
                             <AlertTriangle size={12} className="pulse" />

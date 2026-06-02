@@ -145,7 +145,7 @@ contract FluenciRegistry {
         Subscription storage sub = subscriptions[subId];
         require(sub.active, "Subscription is not active");
         require(!sub.pausedByAI, "Stream paused by AI due to anomaly");
-        require(sub.dispute == DisputeState.NONE, "Stream is currently disputed");
+        require(sub.dispute != DisputeState.OPEN, "Stream is currently disputed");
         if (sub.cliffTime > 0) {
             require(block.timestamp >= sub.cliffTime, "Vesting cliff not reached yet");
         }

@@ -45,13 +45,13 @@ const DOMAIN_ABI = [
 
 const CONTRACT_ADDRESSES_BY_CHAIN = {
   1983: { // QIE Testnet
-    registry: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318", // Local/Testnet fallback
-    qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-    weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-    qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-    auditor: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
-    qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-    qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
+    registry: "0x2DA9e917568D69626078df6bCb7B71F0DeDA6117",
+    qusdc: "0xB64aE86dc64AEcB67a870192cDCAeC30EBd14b3b",
+    weth: "0x45466425dc303c8c014885ACdEd3d95147eC4993",
+    qiepass: "0x774758CE0Cb704AC54f1cc0cace59d2957d8250A",
+    auditor: "0x75475647f52531D4086296415392E4AA94b92de7",
+    qiedex: "0xE21F69c4394dFA41FC5F31a9B994e0275B47cD34",
+    qiedomain: "0x5b66380309C29D00Ff82388a856fB5e87fF09A7E"
   },
   1990: { // QIE Mainnet
     registry: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
@@ -78,6 +78,22 @@ export function useFluenci() {
   const [qiePassVerified, setQiePassVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Transaction modal state
+  const [txState, setTxState] = useState({
+    status: "idle", // idle | preparing | awaiting_signature | broadcasting | confirming | confirmed | error
+    action: "",
+    hash: "",
+    error: ""
+  });
+
+  const setTxStep = (status, extra = {}) => {
+    setTxState(prev => ({ ...prev, status, ...extra }));
+  };
+
+  const resetTx = () => {
+    setTxState({ status: "idle", action: "", hash: "", error: "" });
+  };
   const [subscriberStreams, setSubscriberStreams] = useState([]);
   const [merchantStreams, setMerchantStreams] = useState([]);
   const [realtimeClaimables, setRealtimeClaimables] = useState({});
@@ -114,8 +130,24 @@ export function useFluenci() {
     if (chainId === 1990) {
       return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
     }
-    return new ethers.JsonRpcProvider("https://rpc4testnet.qie.digital/");
+    return new ethers.JsonRpcProvider("https://rpc1testnet.qie.digital");
   }, [chainId]);
+
+  // Wait for a transaction using our own read provider (bypasses wallet's potentially broken RPC)
+  const waitForTx = async (tx) => {
+    const readProvider = getReadProvider();
+    const TIMEOUT_MS = 120000; // 2 minute safety timeout
+    const receipt = await Promise.race([
+      readProvider.waitForTransaction(tx.hash, 1),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(
+          `Transaction sent (${tx.hash.slice(0, 10)}…) but confirmation timed out after 2 minutes. ` +
+          `Check your wallet or block explorer for status.`
+        )), TIMEOUT_MS)
+      )
+    ]);
+    return receipt;
+  };
 
   // Switch network to QIE Testnet and force RPC sync
   const switchToQieTestnet = async () => {
@@ -127,7 +159,7 @@ export function useFluenci() {
           chainId: "0x7BF",
           chainName: "QIE Testnet",
           nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
-          rpcUrls: ["https://rpc4testnet.qie.digital/"],
+          rpcUrls: ["https://rpc1testnet.qie.digital"],
           blockExplorerUrls: ["https://testnet.qie.digital/"]
         }]
       });
@@ -298,18 +330,24 @@ export function useFluenci() {
   const mintMockTokens = async (tokenSymbol, amount) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: `Minting ${amount} ${tokenSymbol}`, hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
       const decimals = tokenSymbol === "qUSDC" ? 6 : 18;
       
       const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
       const tx = await tokenContract.mint(account, ethers.parseUnits(amount, decimals));
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -318,17 +356,23 @@ export function useFluenci() {
   const approveToken = async (tokenSymbol) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: `Approving ${tokenSymbol}`, hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
       
       const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
       const tx = await tokenContract.approve(contracts.registry, ethers.MaxUint256);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -337,15 +381,21 @@ export function useFluenci() {
   const toggleQiePassStatus = async (status) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: status ? "Verifying KYC Identity" : "Revoking KYC Identity", hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, signer);
       const tx = await passContract.registerIdentity(account, status);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -368,7 +418,9 @@ export function useFluenci() {
   const swapQieForTokens = async (tokenSymbol, qieAmount) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: `Swapping ${qieAmount} QIE → ${tokenSymbol}`, hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
       const dexContract = new ethers.Contract(contracts.qiedex, DEX_ABI, signer);
@@ -376,11 +428,15 @@ export function useFluenci() {
       const tx = await dexContract.swapQieForTokens(tokenAddress, {
         value: ethers.parseEther(qieAmount)
       });
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -389,6 +445,7 @@ export function useFluenci() {
   const createSubscription = async (merchant, tokenSymbol, ratePerSecond, cliffSeconds = 0, stopSeconds = 0) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Creating Subscription Stream", hash: "", error: "" });
     try {
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
@@ -413,6 +470,7 @@ export function useFluenci() {
       const cliffTime = cliffSeconds > 0 ? currentTimestamp + Number(cliffSeconds) : 0;
       const stopTime = stopSeconds > 0 ? currentTimestamp + Number(stopSeconds) : 0;
 
+      setTxStep("awaiting_signature");
       const tx = await registryContract.createSubscription(
         merchantAddress,
         tokenAddress,
@@ -420,12 +478,16 @@ export function useFluenci() {
         cliffTime,
         stopTime
       );
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -434,16 +496,22 @@ export function useFluenci() {
   const claimStream = async (subId) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Claiming Stream Funds", hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
       const tx = await registryContract.claimStream(subId);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -452,15 +520,21 @@ export function useFluenci() {
   const openDispute = async (subId) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Opening Dispute", hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
       const tx = await registryContract.openDispute(subId);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -469,16 +543,22 @@ export function useFluenci() {
   const resolveDisputeOnChain = async (subId, subscriberRefund, merchantShare, signature) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Resolving Dispute", hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
       const tx = await registryContract.resolveDispute(subId, subscriberRefund, merchantShare, signature);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       await fetchAccountState();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -487,6 +567,7 @@ export function useFluenci() {
   const transferStreamNFT = async (subId, toAddress) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Transferring Stream NFT", hash: "", error: "" });
     try {
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
@@ -501,12 +582,17 @@ export function useFluenci() {
         recipient = resolved;
       }
 
+      setTxStep("awaiting_signature");
       const tx = await registryContract.transferFrom(account, recipient, tokenId);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -515,15 +601,21 @@ export function useFluenci() {
   const resumeStream = async (subId) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Resuming Stream", hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
       const tx = await registryContract.resumeStream(subId);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -532,15 +624,21 @@ export function useFluenci() {
   const terminateStream = async (subId) => {
     setError("");
     setLoading(true);
+    setTxState({ status: "preparing", action: "Terminating Stream", hash: "", error: "" });
     try {
+      setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
       const tx = await registryContract.terminateStream(subId);
-      await tx.wait();
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
       await fetchSubscriptions();
       setLoading(false);
     } catch (err) {
       setError(err.message);
+      setTxStep("error", { error: err.message });
       setLoading(false);
     }
   };
@@ -660,6 +758,8 @@ export function useFluenci() {
     realtimeClaimables,
     loading,
     error,
+    txState,
+    resetTx,
     contracts,
     connectWallet,
     mintMockTokens,

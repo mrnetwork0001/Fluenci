@@ -18,6 +18,7 @@ const config: HardhatUserConfig = {
       url: "https://rpc4testnet.qie.digital/",
       chainId: 1983,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1_500_000_000, // 1.5 Gwei - QIE RPC returns wrong gas price (7 wei), real txs use ~1.5 Gwei
     }
   }
 };

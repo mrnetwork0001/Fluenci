@@ -138,6 +138,8 @@ export default function SubscriberPanel({
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
 
+  const isInsufficientQie = !isNaN(parseFloat(swapAmount)) && parseFloat(swapAmount) > parseFloat(qieBalance);
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
       
@@ -165,29 +167,58 @@ export default function SubscriberPanel({
             </div>
           </div>
           
-          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-            <input 
-              type="number"
-              className="glass-card"
-              style={{ padding: "6px 8px", width: "70px", borderRadius: "6px", fontSize: "0.8rem", color: "#fff", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)" }}
-              value={mintAmount}
-              onChange={(e) => setMintAmount(e.target.value)}
-            />
-            <select 
-              value={mintToken}
-              onChange={(e) => setMintToken(e.target.value)}
-              style={{ padding: "6px 8px", borderRadius: "6px", fontSize: "0.8rem", color: "#fff", background: "#0c1020", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
-              <option value="qUSDC">qUSDC</option>
-              <option value="MockWETH">WETH</option>
-            </select>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <input 
+                type="number"
+                className="glass-card"
+                style={{ 
+                  padding: "8px 12px", 
+                  flex: 1, 
+                  minWidth: "50px",
+                  borderRadius: "6px", 
+                  fontSize: "0.85rem", 
+                  color: "#fff", 
+                  background: "rgba(0,0,0,0.2)", 
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  outline: "none",
+                  boxSizing: "border-box"
+                }}
+                value={mintAmount}
+                onChange={(e) => setMintAmount(e.target.value)}
+              />
+              <select 
+                value={mintToken}
+                onChange={(e) => setMintToken(e.target.value)}
+                style={{ 
+                  padding: "8px 12px", 
+                  borderRadius: "6px", 
+                  fontSize: "0.85rem", 
+                  color: "#fff", 
+                  background: "#0c1020", 
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  cursor: "pointer",
+                  width: "100px",
+                  minWidth: "100px",
+                  boxSizing: "border-box"
+                }}
+              >
+                <option value="qUSDC">qUSDC</option>
+                <option value="MockWETH">WETH</option>
+              </select>
+            </div>
             <button 
               className="btn btn-secondary" 
               onClick={() => mintMockTokens(mintToken, mintAmount)}
               disabled={loading}
-              style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+              style={{ 
+                fontSize: "0.8rem", 
+                padding: "8px 16px",
+                width: "100%",
+                borderRadius: "6px"
+              }}
             >
-              Faucet
+              Request Test Tokens
             </button>
           </div>
         </div>
@@ -201,31 +232,78 @@ export default function SubscriberPanel({
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
             Instantly swap native QIE to streaming tokens to prevent stream halts.
           </p>
-          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-            <input 
-              type="number"
-              placeholder="QIE"
-              className="glass-card"
-              style={{ padding: "6px 8px", width: "70px", borderRadius: "6px", fontSize: "0.8rem", color: "#fff", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)" }}
-              value={swapAmount}
-              onChange={(e) => setSwapAmount(e.target.value)}
-            />
-            <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>QIE →</span>
-            <select 
-              value={swapToken}
-              onChange={(e) => setSwapToken(e.target.value)}
-              style={{ padding: "6px 8px", borderRadius: "6px", fontSize: "0.8rem", color: "#fff", background: "#0c1020", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
-              <option value="qUSDC">qUSDC</option>
-              <option value="MockWETH">WETH</option>
-            </select>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: "50px" }}>
+                <input 
+                  type="number"
+                  placeholder="0.0"
+                  className="glass-card"
+                  style={{ 
+                    padding: "8px 12px", 
+                    width: "100%", 
+                    borderRadius: "6px", 
+                    fontSize: "0.85rem", 
+                    color: "#fff", 
+                    background: "rgba(0,0,0,0.2)", 
+                    border: isInsufficientQie ? "1px solid var(--color-rose)" : "1px solid rgba(255,255,255,0.08)",
+                    outline: "none",
+                    boxSizing: "border-box"
+                  }}
+                  value={swapAmount}
+                  onChange={(e) => setSwapAmount(e.target.value)}
+                />
+                <span style={{ 
+                  position: "absolute", 
+                  right: "10px", 
+                  top: "50%", 
+                  transform: "translateY(-50%)", 
+                  fontSize: "0.75rem", 
+                  color: "var(--text-muted)",
+                  pointerEvents: "none"
+                }}>
+                  QIE
+                </span>
+              </div>
+              
+              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>→</span>
+              
+              <select 
+                value={swapToken}
+                onChange={(e) => setSwapToken(e.target.value)}
+                style={{ 
+                  padding: "8px 12px", 
+                  borderRadius: "6px", 
+                  fontSize: "0.85rem", 
+                  color: "#fff", 
+                  background: "#0c1020", 
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  cursor: "pointer",
+                  width: "100px",
+                  minWidth: "100px",
+                  boxSizing: "border-box"
+                }}
+              >
+                <option value="qUSDC">qUSDC</option>
+                <option value="MockWETH">WETH</option>
+              </select>
+            </div>
+
             <button 
               className="btn btn-primary" 
               onClick={() => swapQieForTokens(swapToken, swapAmount)}
-              disabled={loading}
-              style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+              disabled={loading || isInsufficientQie || parseFloat(swapAmount) <= 0}
+              style={{ 
+                fontSize: "0.8rem", 
+                padding: "8px 16px",
+                width: "100%",
+                background: isInsufficientQie ? "var(--color-rose)" : undefined,
+                borderColor: isInsufficientQie ? "var(--color-rose)" : undefined,
+                color: isInsufficientQie ? "#fff" : undefined,
+                borderRadius: "6px"
+              }}
             >
-              Swap
+              {isInsufficientQie ? "Insufficient QIE Balance" : "Swap QIE"}
             </button>
           </div>
         </div>
@@ -495,6 +573,11 @@ export default function SubscriberPanel({
                           <span style={{ color: "var(--color-amber)", fontSize: "0.75rem", fontWeight: "bold" }}>
                             ⚠️ DISPUTED
                           </span>
+                        ) : stream.disputeState === 2 ? (
+                          <span style={{ color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
+                            <ShieldCheck size={12} />
+                            Dispute Resolved
+                          </span>
                         ) : isPaused ? (
                           <span style={{ color: "var(--color-rose)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             <ShieldAlert size={12} className="pulse" />
@@ -548,6 +631,12 @@ export default function SubscriberPanel({
                               </button>
                             )}
                           </div>
+
+                          {stream.active && stream.disputeState === 2 && (
+                            <span style={{ fontSize: "0.7rem", color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
+                              <ShieldCheck size={10} /> Arbitrated by AI
+                            </span>
+                          )}
 
                           {/* NFT Transfer Sub-section */}
                           {stream.active && (

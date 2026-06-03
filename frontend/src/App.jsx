@@ -7,6 +7,7 @@ import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
 import TransactionModal from "./components/TransactionModal";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
+import LogoImage from "./assets/logo.png";
 import "./App.css";
 
 // Default deployment addresses
@@ -280,19 +281,17 @@ export default function App() {
           onClick={() => setViewMode("landing")}
           title="Return to Landing Page"
         >
-          <div 
+          <img 
+            src={LogoImage} 
+            alt="Fluenci Logo" 
             style={{ 
-              background: "linear-gradient(135deg, #00f2fe 0%, #9d4edd 100%)",
-              padding: "10px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 15px rgba(0, 242, 254, 0.2)"
-            }}
-          >
-            <Shield size={22} color="#000" />
-          </div>
+              width: "42px", 
+              height: "42px", 
+              borderRadius: "10px",
+              boxShadow: "0 0 15px rgba(0, 242, 254, 0.3)",
+              border: "1px solid rgba(0, 242, 254, 0.2)"
+            }} 
+          />
           <div>
             <h1 style={{ fontSize: "1.4rem", fontWeight: "800", color: "#fff", lineHeight: "1.2" }}>
               Fluenci

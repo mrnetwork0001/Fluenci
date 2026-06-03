@@ -84,11 +84,10 @@ async function main() {
 
   const addresses = {
     registry: registryAddress,
-    qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853", // Live Mainnet qUSD
-    weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6", // Live Mainnet WETH
+    qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official Mainnet QUSDC
     qiepass: QIE_PASS_MAINNET, // Live Mainnet QIE Pass
     auditor: auditorAddress,
-    qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82", // Live Mainnet QIEDex
+    qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
     qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508" // Live Mainnet QIE Domains Resolver
   };
 

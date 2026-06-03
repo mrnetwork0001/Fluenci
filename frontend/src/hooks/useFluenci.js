@@ -33,8 +33,8 @@ const QIEPASS_ABI = [
 ];
 
 const DEX_ABI = [
-  "function swapQieForTokens(address tokenAddress) external payable returns (uint256)",
-  "function ratePerQie(address tokenAddress) external view returns (uint256)"
+  "function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline) external payable returns (uint256[] memory)",
+  "function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory)"
 ];
 
 const DOMAIN_ABI = [
@@ -46,10 +46,10 @@ const DOMAIN_ABI = [
 const CONTRACT_ADDRESSES_BY_CHAIN = {
   1990: { // QIE Mainnet
     registry: "0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675",
-    qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official QUSDC
     qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
-    qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+    qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
     qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
   }
 };
@@ -405,12 +405,32 @@ export function useFluenci() {
     try {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
-      const tokenAddress = contracts.qusdc;
       const dexContract = new ethers.Contract(contracts.qiedex, DEX_ABI, signer);
       
-      const tx = await dexContract.swapQieForTokens(tokenAddress, {
-        value: ethers.parseEther(qieAmount)
-      });
+      const path = [
+        "0x0087904D95BEe9E5F24dc8852804b547981A9139", // WQIE
+        contracts.qusdc // QUSDC
+      ];
+      
+      const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 min deadline
+      
+      let amountOutMin = 0n;
+      try {
+        const amounts = await dexContract.getAmountsOut(ethers.parseEther(qieAmount), path);
+        amountOutMin = (amounts[1] * 95n) / 100n; // 5% slippage
+      } catch (e) {
+        console.warn("Failed to fetch getAmountsOut", e);
+      }
+
+      const tx = await dexContract.swapExactETHForTokens(
+        amountOutMin,
+        path,
+        account,
+        deadline,
+        {
+          value: ethers.parseEther(qieAmount)
+        }
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);

@@ -33,8 +33,8 @@ const QIEPASS_ABI = [
 ];
 
 const DEX_ABI = [
-  "function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline) external payable returns (uint256[] memory)",
-  "function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory)"
+  "function swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline) external payable returns (uint256[])",
+  "function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"
 ];
 
 const DOMAIN_ABI = [

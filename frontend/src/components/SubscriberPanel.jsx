@@ -52,7 +52,7 @@ export default function SubscriberPanel({
         const provider = new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
         const dexContract = new ethers.Contract(
           contracts.qiedex, 
-          ["function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory)"], 
+          ["function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"], 
           provider
         );
         const path = [

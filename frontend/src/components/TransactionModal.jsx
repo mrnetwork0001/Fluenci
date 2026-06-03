@@ -9,7 +9,7 @@ const TX_STEPS = [
   { key: "confirming", label: "Confirming On-Chain", icon: Radio },
 ];
 
-const EXPLORER_URL = "https://testnet.qie.digital";
+const EXPLORER_URL = "https://mainnet.qie.digital";
 
 function getStepIndex(status) {
   switch (status) {
@@ -161,7 +161,7 @@ export default function TransactionModal({ txState, onClose }) {
                     <div className="tx-step-detail tx-step-active-pulse">In progress…</div>
                   )}
                   {stepStatus === "completed" && idx === 2 && hash && (
-                    <div className="tx-step-detail">Tx sent to QIE Testnet</div>
+                    <div className="tx-step-detail">Tx sent to QIE Mainnet</div>
                   )}
                 </div>
               </div>

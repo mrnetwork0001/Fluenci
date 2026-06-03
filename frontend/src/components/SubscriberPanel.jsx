@@ -158,7 +158,7 @@ export default function SubscriberPanel({
         <div className="glass-card">
           <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
             <Scale size={16} color="var(--color-cyan)" />
-            Qiedex Auto-Swap Faucet
+            Qiedex Instant Auto-Swap
           </h3>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
             Instantly swap native QIE to streaming tokens to prevent stream halts.

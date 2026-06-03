@@ -12,7 +12,7 @@ export default function AISecurityDesk({
   const [telemetryLogs, setTelemetryLogs] = useState([]);
   const [serverOnline, setServerOnline] = useState(false);
   const [serverConfig, setServerConfig] = useState({
-    rpcUrl: "https://rpc1testnet.qie.digital",
+    rpcUrl: "https://rpc1mainnet.qie.digital",
     registryAddress: contracts.registry,
     auditorAddress: contracts.auditor,
     aiPrivateKey: ""
@@ -20,11 +20,9 @@ export default function AISecurityDesk({
 
   // Synchronize configuration form fields when active contract network switches
   useEffect(() => {
-    const registryLower = (contracts.registry || "").toLowerCase();
-    const isTestnet = registryLower === "0x2da9e917568d69626078df6bcb7b71f0deda6117" || registryLower === "0x8a791620dd6260079bf849dc5567adc3f2fdc318" || registryLower === "0x5650da53061edab0747549c81c8df774cf41aee9";
     setServerConfig(prev => ({
       ...prev,
-      rpcUrl: isTestnet ? "https://rpc1testnet.qie.digital" : "https://rpc1mainnet.qie.digital",
+      rpcUrl: "https://rpc1mainnet.qie.digital",
       registryAddress: contracts.registry,
       auditorAddress: contracts.auditor
     }));

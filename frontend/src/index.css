@@ -210,6 +210,12 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 8px var(--color-rose);
 }
 
+.status-warning {
+  background-color: var(--color-amber);
+  box-shadow: 0 0 8px var(--color-amber);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 /* Keyframe animations */
 @keyframes pulse {
   0% { transform: scale(0.95); opacity: 0.5; }

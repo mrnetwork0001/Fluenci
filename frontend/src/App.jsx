@@ -214,6 +214,8 @@ export default function App() {
               transferStreamNFT={fluenci.transferStreamNFT}
               swapQieForTokens={fluenci.swapQieForTokens}
               contracts={fluenci.contracts}
+              kycState={fluenci.kycState}
+              checkKycStatus={fluenci.checkKycStatus}
             />
             
             <QieDoodleGame

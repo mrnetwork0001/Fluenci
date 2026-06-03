@@ -39,6 +39,28 @@ let REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS;
 let AUDITOR_ADDRESS = process.env.AUDITOR_ADDRESS;
 let AI_PRIVATE_KEY = process.env.AI_PRIVATE_KEY;
 
+// QIE Pass API Settings
+const QIEPASS_API_URL = process.env.QIEPASS_API_URL || "https://pass-api.qie.digital";
+const QIEPASS_PUBLIC_KEY = process.env.QIEPASS_PUBLIC_KEY || "";
+const QIEPASS_SECRET_KEY = process.env.QIEPASS_SECRET_KEY || "";
+const QIEPASS_CLAIMS = (process.env.QIEPASS_CLAIMS || "firstName,country").split(",").map(c => c.trim());
+
+// HMAC-SHA256 Signature generator for QIE Pass API authentication
+function generateQiePassHeaders() {
+  const timestamp = Date.now().toString();
+  const message = QIEPASS_PUBLIC_KEY + timestamp;
+  const signature = crypto
+    .createHmac("sha256", QIEPASS_SECRET_KEY)
+    .update(message)
+    .digest("hex");
+  return {
+    "Content-Type": "application/json",
+    "X-Public-Key": QIEPASS_PUBLIC_KEY,
+    "X-Signature": signature,
+    "X-Timestamp": timestamp
+  };
+}
+
 function logTelemetry(type, message, details = {}) {
   const logEntry = {
     id: telemetryLogs.length + 1,
@@ -509,6 +531,162 @@ app.post("/trigger-anomaly", async (req, res) => {
 
   await DecisionAgent.evaluateReport(subId, mockReport, ipfsCID);
   res.json({ success: true, ipfsCID });
+});
+
+// ==========================================
+// QIE PASS KYC VERIFICATION ROUTES
+// ==========================================
+
+// Create a QIE Pass verification request
+app.post("/qiepass/verify", async (req, res) => {
+  const { walletAddress } = req.body;
+  if (!walletAddress) {
+    return res.status(400).json({ success: false, error: "Missing walletAddress" });
+  }
+  if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
+    return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
+  }
+
+  try {
+    const headers = generateQiePassHeaders();
+    const body = {
+      identifier: walletAddress,
+      requestedClaims: QIEPASS_CLAIMS
+    };
+
+    logTelemetry("QIEPASS", `Creating verification request for ${walletAddress}`, { claims: QIEPASS_CLAIMS });
+
+    const response = await fetch(`${QIEPASS_API_URL}/api/v1/partners/verification-requests`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      logTelemetry("QIEPASS", `Verification request failed: ${data?.error?.message || response.statusText}`);
+      return res.status(response.status).json({ success: false, error: data?.error?.message || "QIE Pass API error" });
+    }
+
+    logTelemetry("QIEPASS", `Verification request created. RequestID: ${data.data?.requestId}, Status: ${data.data?.status}`);
+    res.json({
+      success: true,
+      requestId: data.data?.requestId,
+      status: data.data?.status,
+      userStatus: data.data?.userStatus,
+      redirectUrl: data.data?.redirectUrl,
+      expiresAt: data.data?.expiresAt
+    });
+  } catch (err) {
+    logTelemetry("QIEPASS", `Verification request error: ${err.message}`);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Poll QIE Pass verification status
+app.get("/qiepass/status/:requestId", async (req, res) => {
+  const { requestId } = req.params;
+  if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
+    return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
+  }
+
+  try {
+    const headers = generateQiePassHeaders();
+
+    const response = await fetch(`${QIEPASS_API_URL}/api/v1/partners/verification-requests/${requestId}`, {
+      method: "GET",
+      headers
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, error: data?.error?.message || "QIE Pass API error" });
+    }
+
+    res.json({
+      success: true,
+      requestId: data.data?.requestId,
+      status: data.data?.status,
+      walletAddress: data.data?.walletAddress,
+      did: data.data?.did,
+      vcMetadata: data.data?.vcMetadata
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Claim and verify QIE Pass credentials, then register identity on-chain
+app.post("/qiepass/claim", async (req, res) => {
+  const { requestId, walletAddress } = req.body;
+  if (!requestId || !walletAddress) {
+    return res.status(400).json({ success: false, error: "Missing requestId or walletAddress" });
+  }
+  if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
+    return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
+  }
+
+  try {
+    const headers = generateQiePassHeaders();
+
+    logTelemetry("QIEPASS", `Claiming credentials for request: ${requestId}`);
+
+    const response = await fetch(`${QIEPASS_API_URL}/api/v1/vc/partner/claim-and-verify`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ requestId })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      logTelemetry("QIEPASS", `Claim failed: ${data?.error?.message || response.statusText}`);
+      return res.status(response.status).json({ success: false, error: data?.error?.message || "Claim failed" });
+    }
+
+    // Verify the cryptographic proof is valid
+    const verification = data.verification;
+    if (!verification?.signatureValid || !verification?.notExpired || !verification?.notRevoked) {
+      logTelemetry("QIEPASS", `Credential verification failed for ${walletAddress}`, verification);
+      return res.status(400).json({ success: false, error: "Credential verification failed" });
+    }
+
+    logTelemetry("QIEPASS", `Credentials verified for ${walletAddress}. Registering identity on-chain...`, {
+      claims: Object.keys(data.requestedClaims || {})
+    });
+
+    // Register identity on-chain via the QiePass contract
+    let txHash = null;
+    if (aiWallet && provider) {
+      try {
+        const QIEPASS_CONTRACT = "0xeC8419ec2A7faA8Bb9C1B4E0903f39dff2E8bBbD";
+        const qiePassContract = new ethers.Contract(
+          QIEPASS_CONTRACT,
+          ["function registerIdentity(address user, bool status) external"],
+          aiWallet
+        );
+        const tx = await qiePassContract.registerIdentity(walletAddress, true, { gasLimit: 100000n });
+        await tx.wait();
+        txHash = tx.hash;
+        logTelemetry("QIEPASS", `Identity registered on-chain for ${walletAddress}. TX: ${txHash}`);
+      } catch (chainErr) {
+        logTelemetry("QIEPASS", `On-chain registration failed: ${chainErr.message}. KYC still valid via API.`);
+      }
+    }
+
+    res.json({
+      success: true,
+      verified: true,
+      claims: data.requestedClaims,
+      proof: data.proof,
+      txHash
+    });
+  } catch (err) {
+    logTelemetry("QIEPASS", `Claim error: ${err.message}`);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Start Express Server and Connect

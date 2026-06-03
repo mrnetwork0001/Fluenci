@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Play, Trash2, AlertTriangle, ShieldAlert, Sparkles, Coins, ArrowRight, ShieldCheck, Scale, RefreshCw, Send } from "lucide-react";
+import { Plus, Play, Trash2, AlertTriangle, ShieldAlert, Sparkles, Coins, ArrowRight, ShieldCheck, Scale, RefreshCw, Send, ExternalLink, Loader2 } from "lucide-react";
 import { ethers } from "ethers";
 
 export default function SubscriberPanel({
@@ -20,7 +20,9 @@ export default function SubscriberPanel({
   resolveDisputeOnChain,
   transferStreamNFT,
   swapQieForTokens,
-  contracts
+  contracts,
+  kycState,
+  checkKycStatus
 }) {
   const [merchant, setMerchant] = useState("");
   const [rate, setRate] = useState(""); // rate per hour
@@ -283,24 +285,90 @@ export default function SubscriberPanel({
               <Sparkles size={16} color="var(--color-purple)" />
               QIE Pass Identity
             </h3>
-            <span className={`status-indicator ${qiePassVerified ? "status-online" : "status-offline"}`} />
+            <span className={`status-indicator ${qiePassVerified ? "status-online" : kycState?.status === "error" ? "status-offline" : kycState?.status !== "idle" ? "status-warning" : "status-offline"}`} />
           </div>
           <div style={{ margin: "8px 0" }}>
-            <p style={{ color: qiePassVerified ? "var(--color-emerald)" : "var(--color-rose)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
-              {qiePassVerified ? "✓ Verified KYC Linked" : "⚠ Identity Unverified"}
-            </p>
+            {/* Status text based on KYC state */}
+            {qiePassVerified || kycState?.status === "verified" ? (
+              <p style={{ color: "var(--color-emerald)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+                ✓ Verified via QIE Pass
+              </p>
+            ) : kycState?.status === "creating" ? (
+              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Loader2 size={14} className="tx-spinner" /> Creating verification request…
+              </p>
+            ) : kycState?.status === "pending_kyc" ? (
+              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+                ⏳ Complete KYC in QIE Wallet
+              </p>
+            ) : kycState?.status === "pending_consent" ? (
+              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Loader2 size={14} className="tx-spinner" /> Waiting for your consent…
+              </p>
+            ) : kycState?.status === "claiming" ? (
+              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Loader2 size={14} className="tx-spinner" /> Verifying credentials…
+              </p>
+            ) : kycState?.status === "error" ? (
+              <p style={{ color: "var(--color-rose)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+                ✗ {kycState.error || "Verification failed"}
+              </p>
+            ) : (
+              <p style={{ color: "var(--color-rose)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+                ⚠ Identity Unverified
+              </p>
+            )}
             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px", margin: 0 }}>
-              Streams require active QIE Pass DIDs to prevent bot exploits.
+              {kycState?.status === "pending_kyc"
+                ? "A KYC tab has opened. Complete verification there, then check status."
+                : kycState?.status === "pending_consent"
+                ? "Please approve the consent request in your QIE Wallet."
+                : "Streams require active QIE Pass DIDs to prevent bot exploits."}
             </p>
           </div>
-          <button 
-            className={`btn ${qiePassVerified ? "btn-danger" : "btn-primary"}`}
-            style={{ fontSize: "0.75rem", padding: "6px 12px", alignSelf: "flex-start" }}
-            onClick={() => toggleQiePassStatus(!qiePassVerified)}
-            disabled={loading}
-          >
-            {qiePassVerified ? "Revoke DID" : "Verify KYC"}
-          </button>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {qiePassVerified || kycState?.status === "verified" ? (
+              <span style={{ fontSize: "0.75rem", color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "4px" }}>
+                <ShieldCheck size={14} /> KYC Active
+              </span>
+            ) : kycState?.status === "pending_kyc" ? (
+              <>
+                <a
+                  href={kycState.redirectUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary"
+                  style={{ fontSize: "0.75rem", padding: "6px 12px", display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}
+                >
+                  <ExternalLink size={12} /> Open KYC Page
+                </a>
+                <button
+                  className="btn btn-primary"
+                  style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+                  onClick={checkKycStatus}
+                >
+                  Check Status
+                </button>
+              </>
+            ) : kycState?.status === "pending_consent" || kycState?.status === "claiming" || kycState?.status === "creating" ? (
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: "0.75rem", padding: "6px 12px", display: "flex", alignItems: "center", gap: "4px" }}
+                disabled
+              >
+                <Loader2 size={12} className="tx-spinner" /> Processing…
+              </button>
+            ) : (
+              <button 
+                className="btn btn-primary"
+                style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+                onClick={toggleQiePassStatus}
+                disabled={loading}
+              >
+                Verify with QIE Pass
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stream Approvals Gating */}

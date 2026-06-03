@@ -69,6 +69,15 @@ export function useFluenci() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // QIE Pass KYC state
+  const [kycState, setKycState] = useState({
+    status: "idle", // idle | creating | pending_kyc | pending_consent | claiming | verified | error
+    requestId: null,
+    redirectUrl: null,
+    error: null
+  });
+  const kycPollRef = useRef(null);
+
   // Transaction modal state
   const [txState, setTxState] = useState({
     status: "idle", // idle | preparing | awaiting_signature | broadcasting | confirming | confirmed | error
@@ -351,7 +360,7 @@ export function useFluenci() {
       const tokenAddress = contracts.qusdc;
       
       const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-      const tx = await tokenContract.approve(contracts.registry, ethers.MaxUint256);
+      const tx = await tokenContract.approve(contracts.registry, ethers.MaxUint256, { gasLimit: 100000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -365,26 +374,149 @@ export function useFluenci() {
     }
   };
 
-  // Toggle QIE Pass Verification Status (Mock)
-  const toggleQiePassStatus = async (status) => {
+  // ==========================================
+  // QIE PASS REAL KYC VERIFICATION
+  // ==========================================
+
+  const SERVER_URL = "http://localhost:5001";
+
+  // Step 1: Start KYC verification
+  const startKycVerification = async () => {
+    if (!account) {
+      setError("Connect wallet first");
+      return;
+    }
     setError("");
-    setLoading(true);
-    setTxState({ status: "preparing", action: status ? "Verifying KYC Identity" : "Revoking KYC Identity", hash: "", error: "" });
+    setKycState({ status: "creating", requestId: null, redirectUrl: null, error: null });
+
     try {
-      setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, signer);
-      const tx = await passContract.registerIdentity(account, status);
-      setTxStep("broadcasting", { hash: tx.hash });
-      setTxStep("confirming");
-      await waitForTx(tx);
-      setTxStep("confirmed");
-      await fetchAccountState();
-      setLoading(false);
+      const res = await fetch(`${SERVER_URL}/qiepass/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: account })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to create verification request");
+      }
+
+      if (data.status === "pending_kyc") {
+        // User needs to complete KYC — open redirect in new tab
+        const redirectUrl = data.redirectUrl?.startsWith("http")
+          ? data.redirectUrl
+          : `https://qiepass.qie.digital${data.redirectUrl}`;
+        setKycState({
+          status: "pending_kyc",
+          requestId: data.requestId,
+          redirectUrl,
+          error: null
+        });
+        window.open(redirectUrl, "_blank");
+        // Start polling
+        startKycPolling(data.requestId);
+      } else if (data.status === "pending_consent") {
+        // User already verified, waiting for consent
+        setKycState({
+          status: "pending_consent",
+          requestId: data.requestId,
+          redirectUrl: null,
+          error: null
+        });
+        startKycPolling(data.requestId);
+      } else if (data.status === "consent_given") {
+        // Ready to claim
+        await claimKyc(data.requestId);
+      }
     } catch (err) {
+      setKycState(prev => ({ ...prev, status: "error", error: err.message }));
       setError(err.message);
-      setTxStep("error", { error: err.message });
-      setLoading(false);
+    }
+  };
+
+  // Step 2: Poll for status changes
+  const startKycPolling = (requestId) => {
+    // Clear any existing poll
+    if (kycPollRef.current) {
+      clearInterval(kycPollRef.current);
+    }
+
+    kycPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${SERVER_URL}/qiepass/status/${requestId}`);
+        const data = await res.json();
+
+        if (!data.success) return;
+
+        if (data.status === "consent_given" && data.vcMetadata?.ready) {
+          clearInterval(kycPollRef.current);
+          kycPollRef.current = null;
+          setKycState(prev => ({ ...prev, status: "claiming" }));
+          await claimKyc(requestId);
+        } else if (data.status === "consent_rejected") {
+          clearInterval(kycPollRef.current);
+          kycPollRef.current = null;
+          setKycState(prev => ({ ...prev, status: "error", error: "User rejected consent" }));
+        } else if (data.status === "pending_consent") {
+          setKycState(prev => ({ ...prev, status: "pending_consent" }));
+        }
+      } catch (err) {
+        console.warn("KYC poll error:", err.message);
+      }
+    }, 15000); // Poll every 15 seconds
+  };
+
+  // Step 3: Claim verified credentials
+  const claimKyc = async (requestId) => {
+    try {
+      setKycState(prev => ({ ...prev, status: "claiming" }));
+      const res = await fetch(`${SERVER_URL}/qiepass/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, walletAddress: account })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to claim credentials");
+      }
+
+      setQiePassVerified(true);
+      setKycState({
+        status: "verified",
+        requestId,
+        redirectUrl: null,
+        error: null
+      });
+      await fetchAccountState();
+    } catch (err) {
+      setKycState(prev => ({ ...prev, status: "error", error: err.message }));
+      setError(err.message);
+    }
+  };
+
+  // Stop polling on unmount
+  useEffect(() => {
+    return () => {
+      if (kycPollRef.current) {
+        clearInterval(kycPollRef.current);
+      }
+    };
+  }, []);
+
+  // Manual poll trigger for "Check Status" button
+  const checkKycStatus = async () => {
+    if (!kycState.requestId) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/qiepass/status/${kycState.requestId}`);
+      const data = await res.json();
+      if (data.success && data.status === "consent_given" && data.vcMetadata?.ready) {
+        await claimKyc(kycState.requestId);
+      } else if (data.success) {
+        setKycState(prev => ({ ...prev, status: data.status }));
+      }
+    } catch (err) {
+      console.warn("Manual KYC check error:", err.message);
     }
   };
 
@@ -491,7 +623,8 @@ export function useFluenci() {
         tokenAddress,
         ratePerSecond,
         cliffTime,
-        stopTime
+        stopTime,
+        { gasLimit: 500000n }
       );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
@@ -516,7 +649,7 @@ export function useFluenci() {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.claimStream(subId);
+      const tx = await registryContract.claimStream(subId, { gasLimit: 200000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -540,7 +673,7 @@ export function useFluenci() {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.openDispute(subId);
+      const tx = await registryContract.openDispute(subId, { gasLimit: 200000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -563,7 +696,7 @@ export function useFluenci() {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.resolveDispute(subId, subscriberRefund, merchantShare, signature);
+      const tx = await registryContract.resolveDispute(subId, subscriberRefund, merchantShare, signature, { gasLimit: 300000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -598,7 +731,7 @@ export function useFluenci() {
       }
 
       setTxStep("awaiting_signature");
-      const tx = await registryContract.transferFrom(account, recipient, tokenId);
+      const tx = await registryContract.transferFrom(account, recipient, tokenId, { gasLimit: 200000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -621,7 +754,7 @@ export function useFluenci() {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.resumeStream(subId);
+      const tx = await registryContract.resumeStream(subId, { gasLimit: 200000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -644,7 +777,7 @@ export function useFluenci() {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
       const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.terminateStream(subId);
+      const tx = await registryContract.terminateStream(subId, { gasLimit: 200000n });
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -802,7 +935,10 @@ export function useFluenci() {
     contracts,
     connectWallet,
     approveToken,
-    toggleQiePassStatus,
+    toggleQiePassStatus: startKycVerification,
+    startKycVerification,
+    checkKycStatus,
+    kycState,
     resolveQieDomain,
     swapQieForTokens,
     createSubscription,

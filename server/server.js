@@ -106,7 +106,7 @@ const AnalystAgent = {
       if (REGISTRY_ADDRESS) {
         // Retrieve qiedomain address dynamically from useFluenci addresses or local provider lookup
         // We use default deployment registry or address resolving
-        const domainContractAddress = "0x9A676e781A523b5d0C0e43731313A708CB607508"; // Default Hardhat domain registry
+        const domainContractAddress = "0xD0B0432395B2f414A4d9B74BD51523687a02883c"; // Mainnet domain registry
         const domainContract = new ethers.Contract(domainContractAddress, [
           "function lookupAddress(address addr) external view returns (string memory)"
         ], provider);

@@ -47,10 +47,10 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
   1990: { // QIE Mainnet
     registry: "0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675",
     qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official QUSDC
-    qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
-    qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
+    qiedomain: "0xD0B0432395B2f414A4d9B74BD51523687a02883c"
   }
 };
 
@@ -216,9 +216,14 @@ export function useFluenci() {
 
       // Fetch QIE Pass KYC Status
       if (contracts.qiepass) {
-        const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, provider);
-        const isVerified = await passContract.verifyIdentity(account);
-        setQiePassVerified(isVerified);
+        try {
+          const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, provider);
+          const isVerified = await passContract.verifyIdentity(account);
+          setQiePassVerified(isVerified);
+        } catch (err) {
+          console.warn("Failed to fetch QIE Pass status, defaulting to unverified:", err.message);
+          setQiePassVerified(false);
+        }
       }
 
       // Fetch Connected Account's .qie Domain Name
@@ -428,7 +433,8 @@ export function useFluenci() {
         account,
         deadline,
         {
-          value: ethers.parseEther(qieAmount)
+          value: ethers.parseEther(qieAmount),
+          gasLimit: 300000n
         }
       );
       setTxStep("broadcasting", { hash: tx.hash });

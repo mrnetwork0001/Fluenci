@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Play, Trash2, AlertTriangle, ShieldAlert, Sparkles, Coins, ArrowRight, ShieldCheck, Scale, RefreshCw, Send } from "lucide-react";
+import { ethers } from "ethers";
 
 export default function SubscriberPanel({
   account,
@@ -34,6 +35,51 @@ export default function SubscriberPanel({
   const [transferTarget, setTransferTarget] = useState({});
   const [disputeEvidence, setDisputeEvidence] = useState({});
   const [arbitrationDetails, setArbitrationDetails] = useState({});
+
+  const [expectedOutput, setExpectedOutput] = useState("0");
+  const [calculatingSwap, setCalculatingSwap] = useState(false);
+
+  // Dynamic swap quote calculations using getAmountsOut
+  useEffect(() => {
+    let active = true;
+    const fetchOutput = async () => {
+      if (!swapAmount || isNaN(swapAmount) || parseFloat(swapAmount) <= 0 || !contracts.qiedex || !contracts.qusdc) {
+        setExpectedOutput("0");
+        return;
+      }
+      setCalculatingSwap(true);
+      try {
+        const provider = new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
+        const dexContract = new ethers.Contract(
+          contracts.qiedex, 
+          ["function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory)"], 
+          provider
+        );
+        const path = [
+          "0x0087904D95BEe9E5F24dc8852804b547981A9139", // WQIE
+          contracts.qusdc
+        ];
+        const amounts = await dexContract.getAmountsOut(ethers.parseEther(swapAmount), path);
+        if (active) {
+          setExpectedOutput(ethers.formatUnits(amounts[1], 6));
+        }
+      } catch (e) {
+        console.warn("Failed to fetch expected swap output", e);
+        if (active) setExpectedOutput("0");
+      } finally {
+        if (active) setCalculatingSwap(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchOutput();
+    }, 500); // 500ms debounce to avoid spamming the RPC
+
+    return () => {
+      active = false;
+      clearTimeout(delayDebounceFn);
+    };
+  }, [swapAmount, contracts.qiedex, contracts.qusdc]);
 
   const handleSubmitSubscription = (e) => {
     e.preventDefault();
@@ -201,6 +247,15 @@ export default function SubscriberPanel({
               
               <strong style={{ fontSize: "0.85rem", color: "var(--color-cyan)" }}>qUSDC</strong>
             </div>
+
+            {parseFloat(swapAmount) > 0 && (
+              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", margin: "-2px 0 2px 0", padding: "0 4px" }}>
+                <span>Est. Received:</span>
+                <strong style={{ color: "var(--color-cyan)" }}>
+                  {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} qUSDC`}
+                </strong>
+              </div>
+            )}
 
             <button 
               className="btn btn-primary" 

@@ -73,14 +73,12 @@ export default function TransactionModal({ txState, onClose }) {
   if (!isVisible) return null;
 
   return (
-    <div className="tx-modal-overlay" onClick={isFinished ? onClose : undefined}>
+    <div className="tx-modal-overlay" onClick={onClose}>
       <div className="tx-modal-container" onClick={(e) => e.stopPropagation()}>
-        {/* Close button (only when finished) */}
-        {isFinished && (
-          <button className="tx-modal-close" onClick={onClose} aria-label="Close">
-            <X size={18} />
-          </button>
-        )}
+        {/* Close button (always visible) */}
+        <button className="tx-modal-close" onClick={onClose} aria-label="Close">
+          <X size={18} />
+        </button>
 
         {/* Header */}
         <div className="tx-modal-header">

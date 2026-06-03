@@ -408,10 +408,6 @@ export function useFluenci() {
     setLoading(true);
     setTxState({ status: "preparing", action: `Swapping ${qieAmount} QIE → qUSDC`, hash: "", error: "" });
     try {
-      setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const dexContract = new ethers.Contract(contracts.qiedex, DEX_ABI, signer);
-      
       const path = [
         "0x0087904D95BEe9E5F24dc8852804b547981A9139", // WQIE
         contracts.qusdc // QUSDC
@@ -419,13 +415,23 @@ export function useFluenci() {
       
       const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 min deadline
       
+      // Fetch quote via direct read provider (bypasses wallet RPC which can hang)
       let amountOutMin = 0n;
       try {
-        const amounts = await dexContract.getAmountsOut(ethers.parseEther(qieAmount), path);
+        const readProvider = getReadProvider();
+        const readDex = new ethers.Contract(contracts.qiedex, DEX_ABI, readProvider);
+        const amounts = await Promise.race([
+          readDex.getAmountsOut(ethers.parseEther(qieAmount), path),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Quote timeout")), 5000))
+        ]);
         amountOutMin = (amounts[1] * 95n) / 100n; // 5% slippage
       } catch (e) {
-        console.warn("Failed to fetch getAmountsOut", e);
+        console.warn("Failed to fetch getAmountsOut, proceeding with 0 min:", e.message);
       }
+
+      setTxStep("awaiting_signature");
+      const { signer } = await getProviderAndSigner();
+      const dexContract = new ethers.Contract(contracts.qiedex, DEX_ABI, signer);
 
       const tx = await dexContract.swapExactETHForTokens(
         amountOutMin,

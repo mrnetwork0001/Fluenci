@@ -31,7 +31,7 @@ function LandingTelemetryTerminal() {
   const logIndexRef = useRef(1);
 
   const MOCK_LANDING_LOGS = [
-    { type: "INFO", text: "Establishing secure link to QIE Testnet (1983)..." },
+    { type: "INFO", text: "Establishing secure link to QIE Mainnet (1990)..." },
     { type: "SUCCESS", text: "DID verification module loaded via QIE Pass." },
     { type: "INFO", text: "Monitoring active streams for pricing telemetry..." },
     { type: "AUDIT", text: "Scanning stream 0x4e8d... rate = 100 qUSD/hr. Status: compliant" },
@@ -257,7 +257,7 @@ export default function App() {
     }
   };
 
-  const isSupportedNetwork = fluenci.chainId === 1983 || fluenci.chainId === 1990;
+  const isSupportedNetwork = fluenci.chainId === 1990;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -334,21 +334,22 @@ export default function App() {
 
         <ConnectWallet
           account={fluenci.account}
+          accountDomain={fluenci.accountDomain}
           chainId={fluenci.chainId}
           connectWallet={fluenci.connectWallet}
           loading={fluenci.loading}
-          switchToQieTestnet={fluenci.switchToQieTestnet}
           switchToQieMainnet={fluenci.switchToQieMainnet}
           showDashboard={viewMode === "dashboard"}
           onLaunchApp={() => setViewMode("dashboard")}
+          announcedProviders={fluenci.announcedProviders}
         />
       </header>
- 
+
       {/* Main Content Area */}
       <main style={{ flexGrow: 1, padding: "40px", maxWidth: "1200px", width: "100%", margin: "0 auto" }}>
         
         {/* Error alert banners */}
-        {fluenci.error && (fluenci.error.includes("rpc1testnet") || fluenci.error.includes("timed out") || fluenci.error.includes("request failed") || fluenci.error.includes("Failed to fetch") || fluenci.error.includes("coalesce") || fluenci.error.includes("32603")) ? (
+        {fluenci.error && (fluenci.error.includes("rpc1mainnet") || fluenci.error.includes("timed out") || fluenci.error.includes("request failed") || fluenci.error.includes("Failed to fetch") || fluenci.error.includes("coalesce") || fluenci.error.includes("32603")) ? (
           <div 
             className="glass-card" 
             style={{ 
@@ -368,15 +369,15 @@ export default function App() {
               <strong style={{ fontSize: "1.1rem" }}>Wallet RPC Misconfiguration Detected</strong>
             </div>
             <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.4" }}>
-              Your wallet is trying to reach the <code>rpc1testnet.qie.digital</code> node but it appears to be down.
-              Please check your wallet's <strong>Custom Network / Chain settings</strong> for QIE Testnet (Chain ID 1983)
-              and ensure the RPC URL is set to <code>https://rpc1testnet.qie.digital</code>, then try again.
-              You can also click the button below to attempt an automatic repair.
+              Your wallet is trying to reach the QIE Mainnet node but it appears to be down or unreachable.
+              Please check your wallet's <strong>Custom Network settings</strong> for QIE Mainnet (Chain ID 1990)
+              and ensure the RPC URL is set to <code>https://rpc1mainnet.qie.digital</code>, then try again.
+              You can also click the button below to attempt an automatic network sync.
             </p>
             <button 
               className="btn btn-primary" 
               style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: "0.85rem" }}
-              onClick={fluenci.switchToQieTestnet}
+              onClick={fluenci.switchToQieMainnet}
             >
               Auto-Repair Wallet RPC Configuration
             </button>
@@ -415,14 +416,11 @@ export default function App() {
           >
             <h3 style={{ marginBottom: "10px" }}>Unsupported Blockchain Network Connected</h3>
             <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "16px" }}>
-              Fluenci operates on the **QIE Testnet (Chain ID: 1983)** or **QIE Mainnet (Chain ID: 1990)**. 
-              Please switch your MetaMask network connection.
+              Fluenci operates exclusively on the **QIE Mainnet (Chain ID: 1990)**. 
+              Please switch your wallet network connection.
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <button className="btn btn-primary" onClick={fluenci.switchToQieTestnet}>
-                Switch to QIE Testnet
-              </button>
-              <button className="btn btn-secondary" onClick={fluenci.switchToQieMainnet}>
+              <button className="btn btn-primary" onClick={fluenci.switchToQieMainnet}>
                 Switch to QIE Mainnet
               </button>
             </div>

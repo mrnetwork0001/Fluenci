@@ -44,21 +44,12 @@ const DOMAIN_ABI = [
 ];
 
 const CONTRACT_ADDRESSES_BY_CHAIN = {
-  1983: { // QIE Testnet
-    registry: "0x2DA9e917568D69626078df6bCb7B71F0DeDA6117",
-    qusdc: "0xB64aE86dc64AEcB67a870192cDCAeC30EBd14b3b",
-    weth: "0x45466425dc303c8c014885ACdEd3d95147eC4993",
-    qiepass: "0x774758CE0Cb704AC54f1cc0cace59d2957d8250A",
-    auditor: "0x75475647f52531D4086296415392E4AA94b92de7",
-    qiedex: "0xE21F69c4394dFA41FC5F31a9B994e0275B47cD34",
-    qiedomain: "0x5b66380309C29D00Ff82388a856fB5e87fF09A7E"
-  },
   1990: { // QIE Mainnet
-    registry: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    registry: "0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675",
     qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
     weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
     qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-    auditor: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+    auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
     qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
   }
@@ -76,6 +67,8 @@ export function useFluenci() {
   const [wethAllowance, setWethAllowance] = useState("0");
 
   const [qiePassVerified, setQiePassVerified] = useState(false);
+  const [accountDomain, setAccountDomain] = useState("");
+  const [announcedProviders, setAnnouncedProviders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -111,7 +104,7 @@ export function useFluenci() {
 
   // Automatically update contract addresses based on connected network chainId
   useEffect(() => {
-    const config = CONTRACT_ADDRESSES_BY_CHAIN[chainId] || CONTRACT_ADDRESSES_BY_CHAIN[1983];
+    const config = CONTRACT_ADDRESSES_BY_CHAIN[chainId] || CONTRACT_ADDRESSES_BY_CHAIN[1990];
     setContracts(config);
   }, [chainId]);
 
@@ -119,19 +112,19 @@ export function useFluenci() {
     setContracts((prev) => ({ ...prev, ...newConfig }));
   };
 
+  const activeProviderRef = useRef(null);
+
   const getProviderAndSigner = async () => {
-    if (!window.ethereum) throw new Error("MetaMask not detected");
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const injected = activeProviderRef.current || window.ethereum;
+    if (!injected) throw new Error("No Web3 wallet detected");
+    const provider = new ethers.BrowserProvider(injected);
     const signer = await provider.getSigner();
     return { provider, signer };
   };
 
   const getReadProvider = useCallback(() => {
-    if (chainId === 1990) {
-      return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
-    }
-    return new ethers.JsonRpcProvider("https://rpc1testnet.qie.digital");
-  }, [chainId]);
+    return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
+  }, []);
 
   // Wait for a transaction using our own read provider (bypasses wallet's potentially broken RPC)
   const waitForTx = async (tx) => {
@@ -149,32 +142,12 @@ export function useFluenci() {
     return receipt;
   };
 
-  // Switch network to QIE Testnet and force RPC sync
-  const switchToQieTestnet = async () => {
-    if (!window.ethereum) return;
-    try {
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: "0x7BF",
-          chainName: "QIE Testnet",
-          nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
-          rpcUrls: ["https://rpc1testnet.qie.digital"],
-          blockExplorerUrls: ["https://testnet.qie.digital/"]
-        }]
-      });
-      setError("");
-    } catch (err) {
-      console.error("Failed to add or sync QIE Testnet network", err);
-      setError("Failed to add or sync QIE Testnet. Please check MetaMask.");
-    }
-  };
-
   // Switch network to QIE Mainnet and force RPC sync
   const switchToQieMainnet = async () => {
-    if (!window.ethereum) return;
+    const injected = activeProviderRef.current || window.ethereum;
+    if (!injected) return;
     try {
-      await window.ethereum.request({
+      await injected.request({
         method: "wallet_addEthereumChain",
         params: [{
           chainId: "0x7C6",
@@ -191,22 +164,30 @@ export function useFluenci() {
     }
   };
 
-  const connectWallet = async () => {
+  const connectWallet = async (providerDetail = null) => {
     setError("");
     setLoading(true);
     try {
-      if (!window.ethereum) {
-        throw new Error("Please install MetaMask or Qie Wallet to interact with Fluenci");
+      let targetProvider = null;
+      if (providerDetail && providerDetail.provider) {
+        targetProvider = providerDetail.provider;
+        activeProviderRef.current = providerDetail.provider;
+      } else {
+        if (!window.ethereum) {
+          throw new Error("Please install MetaMask or Qie Wallet to interact with Fluenci");
+        }
+        targetProvider = window.ethereum;
+        activeProviderRef.current = window.ethereum;
       }
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+      const accounts = await targetProvider.request({ method: "eth_requestAccounts" });
       const address = accounts[0];
       setAccount(address);
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(targetProvider);
       const network = await provider.getNetwork();
       setChainId(Number(network.chainId));
 
-      // Automatic network check - warning banner will handle it rather than forcing a switch on connect
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -254,6 +235,24 @@ export function useFluenci() {
         const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, provider);
         const isVerified = await passContract.verifyIdentity(account);
         setQiePassVerified(isVerified);
+      }
+
+      // Fetch Connected Account's .qie Domain Name
+      if (contracts.qiedomain) {
+        try {
+          const domainContract = new ethers.Contract(contracts.qiedomain, DOMAIN_ABI, provider);
+          const domain = await domainContract.lookupAddress(account);
+          if (domain && domain !== "") {
+            setAccountDomain(domain);
+          } else {
+            setAccountDomain("");
+          }
+        } catch (err) {
+          console.warn("Reverse domain lookup failed for", account);
+          setAccountDomain("");
+        }
+      } else {
+        setAccountDomain("");
       }
     } catch (err) {
       console.error("Failed to fetch account state", err);
@@ -643,28 +642,52 @@ export function useFluenci() {
     }
   };
 
-  // Setup account changed listeners
+  // EIP-6963 provider announcement discovery
   useEffect(() => {
-    if (!window.ethereum) return;
+    const handleAnnounce = (event) => {
+      setAnnouncedProviders((prev) => {
+        if (prev.some((p) => p.info.uuid === event.detail.info.uuid)) {
+          return prev;
+        }
+        return [...prev, event.detail];
+      });
+    };
+
+    window.addEventListener("eip6963:announceProvider", handleAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    return () => {
+      window.removeEventListener("eip6963:announceProvider", handleAnnounce);
+    };
+  }, []);
+
+  // Setup account changed listeners on active provider
+  useEffect(() => {
+    const injected = activeProviderRef.current || window.ethereum;
+    if (!injected || !injected.on) return;
+
     const handleAccountsChanged = (accounts) => {
       if (accounts.length > 0) {
         setAccount(accounts[0]);
       } else {
         setAccount("");
+        setAccountDomain("");
       }
     };
     const handleChainChanged = (chainHex) => {
       setChainId(Number(chainHex));
     };
 
-    window.ethereum.on("accountsChanged", handleAccountsChanged);
-    window.ethereum.on("chainChanged", handleChainChanged);
+    injected.on("accountsChanged", handleAccountsChanged);
+    injected.on("chainChanged", handleChainChanged);
 
     return () => {
-      window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-      window.ethereum.removeListener("chainChanged", handleChainChanged);
+      if (injected.removeListener) {
+        injected.removeListener("accountsChanged", handleAccountsChanged);
+        injected.removeListener("chainChanged", handleChainChanged);
+      }
     };
-  }, []);
+  }, [account]);
 
   // Poll state and subscriptions
   useEffect(() => {
@@ -753,6 +776,8 @@ export function useFluenci() {
     qusdcAllowance,
     wethAllowance,
     qiePassVerified,
+    accountDomain,
+    announcedProviders,
     subscriberStreams,
     merchantStreams,
     realtimeClaimables,
@@ -775,7 +800,6 @@ export function useFluenci() {
     resumeStream,
     terminateStream,
     updateContractAddresses,
-    switchToQieTestnet,
     switchToQieMainnet,
     refreshData: () => {
       fetchAccountState();

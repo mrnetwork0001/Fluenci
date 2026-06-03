@@ -304,3 +304,18 @@
   color: var(--color-emerald);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
+
+/* Wallet Connection Modal Hover & Interaction Styles */
+.wallet-option-btn-qie:hover {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(157, 78, 221, 0.15) 100%) !important;
+  border-color: rgba(0, 242, 254, 0.7) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.15);
+}
+
+.wallet-option-btn:hover, .wallet-sub-btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(0, 242, 254, 0.3) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.08);
+}

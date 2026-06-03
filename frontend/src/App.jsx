@@ -14,7 +14,6 @@ import "./App.css";
 const DEFAULT_HARDHAT_CONTRACTS = {
   registry: "0x2DA9e917568D69626078df6bCb7B71F0DeDA6117",
   qusdc: "0xB64aE86dc64AEcB67a870192cDCAeC30EBd14b3b",
-  weth: "0x45466425dc303c8c014885ACdEd3d95147eC4993",
   qiepass: "0x774758CE0Cb704AC54f1cc0cace59d2957d8250A",
   auditor: "0x75475647f52531D4086296415392E4AA94b92de7",
   qiedex: "0xE21F69c4394dFA41FC5F31a9B994e0275B47cD34",
@@ -200,14 +199,11 @@ export default function App() {
               account={fluenci.account}
               qieBalance={fluenci.qieBalance}
               qusdcBalance={fluenci.qusdcBalance}
-              wethBalance={fluenci.wethBalance}
               qusdcAllowance={fluenci.qusdcAllowance}
-              wethAllowance={fluenci.wethAllowance}
               qiePassVerified={fluenci.qiePassVerified}
               subscriberStreams={fluenci.subscriberStreams}
               realtimeClaimables={fluenci.realtimeClaimables}
               loading={fluenci.loading}
-              mintMockTokens={fluenci.mintMockTokens}
               approveToken={fluenci.approveToken}
               toggleQiePassStatus={fluenci.toggleQiePassStatus}
               createSubscription={fluenci.createSubscription}
@@ -234,7 +230,6 @@ export default function App() {
             account={fluenci.account}
             qieBalance={fluenci.qieBalance}
             qusdcBalance={fluenci.qusdcBalance}
-            wethBalance={fluenci.wethBalance}
             merchantStreams={fluenci.merchantStreams}
             realtimeClaimables={fluenci.realtimeClaimables}
             loading={fluenci.loading}

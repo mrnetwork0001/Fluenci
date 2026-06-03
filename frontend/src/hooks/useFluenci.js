@@ -47,7 +47,6 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
   1990: { // QIE Mainnet
     registry: "0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675",
     qusdc: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-    weth: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
     qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
@@ -60,11 +59,9 @@ export function useFluenci() {
   const [chainId, setChainId] = useState(0);
   const [qieBalance, setQieBalance] = useState("0");
   
-  // Dual-token states
+  // Token states
   const [qusdcBalance, setQusdcBalance] = useState("0");
-  const [wethBalance, setWethBalance] = useState("0");
   const [qusdcAllowance, setQusdcAllowance] = useState("0");
-  const [wethAllowance, setWethAllowance] = useState("0");
 
   const [qiePassVerified, setQiePassVerified] = useState(false);
   const [accountDomain, setAccountDomain] = useState("");
@@ -95,7 +92,6 @@ export function useFluenci() {
   const [contracts, setContracts] = useState({
     registry: "",
     qusdc: "",
-    weth: "",
     qiepass: "",
     auditor: "",
     qiedex: "",
@@ -218,18 +214,6 @@ export function useFluenci() {
         }
       }
 
-      // Fetch MockWETH Balance & Allowance
-      if (contracts.weth) {
-        const wethContract = new ethers.Contract(contracts.weth, ERC20_ABI, provider);
-        const bal = await wethContract.balanceOf(account);
-        setWethBalance(ethers.formatUnits(bal, 18));
-
-        if (contracts.registry) {
-          const allow = await wethContract.allowance(account, contracts.registry);
-          setWethAllowance(ethers.formatUnits(allow, 18));
-        }
-      }
-
       // Fetch QIE Pass KYC Status
       if (contracts.qiepass) {
         const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, provider);
@@ -279,7 +263,7 @@ export function useFluenci() {
             subscriber: details[0],
             merchant: details[1],
             tokenAddress: details[2],
-            tokenSymbol: isUSDC ? "qUSDC" : "MockWETH",
+            tokenSymbol: isUSDC ? "qUSDC" : "Unknown",
             ratePerSecond: Number(details[3]),
             lastClaimedTimestamp: Number(details[4]),
             startTime: Number(details[5]),
@@ -306,7 +290,7 @@ export function useFluenci() {
             subscriber: details[0],
             merchant: details[1],
             tokenAddress: details[2],
-            tokenSymbol: isUSDC ? "qUSDC" : "MockWETH",
+            tokenSymbol: isUSDC ? "qUSDC" : "Unknown",
             ratePerSecond: Number(details[3]),
             lastClaimedTimestamp: Number(details[4]),
             startTime: Number(details[5]),
@@ -355,11 +339,11 @@ export function useFluenci() {
   const approveToken = async (tokenSymbol) => {
     setError("");
     setLoading(true);
-    setTxState({ status: "preparing", action: `Approving ${tokenSymbol}`, hash: "", error: "" });
+    setTxState({ status: "preparing", action: `Approving qUSDC`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
-      const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
+      const tokenAddress = contracts.qusdc;
       
       const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
       const tx = await tokenContract.approve(contracts.registry, ethers.MaxUint256);
@@ -417,11 +401,11 @@ export function useFluenci() {
   const swapQieForTokens = async (tokenSymbol, qieAmount) => {
     setError("");
     setLoading(true);
-    setTxState({ status: "preparing", action: `Swapping ${qieAmount} QIE → ${tokenSymbol}`, hash: "", error: "" });
+    setTxState({ status: "preparing", action: `Swapping ${qieAmount} QIE → qUSDC`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
       const { signer } = await getProviderAndSigner();
-      const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
+      const tokenAddress = contracts.qusdc;
       const dexContract = new ethers.Contract(contracts.qiedex, DEX_ABI, signer);
       
       const tx = await dexContract.swapQieForTokens(tokenAddress, {
@@ -459,7 +443,7 @@ export function useFluenci() {
         merchantAddress = resolved;
       }
 
-      const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
+      const tokenAddress = contracts.qusdc;
       
       // Calculate absolute timestamps
       const provider = getReadProvider();
@@ -772,9 +756,7 @@ export function useFluenci() {
     chainId,
     qieBalance,
     qusdcBalance,
-    wethBalance,
     qusdcAllowance,
-    wethAllowance,
     qiePassVerified,
     accountDomain,
     announcedProviders,
@@ -787,7 +769,6 @@ export function useFluenci() {
     resetTx,
     contracts,
     connectWallet,
-    mintMockTokens,
     approveToken,
     toggleQiePassStatus,
     resolveQieDomain,

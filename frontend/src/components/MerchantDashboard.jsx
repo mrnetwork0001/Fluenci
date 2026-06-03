@@ -5,27 +5,18 @@ export default function MerchantDashboard({
   account,
   qieBalance,
   qusdcBalance,
-  wethBalance,
   merchantStreams,
   realtimeClaimables,
   loading,
   claimStream
 }) {
-  // Calculate total active incoming rate for USDC & WETH
+  // Calculate total active incoming rate for USDC
   const totalUSDCIncoming = merchantStreams
     .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "qUSDC")
     .reduce((sum, s) => sum + (s.ratePerSecond * 3600 / 1e6), 0);
 
-  const totalWETHIncoming = merchantStreams
-    .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "MockWETH")
-    .reduce((sum, s) => sum + (s.ratePerSecond * 3600 / 1e18), 0);
-
   const totalUSDCPending = merchantStreams
     .filter(s => s.active && s.tokenSymbol === "qUSDC")
-    .reduce((sum, s) => sum + (realtimeClaimables[s.id] || 0), 0);
-
-  const totalWETHPending = merchantStreams
-    .filter(s => s.active && s.tokenSymbol === "MockWETH")
     .reduce((sum, s) => sum + (realtimeClaimables[s.id] || 0), 0);
 
   // Formats addresses to domain name overrides if matched
@@ -56,10 +47,6 @@ export default function MerchantDashboard({
               <span>qUSDC:</span>
               <strong style={{ color: "var(--color-cyan)" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
             </div>
-            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>WETH:</span>
-              <strong style={{ color: "var(--color-purple)" }}>{parseFloat(wethBalance).toFixed(4)} WETH</strong>
-            </div>
           </div>
         </div>
 
@@ -75,9 +62,6 @@ export default function MerchantDashboard({
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-cyan)" }}>
               {totalUSDCIncoming.toFixed(2)} <span style={{ fontSize: "0.85rem" }}>qUSDC/hr</span>
-            </div>
-            <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-purple)" }}>
-              {totalWETHIncoming.toFixed(4)} <span style={{ fontSize: "0.85rem" }}>WETH/hr</span>
             </div>
           </div>
         </div>
@@ -95,9 +79,6 @@ export default function MerchantDashboard({
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-cyan)" }} className="streaming-active-glow">
               {totalUSDCPending.toFixed(4)} <span style={{ fontSize: "0.85rem" }}>qUSDC</span>
             </div>
-            <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-purple)" }} className="streaming-active-glow">
-              {totalWETHPending.toFixed(6)} <span style={{ fontSize: "0.85rem" }}>WETH</span>
-            </div>
           </div>
         </div>
       </div>
@@ -114,13 +95,13 @@ export default function MerchantDashboard({
               </linearGradient>
             </defs>
             <path 
-              d={`M 0 90 Q 100 ${totalUSDCIncoming > 0 || totalWETHIncoming > 0 ? 40 : 90} 200 ${totalUSDCIncoming > 0 || totalWETHIncoming > 0 ? 20 : 90} T 400 ${totalUSDCIncoming > 0 || totalWETHIncoming > 0 ? 10 : 90}`} 
+              d={`M 0 90 Q 100 ${totalUSDCIncoming > 0 ? 40 : 90} 200 ${totalUSDCIncoming > 0 ? 20 : 90} T 400 ${totalUSDCIncoming > 0 ? 10 : 90}`} 
               fill="none" 
               stroke="var(--color-emerald)" 
               strokeWidth="3" 
             />
             <path 
-              d={`M 0 90 Q 100 ${totalUSDCIncoming > 0 || totalWETHIncoming > 0 ? 40 : 90} 200 ${totalUSDCIncoming > 0 || totalWETHIncoming > 0 ? 20 : 90} T 400 ${totalUSDCIncoming > 0 || totalWETHIncoming > 0 ? 10 : 90} L 400 100 L 0 100 Z`} 
+              d={`M 0 90 Q 100 ${totalUSDCIncoming > 0 ? 40 : 90} 200 ${totalUSDCIncoming > 0 ? 20 : 90} T 400 ${totalUSDCIncoming > 0 ? 10 : 90} L 400 100 L 0 100 Z`} 
               fill="url(#merchantGlow)" 
             />
             <line x1="0" y1="90" x2="400" y2="90" stroke="rgba(255,255,255,0.05)" strokeDasharray="4" />

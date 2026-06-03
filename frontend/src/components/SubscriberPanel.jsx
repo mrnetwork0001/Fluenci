@@ -5,14 +5,11 @@ export default function SubscriberPanel({
   account,
   qieBalance,
   qusdcBalance,
-  wethBalance,
   qusdcAllowance,
-  wethAllowance,
   qiePassVerified,
   subscriberStreams,
   realtimeClaimables,
   loading,
-  mintMockTokens,
   approveToken,
   toggleQiePassStatus,
   createSubscription,
@@ -29,9 +26,6 @@ export default function SubscriberPanel({
   const [tokenSymbol, setTokenSymbol] = useState("qUSDC");
   const [cliffSeconds, setCliffSeconds] = useState("");
   const [stopSeconds, setStopSeconds] = useState("");
-
-  const [mintAmount, setMintAmount] = useState("100");
-  const [mintToken, setMintToken] = useState("qUSDC");
 
   const [swapAmount, setSwapAmount] = useState("1");
   const [swapToken, setSwapToken] = useState("qUSDC");
@@ -70,7 +64,7 @@ export default function SubscriberPanel({
   };
 
   const isAllowanceApproved = (symbol) => {
-    return symbol === "qUSDC" ? parseFloat(qusdcAllowance) > 0 : parseFloat(wethAllowance) > 0;
+    return parseFloat(qusdcAllowance) > 0;
   };
 
   // Request AI arbitration details from off-chain node
@@ -127,10 +121,6 @@ export default function SubscriberPanel({
     .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "qUSDC")
     .reduce((sum, s) => sum + (s.ratePerSecond * 3600 / 1e6), 0);
 
-  const totalWETHActiveOutflow = subscriberStreams
-    .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "MockWETH")
-    .reduce((sum, s) => sum + (s.ratePerSecond * 3600 / 1e18), 0);
-
   // Formats address or returns domain name if pre-mapped
   const formatAddress = (addr) => {
     if (addr.toLowerCase() === "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".toLowerCase()) return "netflix.qie";
@@ -152,7 +142,7 @@ export default function SubscriberPanel({
             <Coins size={16} color="var(--color-cyan)" />
             Self-Custody Balances
           </h3>
-          <div style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
+          <div style={{ display: "grid", gap: "8px" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>Native QIE:</span>
               <strong style={{ color: "#fff" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
@@ -161,65 +151,6 @@ export default function SubscriberPanel({
               <span>qUSDC stable:</span>
               <strong style={{ color: "var(--color-cyan)" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
             </div>
-            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>MockWETH token:</span>
-              <strong style={{ color: "var(--color-purple)" }}>{parseFloat(wethBalance).toFixed(4)} WETH</strong>
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <input 
-                type="number"
-                className="glass-card"
-                style={{ 
-                  padding: "8px 12px", 
-                  flex: 1, 
-                  minWidth: "50px",
-                  borderRadius: "6px", 
-                  fontSize: "0.85rem", 
-                  color: "#fff", 
-                  background: "rgba(0,0,0,0.2)", 
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  outline: "none",
-                  boxSizing: "border-box"
-                }}
-                value={mintAmount}
-                onChange={(e) => setMintAmount(e.target.value)}
-              />
-              <select 
-                value={mintToken}
-                onChange={(e) => setMintToken(e.target.value)}
-                style={{ 
-                  padding: "8px 12px", 
-                  borderRadius: "6px", 
-                  fontSize: "0.85rem", 
-                  color: "#fff", 
-                  background: "#0c1020", 
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  cursor: "pointer",
-                  width: "100px",
-                  minWidth: "100px",
-                  boxSizing: "border-box"
-                }}
-              >
-                <option value="qUSDC">qUSDC</option>
-                <option value="MockWETH">WETH</option>
-              </select>
-            </div>
-            <button 
-              className="btn btn-secondary" 
-              onClick={() => mintMockTokens(mintToken, mintAmount)}
-              disabled={loading}
-              style={{ 
-                fontSize: "0.8rem", 
-                padding: "8px 16px",
-                width: "100%",
-                borderRadius: "6px"
-              }}
-            >
-              Request Test Tokens
-            </button>
           </div>
         </div>
 
@@ -268,25 +199,7 @@ export default function SubscriberPanel({
               
               <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>→</span>
               
-              <select 
-                value={swapToken}
-                onChange={(e) => setSwapToken(e.target.value)}
-                style={{ 
-                  padding: "8px 12px", 
-                  borderRadius: "6px", 
-                  fontSize: "0.85rem", 
-                  color: "#fff", 
-                  background: "#0c1020", 
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  cursor: "pointer",
-                  width: "100px",
-                  minWidth: "100px",
-                  boxSizing: "border-box"
-                }}
-              >
-                <option value="qUSDC">qUSDC</option>
-                <option value="MockWETH">WETH</option>
-              </select>
+              <strong style={{ fontSize: "0.85rem", color: "var(--color-cyan)" }}>qUSDC</strong>
             </div>
 
             <button 
@@ -347,29 +260,15 @@ export default function SubscriberPanel({
                 {isAllowanceApproved("qUSDC") ? "Approved" : "None"}
               </strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
-              <span>WETH Registry:</span>
-              <strong style={{ color: isAllowanceApproved("MockWETH") ? "var(--color-emerald)" : "var(--color-rose)" }}>
-                {isAllowanceApproved("MockWETH") ? "Approved" : "None"}
-              </strong>
-            </div>
           </div>
           <div style={{ display: "flex", gap: "6px" }}>
             <button 
               className="btn btn-secondary" 
-              style={{ fontSize: "0.75rem", padding: "6px 10px", flex: 1 }}
+              style={{ fontSize: "0.75rem", padding: "6px 10px", width: "100%" }}
               onClick={() => approveToken("qUSDC")}
               disabled={loading || isAllowanceApproved("qUSDC")}
             >
-              Approve USDC
-            </button>
-            <button 
-              className="btn btn-secondary" 
-              style={{ fontSize: "0.75rem", padding: "6px 10px", flex: 1 }}
-              onClick={() => approveToken("MockWETH")}
-              disabled={loading || isAllowanceApproved("MockWETH")}
-            >
-              Approve WETH
+              Approve qUSDC
             </button>
           </div>
         </div>
@@ -379,7 +278,7 @@ export default function SubscriberPanel({
       <div className="glass-card" style={{ padding: "16px 20px" }}>
         <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#fff" }}>Real-Time Stream Velocity Matrix</h3>
         <p style={{ margin: "0 0 16px 0", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-          Current hourly spend velocity: <strong style={{ color: "var(--color-cyan)" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong> & <strong style={{ color: "var(--color-purple)" }}>{totalWETHActiveOutflow.toFixed(4)} WETH/hr</strong>
+          Current hourly spend velocity: <strong style={{ color: "var(--color-cyan)" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong>
         </p>
         <div style={{ height: "100px", position: "relative", background: "rgba(0,0,0,0.15)", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.02)" }}>
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
@@ -431,14 +330,9 @@ export default function SubscriberPanel({
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
               Streaming Token
             </label>
-            <select 
-              value={tokenSymbol}
-              onChange={(e) => setTokenSymbol(e.target.value)}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#0c1020", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
-            >
-              <option value="qUSDC">qUSDC (6 Decimals)</option>
-              <option value="MockWETH">MockWETH (18 Decimals)</option>
-            </select>
+            <div style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--color-cyan)", fontSize: "0.85rem", fontWeight: "bold" }}>
+              qUSDC (6 Decimals)
+            </div>
           </div>
           
           <div>

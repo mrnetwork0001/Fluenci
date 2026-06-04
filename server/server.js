@@ -26,6 +26,8 @@ let telemetryLogs = [
 
 // In-memory compliance & dispute report cache
 let auditReports = {};
+let uniqueUsers = new Set();
+let totalVolume = 0n;
 
 let monitoringActive = false;
 let registryContract = null;
@@ -417,6 +419,8 @@ async function syncHistoricalEvents() {
 
       if (type === "SubscriptionCreated") {
         const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = args;
+        uniqueUsers.add(subscriber);
+        uniqueUsers.add(merchant);
         
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
@@ -509,6 +513,7 @@ async function syncHistoricalEvents() {
         });
       } else if (type === "FundsWithdrawn") {
         const [subId, merchant, amount] = args;
+        totalVolume += BigInt(amount.toString());
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
           timestamp: eventTimestamp,
@@ -534,6 +539,7 @@ async function syncHistoricalEvents() {
         });
       } else if (type === "DisputeResolved") {
         const [subId, subscriberRefund, merchantShare] = args;
+        totalVolume += BigInt(merchantShare.toString());
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
           timestamp: eventTimestamp,
@@ -589,6 +595,17 @@ async function connectBlockchain() {
         logTelemetry("WARNING", "AI_PRIVATE_KEY not provided. Node running in SIMULATION/TELEMETRY-ONLY mode.");
       }
 
+      uniqueUsers = new Set();
+      totalVolume = 0n;
+      telemetryLogs = [
+        {
+          id: 1,
+          timestamp: new Date().toISOString(),
+          type: "INFO",
+          message: "AI Sentry Multi-Agent Node initializing...",
+          details: {}
+        }
+      ];
       await syncHistoricalEvents();
       setupEventListeners();
       monitoringActive = true;
@@ -607,6 +624,8 @@ function setupEventListeners() {
   logTelemetry("INFO", "Registering on-chain contract event listeners...");
 
   registryContract.on("SubscriptionCreated", async (subId, subscriber, merchant, tokenAddress, rate, cliff, stop) => {
+    uniqueUsers.add(subscriber);
+    uniqueUsers.add(merchant);
     await SentryAgent.handleNewStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop);
   });
 
@@ -623,6 +642,7 @@ function setupEventListeners() {
   });
 
   registryContract.on("FundsWithdrawn", (subId, merchant, amount) => {
+    totalVolume += BigInt(amount.toString());
     SentryAgent.handleFundsClaimed(subId, merchant, amount);
   });
 
@@ -631,6 +651,7 @@ function setupEventListeners() {
   });
 
   registryContract.on("DisputeResolved", (subId, subscriberRefund, merchantShare) => {
+    totalVolume += BigInt(merchantShare.toString());
     SentryAgent.handleDisputeResolved(subId, subscriberRefund, merchantShare);
   });
 }
@@ -649,6 +670,16 @@ app.get("/status", (req, res) => {
       auditor: AUDITOR_ADDRESS
     },
     aiWorker: aiWallet ? aiWallet.address : "simulation-mode"
+  });
+});
+
+app.get("/stats", (req, res) => {
+  const volumeFormatted = Number(totalVolume) / 1e6; // Format qUSDC (6 decimals) to dollars
+  const revenueFormatted = volumeFormatted * 0.005; // 0.5% protocol fee
+  res.json({
+    uniqueUsersCount: uniqueUsers.size,
+    totalVolumeUSD: volumeFormatted,
+    totalRevenueUSD: revenueFormatted
   });
 });
 

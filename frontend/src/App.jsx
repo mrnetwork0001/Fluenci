@@ -207,6 +207,33 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("subscriber");
   const [viewMode, setViewMode] = useState("landing");
   const prevAccountRef = useRef(fluenci.account);
+  const [stats, setStats] = useState({
+    uniqueUsersCount: 0,
+    totalVolumeUSD: 0,
+    totalRevenueUSD: 0
+  });
+
+  useEffect(() => {
+    let active = true;
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("http://localhost:5001/stats");
+        if (res.ok) {
+          const data = await res.json();
+          if (!active) return;
+          setStats(data);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch stats from server.", err);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Prepopulate contract addresses if empty
   useEffect(() => {
@@ -516,6 +543,39 @@ export default function App() {
                   <a href="#how-it-works" className="btn btn-secondary" style={{ textDecoration: "none" }}>
                     How it works
                   </a>
+                </div>
+
+                {/* Real-time Protocol Stats Row */}
+                <div style={{ 
+                  display: "flex", 
+                  gap: "24px", 
+                  marginTop: "40px", 
+                  padding: "16px 20px", 
+                  background: "rgba(255, 255, 255, 0.02)", 
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                  borderRadius: "12px",
+                  maxWidth: "550px"
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Active Users</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#fff", fontFamily: "monospace" }}>
+                      {stats.uniqueUsersCount}
+                    </div>
+                  </div>
+                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Total Settled Volume</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-cyan)", fontFamily: "monospace" }}>
+                      ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>App Revenue (0.5%)</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-emerald)", fontFamily: "monospace" }}>
+                      ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
                 </div>
               </div>
 

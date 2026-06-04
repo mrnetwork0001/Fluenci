@@ -20,6 +20,59 @@ const DEFAULT_HARDHAT_CONTRACTS = {
   qiedomain: "0x5b66380309C29D00Ff82388a856fB5e87fF09A7E"
 };
 
+// FAQ Accordion Item Component
+function FAQItem({ question, answer }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="glass-card" style={{ 
+      marginBottom: "12px", 
+      textAlign: "left", 
+      border: isOpen ? "1px solid rgba(157, 78, 221, 0.4)" : "1px solid var(--border-color)",
+      background: isOpen ? "rgba(157, 78, 221, 0.02)" : "rgba(15, 20, 35, 0.5)",
+      transition: "all 0.3s ease",
+      borderRadius: "12px",
+      overflow: "hidden"
+    }}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          color: "#fff",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "16px 20px",
+          fontSize: "1rem",
+          fontWeight: "600",
+          cursor: "pointer",
+          textAlign: "left"
+        }}
+      >
+        <span>{question}</span>
+        <span style={{ 
+          color: "var(--color-cyan)", 
+          transform: isOpen ? "rotate(45deg)" : "rotate(0deg)", 
+          transition: "transform 0.2s ease",
+          fontSize: "1.2rem",
+          fontWeight: "bold"
+        }}>+</span>
+      </button>
+      {isOpen && (
+        <div style={{ 
+          padding: "0 20px 20px 20px", 
+          color: "var(--text-secondary)", 
+          fontSize: "0.85rem",
+          lineHeight: "1.6"
+        }}>
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Live AI Telemetry widget for Landing Page
 function LandingTelemetryTerminal() {
   const [logs, setLogs] = useState([
@@ -622,6 +675,79 @@ export default function App() {
               </div>
             </section>
 
+            {/* QIE Ecosystem Integrations */}
+            <section className="landing-section">
+              <div className="section-header">
+                <h2>Native QIE Ecosystem Integrations</h2>
+                <p>Fluenci leverages the power of QIE blockchain's core components to build a seamless and secure billing protocol.</p>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(0, 242, 254, 0.2)", background: "rgba(0, 242, 254, 0.01)", borderRadius: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ 
+                      width: "48px", 
+                      height: "36px", 
+                      borderRadius: "8px", 
+                      background: "rgba(0, 242, 254, 0.1)", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      color: "var(--color-cyan)",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem"
+                    }}>PASS</span>
+                    <h3 style={{ fontSize: "1.1rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Pass KYC ID</h3>
+                  </div>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Ensures all streaming participants are verified. Gating subscriptions via QIE Pass DIDs prevents sybil attacks and ensures regulatory compliance.
+                  </p>
+                </div>
+
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(157, 78, 221, 0.2)", background: "rgba(157, 78, 221, 0.01)", borderRadius: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ 
+                      width: "48px", 
+                      height: "36px", 
+                      borderRadius: "8px", 
+                      background: "rgba(157, 78, 221, 0.1)", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      color: "var(--color-purple)",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem"
+                    }}>DEX</span>
+                    <h3 style={{ fontSize: "1.1rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIEDex Router</h3>
+                  </div>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Enables users to swap between native QIE and qUSDC stablecoin directly inside the dApp, providing deep liquidity for ongoing payment streams.
+                  </p>
+                </div>
+
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(16, 185, 129, 0.2)", background: "rgba(16, 185, 129, 0.01)", borderRadius: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ 
+                      width: "48px", 
+                      height: "36px", 
+                      borderRadius: "8px", 
+                      background: "rgba(16, 185, 129, 0.1)", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      color: "var(--color-emerald)",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem"
+                    }}>QNS</span>
+                    <h3 style={{ fontSize: "1.1rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Domain Name</h3>
+                  </div>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Resolves long merchant wallet addresses to human-readable `.qie` domains, reducing payment destination errors and enhancing trust.
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {/* Feature Comparison Matrix */}
             <section className="landing-section">
               <div className="section-header">
@@ -667,6 +793,31 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+            </section>
+
+            {/* FAQ Accordion Section */}
+            <section className="landing-section" style={{ maxWidth: "800px", margin: "0 auto" }}>
+              <div className="section-header" style={{ textAlign: "center" }}>
+                <h2>Frequently Asked Questions</h2>
+                <p>Everything you need to know about the Fluenci protocol and how the AI sentries protect your assets.</p>
+              </div>
+              
+              <FAQItem 
+                question="How does the autonomous AI Sentry Node pause streaming exploits?"
+                answer="The off-chain Sentry Agent continuously monitors the blockchain for new stream creations. When a stream is detected, the Analyst Agent uses reputation checkers and heuristics to determine if the rate is safe. If the velocity is dangerously high (e.g. attempting to drain the subscriber's balance), the Decision Agent signs a safety-pause transaction and broadcasts it to lock the stream on-chain until it is verified."
+              />
+              <FAQItem 
+                question="Why are payment streams minted as transferable NFTs?"
+                answer="Fluenci represents each streaming payment agreement as an ERC-721 Subscription NFT. This allows users to trade, gift, or delegate their subscriptions. When the NFT is transferred, the smart contract automatically shifts the billing obligation to the new owner's wallet address, enabling tradeable recurring memberships."
+              />
+              <FAQItem 
+                question="How does AI-arbitrated dispute resolution work?"
+                answer="If a subscriber opens a dispute, the stream is paused. The off-chain Arbitrator Agent evaluates the text evidence provided by both parties, determines a fair split of the accrued tokens, and signs an EIP-712 cryptographic message containing the resolution. The smart contract validates the AI's signature on-chain to unlock and distribute the funds securely."
+              />
+              <FAQItem 
+                question="Do I need to deposit all my subscription funds upfront?"
+                answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of qUSDC in your wallet to cover the continuous claims."
+              />
             </section>
           </div>
         )}

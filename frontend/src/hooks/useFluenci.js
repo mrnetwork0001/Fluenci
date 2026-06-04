@@ -388,6 +388,7 @@ export function useFluenci() {
     }
     setError("");
     setKycState({ status: "creating", requestId: null, redirectUrl: null, error: null });
+    setTxState({ status: "preparing", action: "Verifying Identity via QIE Pass", hash: "", error: "" });
 
     try {
       const res = await fetch(`${SERVER_URL}/qiepass/verify`, {
@@ -412,6 +413,7 @@ export function useFluenci() {
           redirectUrl,
           error: null
         });
+        setTxStep("confirming", { action: "Complete KYC in QIE Wallet tab" });
         window.open(redirectUrl, "_blank");
         // Start polling
         startKycPolling(data.requestId);
@@ -423,13 +425,16 @@ export function useFluenci() {
           redirectUrl: null,
           error: null
         });
+        setTxStep("confirming", { action: "Waiting for consent approval..." });
         startKycPolling(data.requestId);
       } else if (data.status === "consent_given") {
         // Ready to claim
+        setTxStep("confirming", { action: "Claiming verified credentials..." });
         await claimKyc(data.requestId);
       }
     } catch (err) {
       setKycState(prev => ({ ...prev, status: "error", error: err.message }));
+      setTxStep("error", { error: err.message });
       setError(err.message);
     }
   };
@@ -452,11 +457,13 @@ export function useFluenci() {
           clearInterval(kycPollRef.current);
           kycPollRef.current = null;
           setKycState(prev => ({ ...prev, status: "claiming" }));
+          setTxStep("confirming", { action: "Claiming verified credentials..." });
           await claimKyc(requestId);
         } else if (data.status === "consent_rejected") {
           clearInterval(kycPollRef.current);
           kycPollRef.current = null;
           setKycState(prev => ({ ...prev, status: "error", error: "User rejected consent" }));
+          setTxStep("error", { error: "Consent was rejected" });
         } else if (data.status === "pending_consent") {
           setKycState(prev => ({ ...prev, status: "pending_consent" }));
         }
@@ -470,6 +477,7 @@ export function useFluenci() {
   const claimKyc = async (requestId) => {
     try {
       setKycState(prev => ({ ...prev, status: "claiming" }));
+      setTxStep("confirming", { action: "Verifying credentials on-chain..." });
       const res = await fetch(`${SERVER_URL}/qiepass/claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -488,9 +496,11 @@ export function useFluenci() {
         redirectUrl: null,
         error: null
       });
+      setTxStep("confirmed", { hash: data.txHash || "" });
       await fetchAccountState();
     } catch (err) {
       setKycState(prev => ({ ...prev, status: "error", error: err.message }));
+      setTxStep("error", { error: err.message });
       setError(err.message);
     }
   };

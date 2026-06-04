@@ -128,6 +128,29 @@ The React Vite frontend handles the subscriber panel, merchant dashboard, DEX sw
 
 ---
 
+## 💎 Economic Sustainability & Revenue Model
+
+For a decentralized subscription protocol merging AI Agents and Web3 payments to be viable and win hackathons, it must demonstrate a clear path to self-sustainability. Fluenci achieves this through a multi-tiered economic model:
+
+### 1. Protocol Stream Fee (Tollbooth Model)
+* **Mechanism**: A protocol fee of **0.5%** is charged dynamically when a merchant claims funds from an active stream via `claimStream()`.
+* **Execution**: The `FluenciRegistry` splits the payment:
+  * **99.5%** goes to the merchant.
+  * **0.5%** is redirected to the **Fluenci Treasury**.
+* **Sustainability**: Scales linearly with the protocol's TVL and transaction volume.
+
+### 2. Premium AI Sentry Subscription (SaaS)
+* **Mechanism**: Basic security telemetry is free, but merchants can stream a monthly subscription (e.g., $10/month in `qUSDC`) using Fluenci's own streaming mechanics to enable **AI Sentry Premium Defense** (faster queues, deeper reputation checks, and custom alert thresholds).
+* **Sustainability**: Provides stable, predictable cash flow to cover off-chain AI node operational costs.
+
+### 3. AI Dispute Arbitration Fee
+* **Mechanism**: Resolving disputes involves gas consumption (EIP-712 signatures) and LLM API costs. A fixed fee is charged upon opening a dispute to cover AI agent computation costs.
+
+### 4. Yield-Bearing Collateral Escrows (Future Phase)
+* **Mechanism**: In escrowed stream setups, the contract will deposit idle collateral into liquid staking/lending pools on the QIE network, sending generated yield to the Treasury.
+
+---
+
 ## 🔬 Testing the AI Sentry Pipeline
 
 To demonstrate the full autonomous security pipeline:

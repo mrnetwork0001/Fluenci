@@ -9,6 +9,8 @@ import TransactionModal from "./components/TransactionModal";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
 import LogoImage from "./assets/logo.png";
 import QiePassLogo from "./assets/qiepass.png";
+import QieWalletLogo from "./assets/qiewallet.png";
+import QieStableCoinLogo from "./assets/qusdc.png";
 import "./App.css";
 
 // Default deployment addresses
@@ -709,18 +711,14 @@ export default function App() {
                 {/* QIE Wallet */}
                 <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(167, 139, 250, 0.15)", background: "rgba(167, 139, 250, 0.01)", borderRadius: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={{ 
-                      width: "48px", 
-                      height: "36px", 
-                      borderRadius: "8px", 
-                      background: "rgba(167, 139, 250, 0.08)", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      color: "var(--color-purple)",
-                      fontWeight: "bold",
-                      fontSize: "0.75rem"
-                    }}>WALLET</span>
+                    <img 
+                      src={QieWalletLogo} 
+                      alt="QIE Wallet Logo" 
+                      style={{ 
+                        height: "28px", 
+                        objectFit: "contain"
+                      }} 
+                    />
                     <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Wallet</h3>
                   </div>
                   <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
@@ -731,18 +729,14 @@ export default function App() {
                 {/* QIE Stable Coin (qUSDC) */}
                 <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(244, 63, 94, 0.15)", background: "rgba(244, 63, 94, 0.01)", borderRadius: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={{ 
-                      width: "48px", 
-                      height: "36px", 
-                      borderRadius: "8px", 
-                      background: "rgba(244, 63, 94, 0.08)", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      color: "var(--color-rose)",
-                      fontWeight: "bold",
-                      fontSize: "0.75rem"
-                    }}>qUSDC</span>
+                    <img 
+                      src={QieStableCoinLogo} 
+                      alt="QIE Stable Coin Logo" 
+                      style={{ 
+                        height: "28px", 
+                        objectFit: "contain"
+                      }} 
+                    />
                     <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Stable Coin</h3>
                   </div>
                   <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>

@@ -97,8 +97,12 @@ function LandingTelemetryTerminal() {
           
           setServerOnline(true);
           
+          const logsArray = Array.isArray(data) ? data : (data.logs || []);
+          const riskFromBackend = data && typeof data.systemRiskScore === 'number' ? data.systemRiskScore : null;
+          const streamsFromBackend = data && typeof data.activeStreamsCount === 'number' ? data.activeStreamsCount : null;
+
           // Map telemetry logs to widget format
-          const formattedLogs = data.map(log => ({
+          const formattedLogs = logsArray.map(log => ({
             type: log.type,
             time: new Date(log.timestamp).toLocaleTimeString(),
             text: log.message
@@ -107,31 +111,36 @@ function LandingTelemetryTerminal() {
           // Show last 7 logs
           setLogs(formattedLogs.slice(-7));
 
-          // Calculate actual active streams and risk from real data
-          const activeIds = new Set();
-          let maxRisk = 12; // baseline
-          
-          data.forEach(log => {
-            if (log.message.includes("Captured new subscription stream")) {
-              const parts = log.message.split("stream: ");
-              if (parts[1]) {
-                const id = parts[1].split(".")[0];
-                activeIds.add(id);
+          if (riskFromBackend !== null && streamsFromBackend !== null) {
+            setSystemRisk(riskFromBackend);
+            setActiveStreams(streamsFromBackend);
+          } else {
+            // Calculate actual active streams and risk from real data
+            const activeIds = new Set();
+            let maxRisk = 12; // baseline
+            
+            logsArray.forEach(log => {
+              if (log.message.includes("Captured new subscription stream")) {
+                const parts = log.message.split("stream: ");
+                if (parts[1]) {
+                  const id = parts[1].split(".")[0];
+                  activeIds.add(id);
+                }
               }
-            }
-            if (log.message.includes("StreamTerminated") || log.message.includes("terminated")) {
-              const parts = log.message.split("stream ");
-              if (parts[1]) {
-                activeIds.delete(parts[1]);
+              if (log.message.includes("StreamTerminated") || log.message.includes("terminated")) {
+                const parts = log.message.split("stream ");
+                if (parts[1]) {
+                  activeIds.delete(parts[1]);
+                }
               }
-            }
-            if (log.details && log.details.riskScore) {
-              maxRisk = Math.max(maxRisk, Number(log.details.riskScore));
-            }
-          });
-          
-          setActiveStreams(activeIds.size);
-          setSystemRisk(maxRisk);
+              if (log.details && log.details.riskScore) {
+                maxRisk = Math.max(maxRisk, Number(log.details.riskScore));
+              }
+            });
+            
+            setActiveStreams(activeIds.size);
+            setSystemRisk(maxRisk);
+          }
         } else {
           if (active) {
             setServerOnline(false);

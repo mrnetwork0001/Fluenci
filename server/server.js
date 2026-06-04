@@ -28,6 +28,7 @@ let telemetryLogs = [
 let auditReports = {};
 let uniqueUsers = new Set();
 let totalVolume = 0n;
+let activeStreamRisks = {};
 
 let monitoringActive = false;
 let registryContract = null;
@@ -185,6 +186,7 @@ const AnalystAgent = {
       ipfsCID,
       timestamp: new Date().toISOString()
     };
+    activeStreamRisks[subId] = riskScore;
 
     logTelemetry("ANALYST_AGENT", `Audit Intelligence Report compiled and pinned to IPFS. CID: ${ipfsCID}`, {
       riskScore,
@@ -484,8 +486,10 @@ async function syncHistoricalEvents() {
             details: {}
           });
         }
+        activeStreamRisks[subId] = riskScore;
       } else if (type === "StreamPaused") {
         const [subId, reason] = args;
+        delete activeStreamRisks[subId];
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
           timestamp: eventTimestamp,
@@ -495,6 +499,7 @@ async function syncHistoricalEvents() {
         });
       } else if (type === "StreamResumed") {
         const [subId] = args;
+        activeStreamRisks[subId] = 12;
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
           timestamp: eventTimestamp,
@@ -504,6 +509,7 @@ async function syncHistoricalEvents() {
         });
       } else if (type === "StreamTerminated") {
         const [subId] = args;
+        delete activeStreamRisks[subId];
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
           timestamp: eventTimestamp,
@@ -597,6 +603,7 @@ async function connectBlockchain() {
 
       uniqueUsers = new Set();
       totalVolume = 0n;
+      activeStreamRisks = {};
       telemetryLogs = [
         {
           id: 1,
@@ -626,18 +633,22 @@ function setupEventListeners() {
   registryContract.on("SubscriptionCreated", async (subId, subscriber, merchant, tokenAddress, rate, cliff, stop) => {
     uniqueUsers.add(subscriber);
     uniqueUsers.add(merchant);
+    activeStreamRisks[subId] = 12; // default safe baseline risk
     await SentryAgent.handleNewStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop);
   });
 
   registryContract.on("StreamPaused", (subId, reason) => {
+    delete activeStreamRisks[subId];
     SentryAgent.handleStreamPaused(subId, reason);
   });
 
   registryContract.on("StreamResumed", (subId) => {
+    activeStreamRisks[subId] = 12; // reset back to safe baseline
     SentryAgent.handleStreamResumed(subId);
   });
 
   registryContract.on("StreamTerminated", (subId) => {
+    delete activeStreamRisks[subId];
     SentryAgent.handleStreamTerminated(subId);
   });
 
@@ -676,15 +687,24 @@ app.get("/status", (req, res) => {
 app.get("/stats", (req, res) => {
   const volumeFormatted = Number(totalVolume) / 1e6; // Format qUSDC (6 decimals) to dollars
   const revenueFormatted = volumeFormatted * 0.005; // 0.5% protocol fee
+  const risks = Object.values(activeStreamRisks);
+  const currentRisk = risks.length > 0 ? Math.max(12, ...risks) : 12;
   res.json({
     uniqueUsersCount: uniqueUsers.size,
     totalVolumeUSD: volumeFormatted,
-    totalRevenueUSD: revenueFormatted
+    totalRevenueUSD: revenueFormatted,
+    systemRiskScore: currentRisk
   });
 });
 
 app.get("/telemetry", (req, res) => {
-  res.json(telemetryLogs);
+  const risks = Object.values(activeStreamRisks);
+  const currentRisk = risks.length > 0 ? Math.max(12, ...risks) : 12;
+  res.json({
+    logs: telemetryLogs,
+    systemRiskScore: currentRisk,
+    activeStreamsCount: Object.keys(activeStreamRisks).length
+  });
 });
 
 // Fetch detailed AI audit report

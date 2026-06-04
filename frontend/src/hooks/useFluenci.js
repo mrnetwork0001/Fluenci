@@ -589,22 +589,38 @@ export function useFluenci() {
       }
 
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const dexContract = new ethers.Contract(contracts.qiedex, DEX_ABI, signer);
+      const injected = activeProviderRef.current || window.ethereum;
+      if (!injected) throw new Error("No Web3 wallet detected");
 
-      const tx = await dexContract.swapExactETHForTokens(
+      const dexInterface = new ethers.Interface(DEX_ABI);
+      const data = dexInterface.encodeFunctionData("swapExactETHForTokens", [
         amountOutMin,
         path,
         account,
-        deadline,
-        {
-          value: ethers.parseEther(qieAmount),
-          gasLimit: 300000n
-        }
-      );
-      setTxStep("broadcasting", { hash: tx.hash });
+        deadline
+      ]);
+
+      const valueHex = "0x" + ethers.parseEther(qieAmount).toString(16);
+      const gasHex = "0x" + (300000n).toString(16);
+
+      const txHash = await injected.request({
+        method: "eth_sendTransaction",
+        params: [{
+          from: account,
+          to: contracts.qiedex,
+          data: data,
+          value: valueHex,
+          gas: gasHex
+        }]
+      });
+
+      if (!txHash) {
+        throw new Error("No transaction hash returned from wallet");
+      }
+
+      setTxStep("broadcasting", { hash: txHash });
       setTxStep("confirming");
-      await waitForTx(tx);
+      await waitForTx({ hash: txHash });
       setTxStep("confirmed");
       await fetchAccountState();
       setLoading(false);

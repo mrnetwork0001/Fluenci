@@ -8,6 +8,7 @@ import { QieDoodleGame } from "./components/QieDoodleGame";
 import TransactionModal from "./components/TransactionModal";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
 import LogoImage from "./assets/logo.png";
+import QiePassLogo from "./assets/qiepass.png";
 import "./App.css";
 
 // Default deployment addresses
@@ -690,18 +691,14 @@ export default function App() {
                 {/* QIE Pass */}
                 <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(0, 242, 254, 0.15)", background: "rgba(0, 242, 254, 0.01)", borderRadius: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span style={{ 
-                      width: "48px", 
-                      height: "36px", 
-                      borderRadius: "8px", 
-                      background: "rgba(0, 242, 254, 0.08)", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      color: "var(--color-cyan)",
-                      fontWeight: "bold",
-                      fontSize: "0.75rem"
-                    }}>PASS</span>
+                    <img 
+                      src={QiePassLogo} 
+                      alt="QIE Pass Logo" 
+                      style={{ 
+                        height: "28px", 
+                        objectFit: "contain"
+                      }} 
+                    />
                     <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Pass</h3>
                   </div>
                   <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>

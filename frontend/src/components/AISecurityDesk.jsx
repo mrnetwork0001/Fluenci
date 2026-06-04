@@ -38,10 +38,11 @@ export default function AISecurityDesk({
   // Fetch telemetry logs from Express server
   const fetchTelemetry = async () => {
     try {
-      const res = await fetch("http://localhost:5001/telemetry");
+      const res = await fetch("http://127.0.0.1:5001/telemetry");
       if (res.ok) {
         const data = await res.json();
-        setTelemetryLogs(data);
+        const logsArray = Array.isArray(data) ? data : (data.logs || []);
+        setTelemetryLogs(logsArray);
         setServerOnline(true);
       } else {
         setServerOnline(false);
@@ -74,7 +75,7 @@ export default function AISecurityDesk({
     });
 
     try {
-      const res = await fetch("http://localhost:5001/configure", {
+      const res = await fetch("http://127.0.0.1:5001/configure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -102,7 +103,7 @@ export default function AISecurityDesk({
     setInjectingAnomaly(true);
     
     try {
-      const res = await fetch("http://localhost:5001/trigger-anomaly", {
+      const res = await fetch("http://127.0.0.1:5001/trigger-anomaly", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

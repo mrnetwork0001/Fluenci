@@ -90,7 +90,7 @@ function LandingTelemetryTerminal() {
     let active = true;
     const fetchTelemetry = async () => {
       try {
-        const res = await fetch("http://localhost:5001/telemetry");
+        const res = await fetch("http://127.0.0.1:5001/telemetry");
         if (res.ok) {
           const data = await res.json();
           if (!active) return;
@@ -283,7 +283,7 @@ export default function App() {
     let active = true;
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:5001/stats");
+        const res = await fetch("http://127.0.0.1:5001/stats");
         if (res.ok) {
           const data = await res.json();
           if (!active) return;

@@ -431,7 +431,7 @@ export function useFluenci() {
   // QIE PASS REAL KYC VERIFICATION
   // ==========================================
 
-  const SERVER_URL = "http://localhost:5001";
+  const SERVER_URL = "http://127.0.0.1:5001";
 
   // Step 1: Start KYC verification
   const startKycVerification = async () => {

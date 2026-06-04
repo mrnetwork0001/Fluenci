@@ -340,6 +340,33 @@ export function useFluenci() {
     }
   }, [account, contracts]);
 
+  // Generic direct EIP-1193 JSON-RPC transaction sender to prevent browser wallet hangs
+  const executeDirectTx = async (toAddress, abi, methodName, args, value = "0x0", gasLimit = 200000n) => {
+    const injected = activeProviderRef.current || window.ethereum;
+    if (!injected) throw new Error("No Web3 wallet detected");
+
+    const iface = new ethers.Interface(abi);
+    const data = iface.encodeFunctionData(methodName, args);
+    const gasHex = "0x" + gasLimit.toString(16);
+
+    const txHash = await injected.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: account,
+        to: toAddress,
+        data: data,
+        value: value,
+        gas: gasHex
+      }]
+    });
+
+    if (!txHash) {
+      throw new Error("No transaction hash returned from wallet");
+    }
+
+    return { hash: txHash };
+  };
+
   // Mint mock stablecoins / WETH
   const mintMockTokens = async (tokenSymbol, amount) => {
     setError("");
@@ -347,12 +374,17 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: `Minting ${amount} ${tokenSymbol}`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
       const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
       const decimals = tokenSymbol === "qUSDC" ? 6 : 18;
       
-      const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-      const tx = await tokenContract.mint(account, ethers.parseUnits(amount, decimals));
+      const tx = await executeDirectTx(
+        tokenAddress,
+        ERC20_ABI,
+        "mint",
+        [account, ethers.parseUnits(amount, decimals)],
+        "0x0",
+        200000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -373,11 +405,14 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: `Approving qUSDC`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const tokenAddress = contracts.qusdc;
-      
-      const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-      const tx = await tokenContract.approve(contracts.registry, ethers.MaxUint256, { gasLimit: 100000n });
+      const tx = await executeDirectTx(
+        contracts.qusdc,
+        ERC20_ABI,
+        "approve",
+        [contracts.registry, ethers.MaxUint256],
+        "0x0",
+        100000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -637,9 +672,6 @@ export function useFluenci() {
     setLoading(true);
     setTxState({ status: "preparing", action: "Creating Subscription Stream", hash: "", error: "" });
     try {
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-
       // Resolve domain if inputs end with .qie
       let merchantAddress = merchant;
       if (merchant.endsWith(".qie")) {
@@ -661,13 +693,13 @@ export function useFluenci() {
       const stopTime = stopSeconds > 0 ? currentTimestamp + Number(stopSeconds) : 0;
 
       setTxStep("awaiting_signature");
-      const tx = await registryContract.createSubscription(
-        merchantAddress,
-        tokenAddress,
-        ratePerSecond,
-        cliffTime,
-        stopTime,
-        { gasLimit: 500000n }
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "createSubscription",
+        [merchantAddress, tokenAddress, ratePerSecond, cliffTime, stopTime],
+        "0x0",
+        500000n
       );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
@@ -690,9 +722,14 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: "Claiming Stream Funds", hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.claimStream(subId, { gasLimit: 200000n });
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "claimStream",
+        [subId],
+        "0x0",
+        200000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -714,9 +751,14 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: "Opening Dispute", hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.openDispute(subId, { gasLimit: 200000n });
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "openDispute",
+        [subId],
+        "0x0",
+        200000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -737,9 +779,14 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: "Resolving Dispute", hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.resolveDispute(subId, subscriberRefund, merchantShare, signature, { gasLimit: 300000n });
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "resolveDispute",
+        [subId, subscriberRefund, merchantShare, signature],
+        "0x0",
+        300000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -760,10 +807,7 @@ export function useFluenci() {
     setLoading(true);
     setTxState({ status: "preparing", action: "Transferring Stream NFT", hash: "", error: "" });
     try {
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
       const tokenId = BigInt(subId);
-      
       let recipient = toAddress;
       if (toAddress.endsWith(".qie")) {
         const resolved = await resolveQieDomain(toAddress);
@@ -774,7 +818,14 @@ export function useFluenci() {
       }
 
       setTxStep("awaiting_signature");
-      const tx = await registryContract.transferFrom(account, recipient, tokenId, { gasLimit: 200000n });
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "transferFrom",
+        [account, recipient, tokenId],
+        "0x0",
+        200000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -795,9 +846,14 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: "Resuming Stream", hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.resumeStream(subId, { gasLimit: 200000n });
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "resumeStream",
+        [subId],
+        "0x0",
+        200000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);
@@ -818,9 +874,14 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: "Terminating Stream", hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const { signer } = await getProviderAndSigner();
-      const registryContract = new ethers.Contract(contracts.registry, REGISTRY_ABI, signer);
-      const tx = await registryContract.terminateStream(subId, { gasLimit: 200000n });
+      const tx = await executeDirectTx(
+        contracts.registry,
+        REGISTRY_ABI,
+        "terminateStream",
+        [subId],
+        "0x0",
+        200000n
+      );
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
       await waitForTx(tx);

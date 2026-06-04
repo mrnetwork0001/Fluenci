@@ -92,6 +92,7 @@ export function useFluenci() {
 
   const resetTx = () => {
     setTxState({ status: "idle", action: "", hash: "", error: "" });
+    setLoading(false);
   };
   const [subscriberStreams, setSubscriberStreams] = useState([]);
   const [merchantStreams, setMerchantStreams] = useState([]);
@@ -131,20 +132,36 @@ export function useFluenci() {
     return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
   }, []);
 
-  // Wait for a transaction using our own read provider (bypasses wallet's potentially broken RPC)
+  // Wait for a transaction by polling getTransactionReceipt
+  // (waitForTransaction hangs on QIE RPC due to broken eth_getFilterChanges)
   const waitForTx = async (tx) => {
     const readProvider = getReadProvider();
-    const TIMEOUT_MS = 120000; // 2 minute safety timeout
-    const receipt = await Promise.race([
-      readProvider.waitForTransaction(tx.hash, 1),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(
-          `Transaction sent (${tx.hash.slice(0, 10)}…) but confirmation timed out after 2 minutes. ` +
-          `Check your wallet or block explorer for status.`
-        )), TIMEOUT_MS)
-      )
-    ]);
-    return receipt;
+    const TIMEOUT_MS = 60000; // 60 second timeout
+    const POLL_INTERVAL = 3000; // poll every 3 seconds
+    const startTime = Date.now();
+
+    return new Promise((resolve, reject) => {
+      const poll = async () => {
+        try {
+          const receipt = await readProvider.getTransactionReceipt(tx.hash);
+          if (receipt && receipt.blockNumber) {
+            return resolve(receipt);
+          }
+        } catch (e) {
+          // RPC hiccup — keep polling
+        }
+
+        if (Date.now() - startTime > TIMEOUT_MS) {
+          return reject(new Error(
+            `Transaction sent (${tx.hash.slice(0, 10)}…) but confirmation timed out. ` +
+            `Check your wallet or block explorer for status.`
+          ));
+        }
+
+        setTimeout(poll, POLL_INTERVAL);
+      };
+      poll();
+    });
   };
 
   // Switch network to QIE Mainnet and force RPC sync

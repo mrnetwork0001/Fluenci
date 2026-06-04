@@ -661,7 +661,7 @@ app.post("/qiepass/claim", async (req, res) => {
     let txHash = null;
     if (aiWallet && provider) {
       try {
-        const QIEPASS_CONTRACT = "0xeC8419ec2A7faA8Bb9C1B4E0903f39dff2E8bBbD";
+        const QIEPASS_CONTRACT = "0x0766Ff824376CEf38CFa5C155A51E90578096e38";
         const qiePassContract = new ethers.Contract(
           QIEPASS_CONTRACT,
           ["function registerIdentity(address user, bool status) external"],

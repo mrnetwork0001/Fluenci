@@ -34,6 +34,7 @@ const QIEPASS_ABI = [
 
 const DEX_ABI = [
   "function swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline) external payable returns (uint256[])",
+  "function swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) external returns (uint256[])",
   "function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"
 ];
 
@@ -596,26 +597,30 @@ export function useFluenci() {
     }
   };
 
-  // Swap native QIE via Qiedex
-  const swapQieForTokens = async (tokenSymbol, qieAmount) => {
+  // Generalized Swap (QIE ⇄ qUSDC) via Qiedex
+  const swapQieForTokens = async (fromToken, toToken, amount) => {
     setError("");
     setLoading(true);
-    setTxState({ status: "preparing", action: `Swapping ${qieAmount} QIE → qUSDC`, hash: "", error: "" });
+    setTxState({ status: "preparing", action: `Swapping ${amount} ${fromToken} → ${toToken}`, hash: "", error: "" });
     try {
-      const path = [
-        "0x0087904D95BEe9E5F24dc8852804b547981A9139", // WQIE
-        contracts.qusdc // QUSDC
-      ];
+      const isReverse = fromToken === "qUSDC";
+      
+      const path = isReverse 
+        ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // qUSDC → WQIE
+        : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc]; // WQIE → qUSDC
       
       const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 min deadline
       
-      // Fetch quote via direct read provider (bypasses wallet RPC which can hang)
+      // Parse inputs and fetch quote via direct read provider
+      const decimalsIn = isReverse ? 6 : 18;
+      const parsedAmount = ethers.parseUnits(amount, decimalsIn);
+      
       let amountOutMin = 0n;
       try {
         const readProvider = getReadProvider();
         const readDex = new ethers.Contract(contracts.qiedex, DEX_ABI, readProvider);
         const amounts = await Promise.race([
-          readDex.getAmountsOut(ethers.parseEther(qieAmount), path),
+          readDex.getAmountsOut(parsedAmount, path),
           new Promise((_, reject) => setTimeout(() => reject(new Error("Quote timeout")), 5000))
         ]);
         amountOutMin = (amounts[1] * 95n) / 100n; // 5% slippage
@@ -623,39 +628,76 @@ export function useFluenci() {
         console.warn("Failed to fetch getAmountsOut, proceeding with 0 min:", e.message);
       }
 
-      setTxStep("awaiting_signature");
       const injected = activeProviderRef.current || window.ethereum;
       if (!injected) throw new Error("No Web3 wallet detected");
 
-      const dexInterface = new ethers.Interface(DEX_ABI);
-      const data = dexInterface.encodeFunctionData("swapExactETHForTokens", [
-        amountOutMin,
-        path,
-        account,
-        deadline
-      ]);
-
-      const valueHex = "0x" + ethers.parseEther(qieAmount).toString(16);
-      const gasHex = "0x" + (300000n).toString(16);
-
-      const txHash = await injected.request({
-        method: "eth_sendTransaction",
-        params: [{
-          from: account,
-          to: contracts.qiedex,
-          data: data,
-          value: valueHex,
-          gas: gasHex
-        }]
-      });
-
-      if (!txHash) {
-        throw new Error("No transaction hash returned from wallet");
+      // Auto-approve qUSDC if we are doing a reverse swap (qUSDC ➔ QIE)
+      if (isReverse) {
+        setTxState({ status: "preparing", action: "Checking qUSDC Allowance...", hash: "", error: "" });
+        const readProvider = getReadProvider();
+        const qusdcContract = new ethers.Contract(contracts.qusdc, ERC20_ABI, readProvider);
+        const allowance = await qusdcContract.allowance(account, contracts.qiedex);
+        
+        if (allowance < parsedAmount) {
+          setTxState({ status: "preparing", action: "Approving qUSDC for Swap", hash: "", error: "" });
+          setTxStep("awaiting_signature");
+          const approveTx = await executeDirectTx(
+            contracts.qusdc,
+            ERC20_ABI,
+            "approve",
+            [contracts.qiedex, ethers.MaxUint256],
+            "0x0",
+            100000n
+          );
+          setTxStep("broadcasting", { hash: approveTx.hash });
+          setTxStep("confirming");
+          await waitForTx(approveTx);
+        }
       }
 
-      setTxStep("broadcasting", { hash: txHash });
+      setTxState({ status: "preparing", action: `Swapping ${amount} ${fromToken} → ${toToken}`, hash: "", error: "" });
+      setTxStep("awaiting_signature");
+
+      let tx;
+      if (!isReverse) {
+        // QIE ➔ qUSDC
+        const dexInterface = new ethers.Interface(DEX_ABI);
+        const data = dexInterface.encodeFunctionData("swapExactETHForTokens", [
+          amountOutMin,
+          path,
+          account,
+          deadline
+        ]);
+        const valueHex = "0x" + parsedAmount.toString(16);
+        const gasHex = "0x" + (300000n).toString(16);
+
+        const txHash = await injected.request({
+          method: "eth_sendTransaction",
+          params: [{
+            from: account,
+            to: contracts.qiedex,
+            data: data,
+            value: valueHex,
+            gas: gasHex
+          }]
+        });
+        if (!txHash) throw new Error("No transaction hash returned from wallet");
+        tx = { hash: txHash };
+      } else {
+        // qUSDC ➔ QIE
+        tx = await executeDirectTx(
+          contracts.qiedex,
+          DEX_ABI,
+          "swapExactTokensForETH",
+          [parsedAmount, amountOutMin, path, account, deadline],
+          "0x0",
+          300000n
+        );
+      }
+
+      setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
-      await waitForTx({ hash: txHash });
+      await waitForTx(tx);
       setTxStep("confirmed");
       await fetchAccountState();
       setLoading(false);

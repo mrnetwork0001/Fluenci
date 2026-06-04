@@ -32,6 +32,7 @@ export default function SubscriberPanel({
 
   const [swapAmount, setSwapAmount] = useState("1");
   const [swapToken, setSwapToken] = useState("qUSDC");
+  const [swapMode, setSwapMode] = useState("QIE_TO_QUSDC"); // QIE_TO_QUSDC | QUSDC_TO_QIE
 
   // Dispute and Transfer state
   const [transferTarget, setTransferTarget] = useState({});
@@ -57,13 +58,18 @@ export default function SubscriberPanel({
           ["function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"], 
           provider
         );
-        const path = [
-          "0x0087904D95BEe9E5F24dc8852804b547981A9139", // WQIE
-          contracts.qusdc
-        ];
-        const amounts = await dexContract.getAmountsOut(ethers.parseEther(swapAmount), path);
+        const isReverse = swapMode === "QUSDC_TO_QIE";
+        const path = isReverse
+          ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // qUSDC → WQIE
+          : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc]; // WQIE → qUSDC
+        
+        const decimalsIn = isReverse ? 6 : 18;
+        const decimalsOut = isReverse ? 18 : 6;
+        
+        const amountIn = ethers.parseUnits(swapAmount, decimalsIn);
+        const amounts = await dexContract.getAmountsOut(amountIn, path);
         if (active) {
-          setExpectedOutput(ethers.formatUnits(amounts[1], 6));
+          setExpectedOutput(ethers.formatUnits(amounts[1], decimalsOut));
         }
       } catch (e) {
         console.warn("Failed to fetch expected swap output", e);
@@ -81,7 +87,7 @@ export default function SubscriberPanel({
       active = false;
       clearTimeout(delayDebounceFn);
     };
-  }, [swapAmount, contracts.qiedex, contracts.qusdc]);
+  }, [swapAmount, swapMode, contracts.qiedex, contracts.qusdc]);
 
   const handleSubmitSubscription = (e) => {
     e.preventDefault();
@@ -176,7 +182,11 @@ export default function SubscriberPanel({
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
 
-  const isInsufficientQie = !isNaN(parseFloat(swapAmount)) && parseFloat(swapAmount) > parseFloat(qieBalance);
+  const isInsufficientBalance = !isNaN(parseFloat(swapAmount)) && (
+    swapMode === "QIE_TO_QUSDC"
+      ? parseFloat(swapAmount) > parseFloat(qieBalance)
+      : parseFloat(swapAmount) > parseFloat(qusdcBalance)
+  );
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
@@ -209,7 +219,7 @@ export default function SubscriberPanel({
             Qiedex Instant Auto-Swap
           </h3>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
-            Instantly swap native QIE to streaming tokens to prevent stream halts.
+            Instantly swap native QIE to streaming tokens or convert earnings back to QIE.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -225,7 +235,7 @@ export default function SubscriberPanel({
                     fontSize: "0.85rem", 
                     color: "#fff", 
                     background: "rgba(0,0,0,0.2)", 
-                    border: isInsufficientQie ? "1px solid var(--color-rose)" : "1px solid rgba(255,255,255,0.08)",
+                    border: isInsufficientBalance ? "1px solid var(--color-rose)" : "1px solid rgba(255,255,255,0.08)",
                     outline: "none",
                     boxSizing: "border-box"
                   }}
@@ -241,39 +251,67 @@ export default function SubscriberPanel({
                   color: "var(--text-muted)",
                   pointerEvents: "none"
                 }}>
-                  QIE
+                  {swapMode === "QIE_TO_QUSDC" ? "QIE" : "qUSDC"}
                 </span>
               </div>
               
-              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>→</span>
+              <button
+                type="button"
+                onClick={() => setSwapMode(prev => prev === "QIE_TO_QUSDC" ? "QUSDC_TO_QIE" : "QIE_TO_QUSDC")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-cyan)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "4px",
+                  borderRadius: "50%",
+                  transition: "background 0.2s"
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+                onMouseOut={(e) => e.currentTarget.style.background = "none"}
+                title="Click to switch swap direction"
+              >
+                <RefreshCw size={14} />
+              </button>
               
-              <strong style={{ fontSize: "0.85rem", color: "var(--color-cyan)" }}>qUSDC</strong>
+              <strong style={{ fontSize: "0.85rem", color: swapMode === "QIE_TO_QUSDC" ? "var(--color-cyan)" : "#fff" }}>
+                {swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE"}
+              </strong>
             </div>
 
             {parseFloat(swapAmount) > 0 && (
               <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", margin: "-2px 0 2px 0", padding: "0 4px" }}>
                 <span>Est. Received:</span>
-                <strong style={{ color: "var(--color-cyan)" }}>
-                  {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} qUSDC`}
+                <strong style={{ color: swapMode === "QIE_TO_QUSDC" ? "var(--color-cyan)" : "#fff" }}>
+                  {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} ${swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE"}`}
                 </strong>
               </div>
             )}
 
             <button 
               className="btn btn-primary" 
-              onClick={() => swapQieForTokens(swapToken, swapAmount)}
-              disabled={loading || isInsufficientQie || parseFloat(swapAmount) <= 0}
+              onClick={() => swapQieForTokens(
+                swapMode === "QIE_TO_QUSDC" ? "QIE" : "qUSDC",
+                swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE",
+                swapAmount
+              )}
+              disabled={loading || isInsufficientBalance || parseFloat(swapAmount) <= 0}
               style={{ 
                 fontSize: "0.8rem", 
                 padding: "8px 16px",
                 width: "100%",
-                background: isInsufficientQie ? "var(--color-rose)" : undefined,
-                borderColor: isInsufficientQie ? "var(--color-rose)" : undefined,
-                color: isInsufficientQie ? "#fff" : undefined,
+                background: isInsufficientBalance ? "var(--color-rose)" : undefined,
+                borderColor: isInsufficientBalance ? "var(--color-rose)" : undefined,
+                color: isInsufficientBalance ? "#fff" : undefined,
                 borderRadius: "6px"
               }}
             >
-              {isInsufficientQie ? "Insufficient QIE Balance" : "Swap QIE"}
+              {isInsufficientBalance 
+                ? `Insufficient ${swapMode === "QIE_TO_QUSDC" ? "QIE" : "qUSDC"} Balance` 
+                : `Swap ${swapMode === "QIE_TO_QUSDC" ? "QIE ➔ qUSDC" : "qUSDC ➔ QIE"}`}
             </button>
           </div>
         </div>

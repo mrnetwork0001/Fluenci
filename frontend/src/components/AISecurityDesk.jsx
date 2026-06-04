@@ -56,10 +56,8 @@ export default function AISecurityDesk({
   const simulateLogs = () => {
     if (telemetryLogs.length === 0) {
       setTelemetryLogs([
-        { id: 1, timestamp: new Date(Date.now() - 60000).toISOString(), type: "INFO", message: "AI Agent Node Simulation running. (Backend node offline)" },
-        { id: 2, timestamp: new Date(Date.now() - 45000).toISOString(), type: "SENTRY_AGENT", message: "Sentry Agent actively monitoring contract event emissions..." },
-        { id: 3, timestamp: new Date(Date.now() - 30000).toISOString(), type: "ANALYST_AGENT", message: "Analyst Agent online: LLM fraud compliance auditing enabled." },
-        { id: 4, timestamp: new Date(Date.now() - 15000).toISOString(), type: "DECISION_AGENT", message: "Decision Agent hot-wallet linked: autonomous pausing online." }
+        { id: 1, timestamp: new Date().toISOString(), type: "SYSTEM", message: "Listening for AI Sentry node connection on port 5001..." },
+        { id: 2, timestamp: new Date().toISOString(), type: "SYSTEM", message: "Status: Standby. Awaiting real-time telemetry from active auditing loops." }
       ]);
     }
   };
@@ -122,30 +120,8 @@ export default function AISecurityDesk({
         alert(`Error triggering pause: ${data.error}`);
       }
     } catch (err) {
-      // Offline fallback simulation
-      console.warn("Backend offline. Simulating AI Auditor safety pause locally...");
-      setTelemetryLogs(prev => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          timestamp: new Date().toISOString(),
-          type: "SENTRY_AGENT",
-          message: `Captured anomaly trigger request for stream: ${selectedStream}.`
-        },
-        {
-          id: prev.length + 2,
-          timestamp: new Date().toISOString(),
-          type: "ANALYST_AGENT",
-          message: `Exploit analysis compiled. Report pinned to IPFS CID: ipfs://bafybeihash-manualanomaly123`
-        },
-        {
-          id: prev.length + 3,
-          timestamp: new Date().toISOString(),
-          type: "DECISION_AGENT",
-          message: `Autonomous safety pause transaction broadcasted. Stream ${selectedStream} locked.`
-        }
-      ]);
-      alert("Simulation logs updated. To pause on-chain, please launch the AI Auditor backend server.");
+      console.warn("Backend offline. Failed to trigger safety pause.");
+      alert("Failed to trigger safety pause: AI Auditor backend server is offline.");
     } finally {
       setInjectingAnomaly(false);
     }
@@ -201,7 +177,7 @@ export default function AISecurityDesk({
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span className={`status-indicator ${serverOnline ? "status-online" : "status-paused"}`} />
               <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
-                {serverOnline ? "MULTI-AGENT ACTIVE" : "SIMULATION"}
+                {serverOnline ? "MULTI-AGENT ACTIVE" : "OFFLINE"}
               </span>
             </span>
           </div>
@@ -209,7 +185,7 @@ export default function AISecurityDesk({
             {serverOnline ? (
               "Multi-Agent Sentry node is connected. Ingestion, fraud analysis, and safety execution loops are running."
             ) : (
-              "Node backend not detected. Running UI in local mock multi-agent simulation. Launch server.js to enable on-chain AI locks."
+              "Node backend offline. Start the backend node server (server.js) to enable real-time telemetry and autonomous AI safety pausing."
             )}
           </p>
         </div>
@@ -303,7 +279,7 @@ export default function AISecurityDesk({
 
             <div>
               <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                AI Auditor Private Key (Optional for Simulation)
+                AI Auditor Private Key (Enables Autonomous Pausing)
               </label>
               <input 
                 type="password" 
@@ -330,10 +306,10 @@ export default function AISecurityDesk({
         <div className="glass-card" style={{ border: "1px dashed rgba(244, 63, 94, 0.3)" }}>
           <h3 style={{ fontSize: "1.1rem", color: "var(--color-rose)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
             <AlertOctagon size={18} />
-            Simulate Pricing Exploits
+            SecOps Emergency Control
           </h3>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "16px" }}>
-            Trigger a manual billing exploit warning. The AI Sentry pipeline will capture it, the Analyst Agent will compile an IPFS report, and the Decision Agent will pause the stream on-chain.
+            Manually trigger an anomaly alert for a payment stream. The AI Sentry node will compile the compliance audit report and execute an autonomous safety pause on-chain.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -375,7 +351,7 @@ export default function AISecurityDesk({
               disabled={injectingAnomaly || !selectedStream}
               onClick={handleInjectAnomaly}
             >
-              Inject Pricing Exploit
+              Trigger Safety Pause
             </button>
           </div>
         </div>

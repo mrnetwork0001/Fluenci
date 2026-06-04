@@ -682,14 +682,19 @@ export default function App() {
                 <p>Fluenci leverages the power of QIE blockchain's core components to build a seamless and secure billing protocol.</p>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(0, 242, 254, 0.2)", background: "rgba(0, 242, 254, 0.01)", borderRadius: "16px" }}>
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", 
+                gap: "20px" 
+              }}>
+                {/* QIE Pass */}
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(0, 242, 254, 0.15)", background: "rgba(0, 242, 254, 0.01)", borderRadius: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={{ 
                       width: "48px", 
                       height: "36px", 
                       borderRadius: "8px", 
-                      background: "rgba(0, 242, 254, 0.1)", 
+                      background: "rgba(0, 242, 254, 0.08)", 
                       display: "flex", 
                       alignItems: "center", 
                       justifyContent: "center", 
@@ -697,52 +702,76 @@ export default function App() {
                       fontWeight: "bold",
                       fontSize: "0.75rem"
                     }}>PASS</span>
-                    <h3 style={{ fontSize: "1.1rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Pass KYC ID</h3>
+                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Pass</h3>
                   </div>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Ensures all streaming participants are verified. Gating subscriptions via QIE Pass DIDs prevents sybil attacks and ensures regulatory compliance.
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Digital identity and access management system. Verifies users via DID verification to prevent sybil attacks and enforce compliance.
                   </p>
                 </div>
 
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(157, 78, 221, 0.2)", background: "rgba(157, 78, 221, 0.01)", borderRadius: "16px" }}>
+                {/* QIE Wallet */}
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(167, 139, 250, 0.15)", background: "rgba(167, 139, 250, 0.01)", borderRadius: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={{ 
                       width: "48px", 
                       height: "36px", 
                       borderRadius: "8px", 
-                      background: "rgba(157, 78, 221, 0.1)", 
+                      background: "rgba(167, 139, 250, 0.08)", 
                       display: "flex", 
                       alignItems: "center", 
                       justifyContent: "center", 
                       color: "var(--color-purple)",
                       fontWeight: "bold",
                       fontSize: "0.75rem"
-                    }}>DEX</span>
-                    <h3 style={{ fontSize: "1.1rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIEDex Router</h3>
+                    }}>WALLET</span>
+                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Wallet</h3>
                   </div>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Enables users to swap between native QIE and qUSDC stablecoin directly inside the dApp, providing deep liquidity for ongoing payment streams.
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Secure, user-friendly wallet for managing native tokens. Directly integrated with gas overrides and smooth, hang-free signatures.
                   </p>
                 </div>
 
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(16, 185, 129, 0.2)", background: "rgba(16, 185, 129, 0.01)", borderRadius: "16px" }}>
+                {/* QIE Stable Coin (qUSDC) */}
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(244, 63, 94, 0.15)", background: "rgba(244, 63, 94, 0.01)", borderRadius: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={{ 
                       width: "48px", 
                       height: "36px", 
                       borderRadius: "8px", 
-                      background: "rgba(16, 185, 129, 0.1)", 
+                      background: "rgba(244, 63, 94, 0.08)", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      color: "var(--color-rose)",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem"
+                    }}>qUSDC</span>
+                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Stable Coin</h3>
+                  </div>
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate token price volatility.
+                  </p>
+                </div>
+
+                {/* QIEDex */}
+                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(16, 185, 129, 0.15)", background: "rgba(16, 185, 129, 0.01)", borderRadius: "16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ 
+                      width: "48px", 
+                      height: "36px", 
+                      borderRadius: "8px", 
+                      background: "rgba(16, 185, 129, 0.08)", 
                       display: "flex", 
                       alignItems: "center", 
                       justifyContent: "center", 
                       color: "var(--color-emerald)",
                       fontWeight: "bold",
                       fontSize: "0.75rem"
-                    }}>QNS</span>
-                    <h3 style={{ fontSize: "1.1rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Domain Name</h3>
+                    }}>DEX</span>
+                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Dex</h3>
                   </div>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Resolves long merchant wallet addresses to human-readable `.qie` domains, reducing payment destination errors and enhancing trust.
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
+                    Decentralized exchange for trading tokens. Integrated dual-direction swaps allow continuous conversion of QIE to qUSDC.
                   </p>
                 </div>
               </div>

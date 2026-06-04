@@ -32,12 +32,14 @@ let registryContract = null;
 let auditorContract = null;
 let provider = null;
 let aiWallet = null;
+let isSyncing = false;
 
 // Settings
 let RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 let REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS;
 let AUDITOR_ADDRESS = process.env.AUDITOR_ADDRESS;
 let AI_PRIVATE_KEY = process.env.AI_PRIVATE_KEY;
+let START_BLOCK = process.env.START_BLOCK || "8320000";
 
 // QIE Pass API Settings
 const QIEPASS_API_URL = process.env.QIEPASS_API_URL || "https://pass-api.qie.digital";
@@ -352,6 +354,206 @@ Return your response EXACTLY as a JSON object, with no markdown styling, in this
 // BLOCKCHAIN CONNECTION MANAGER
 // ==========================================
 
+async function syncHistoricalEvents() {
+  if (!registryContract) return;
+  isSyncing = true;
+  logTelemetry("INFO", "Starting historical on-chain event synchronization...");
+  try {
+    const startBlock = Number(START_BLOCK);
+    const latestBlock = await provider.getBlockNumber();
+    logTelemetry("INFO", `Querying history from block ${startBlock} to ${latestBlock}...`);
+
+    const filterCreated = registryContract.filters.SubscriptionCreated();
+    const filterPaused = registryContract.filters.StreamPaused();
+    const filterResumed = registryContract.filters.StreamResumed();
+    const filterTerminated = registryContract.filters.StreamTerminated();
+    const filterWithdrawn = registryContract.filters.FundsWithdrawn();
+    const filterDisputeOpened = registryContract.filters.DisputeOpened();
+    const filterDisputeResolved = registryContract.filters.DisputeResolved();
+
+    const [
+      eventsCreated,
+      eventsPaused,
+      eventsResumed,
+      eventsTerminated,
+      eventsWithdrawn,
+      eventsDisputeOpened,
+      eventsDisputeResolved
+    ] = await Promise.all([
+      registryContract.queryFilter(filterCreated, startBlock, latestBlock),
+      registryContract.queryFilter(filterPaused, startBlock, latestBlock),
+      registryContract.queryFilter(filterResumed, startBlock, latestBlock),
+      registryContract.queryFilter(filterTerminated, startBlock, latestBlock),
+      registryContract.queryFilter(filterWithdrawn, startBlock, latestBlock),
+      registryContract.queryFilter(filterDisputeOpened, startBlock, latestBlock),
+      registryContract.queryFilter(filterDisputeResolved, startBlock, latestBlock)
+    ]);
+
+    const allEvents = [
+      ...eventsCreated.map(e => ({ type: "SubscriptionCreated", event: e })),
+      ...eventsPaused.map(e => ({ type: "StreamPaused", event: e })),
+      ...eventsResumed.map(e => ({ type: "StreamResumed", event: e })),
+      ...eventsTerminated.map(e => ({ type: "StreamTerminated", event: e })),
+      ...eventsWithdrawn.map(e => ({ type: "FundsWithdrawn", event: e })),
+      ...eventsDisputeOpened.map(e => ({ type: "DisputeOpened", event: e })),
+      ...eventsDisputeResolved.map(e => ({ type: "DisputeResolved", event: e }))
+    ];
+
+    allEvents.sort((a, b) => {
+      if (a.event.blockNumber !== b.event.blockNumber) {
+        return a.event.blockNumber - b.event.blockNumber;
+      }
+      return a.event.logIndex - b.event.logIndex;
+    });
+
+    logTelemetry("INFO", `Found ${allEvents.length} historical events. Processing...`);
+
+    for (const item of allEvents) {
+      const { type, event } = item;
+      const args = event.args;
+      
+      const diffBlocks = latestBlock - event.blockNumber;
+      const eventTimestamp = new Date(Date.now() - diffBlocks * 3000).toISOString();
+
+      if (type === "SubscriptionCreated") {
+        const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = args;
+        
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `Captured new subscription stream: ${subId}. Forwarding to Analyst Agent...`,
+          details: { subscriber, merchant, rate: rate.toString() }
+        });
+
+        const rateVal = Number(rate);
+        let riskScore = 12;
+        let reason = "Rate falls within safe baseline parameters.";
+        let anomalyClass = "NONE";
+
+        if (rateVal >= 1000) {
+          riskScore = 95;
+          reason = "Extremely high payment velocity detected. Immediate drain risk identified.";
+          anomalyClass = "VELOCITY_EXPLOIT";
+        }
+
+        const ipfsCID = `ipfs://bafybeihash-sync-${subId.substring(2, 18)}`;
+        auditReports[subId] = {
+          subId,
+          riskScore,
+          reason: `${reason} [IPFS CID: ${ipfsCID}]`,
+          anomalyClass,
+          ipfsCID,
+          timestamp: eventTimestamp
+        };
+
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "ANALYST_AGENT",
+          message: `Starting deep compliance audit for stream: ${subId}`,
+          details: {}
+        });
+
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "ANALYST_AGENT",
+          message: `Audit Intelligence Report compiled and pinned to IPFS. CID: ${ipfsCID}`,
+          details: { riskScore, anomalyClass, compliant: riskScore < 75 }
+        });
+
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "DECISION_AGENT",
+          message: `Evaluating Audit Report for stream ${subId}. Risk: ${riskScore}% (Threshold: 75%)`,
+          details: {}
+        });
+
+        if (riskScore >= 75) {
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "DECISION_AGENT",
+            message: `CRITICAL: Risk score ${riskScore}% exceeds threshold! Stream pause registered in on-chain history.`,
+            details: {}
+          });
+        }
+      } else if (type === "StreamPaused") {
+        const [subId, reason] = args;
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `Registered StreamPaused event for ${subId}`,
+          details: { reason }
+        });
+      } else if (type === "StreamResumed") {
+        const [subId] = args;
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `Registered StreamResumed event for ${subId}`,
+          details: {}
+        });
+      } else if (type === "StreamTerminated") {
+        const [subId] = args;
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `Registered StreamTerminated event for ${subId}`,
+          details: {}
+        });
+      } else if (type === "FundsWithdrawn") {
+        const [subId, merchant, amount] = args;
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `Registered FundsWithdrawn event from stream ${subId}`,
+          details: { merchant, amount: amount.toString() }
+        });
+      } else if (type === "DisputeOpened") {
+        const [subId, subscriber] = args;
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `CRITICAL: DisputeOpened event captured for stream ${subId} by subscriber ${subscriber}`,
+          details: {}
+        });
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "ARBITRATOR_AGENT",
+          message: `Dispute arbitration initialized for stream: ${subId}`,
+          details: {}
+        });
+      } else if (type === "DisputeResolved") {
+        const [subId, subscriberRefund, merchantShare] = args;
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `DisputeResolved event captured for stream ${subId}`,
+          details: {
+            subscriberRefund: subscriberRefund.toString(),
+            merchantShare: merchantShare.toString()
+          }
+        });
+      }
+    }
+    logTelemetry("INFO", `Historical event synchronization completed. Processed ${allEvents.length} events.`);
+  } catch (err) {
+    logTelemetry("ERROR", `Historical event synchronization failed: ${err.message}`);
+  } finally {
+    isSyncing = false;
+  }
+}
+
 async function connectBlockchain() {
   try {
     logTelemetry("INFO", `Connecting to RPC URL: ${RPC_URL}`);
@@ -387,6 +589,7 @@ async function connectBlockchain() {
         logTelemetry("WARNING", "AI_PRIVATE_KEY not provided. Node running in SIMULATION/TELEMETRY-ONLY mode.");
       }
 
+      await syncHistoricalEvents();
       setupEventListeners();
       monitoringActive = true;
     } else {

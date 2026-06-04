@@ -20,57 +20,90 @@ const DEFAULT_HARDHAT_CONTRACTS = {
   qiedomain: "0x5b66380309C29D00Ff82388a856fB5e87fF09A7E"
 };
 
-// Live AI Telemetry mock widget for Landing Page
+// Live AI Telemetry widget for Landing Page
 function LandingTelemetryTerminal() {
   const [logs, setLogs] = useState([
-    { type: "INFO", time: "12:00:01", text: "Fluenci AI Sentry Node Initializing..." }
+    { type: "INFO", time: new Date().toLocaleTimeString(), text: "Fluenci AI Sentry Node Initializing..." }
   ]);
-  const [activeStreams, setActiveStreams] = useState(12);
-  const [systemRisk, setSystemRisk] = useState(12);
-  const logIndexRef = useRef(1);
-
-  const MOCK_LANDING_LOGS = [
-    { type: "INFO", text: "Establishing secure link to QIE Mainnet (1990)..." },
-    { type: "SUCCESS", text: "DID verification module loaded via QIE Pass." },
-    { type: "INFO", text: "Monitoring active streams for pricing telemetry..." },
-    { type: "AUDIT", text: "Scanning stream 0x4e8d... rate = 100 qUSD/hr. Status: compliant" },
-    { type: "AUDIT", text: "Scanning stream 0xa39b... rate = 50 qUSD/hr. Status: compliant" },
-    { type: "ALERT", text: "ANOMALY DETECTED on stream 0xf92c! Monthly rate spiked from baseline." },
-    { type: "ACTION", text: "AI Worker executing safety pause tx on-chain..." },
-    { type: "SUCCESS", text: "Registry updated: stream 0xf92c successfully PAUSED." },
-    { type: "INFO", text: "Waiting for subscriber DID signature to unlock..." }
-  ];
+  const [activeStreams, setActiveStreams] = useState(0);
+  const [systemRisk, setSystemRisk] = useState(0);
+  const [serverOnline, setServerOnline] = useState(false);
 
   useEffect(() => {
-    const logInterval = setInterval(() => {
-      const nextLog = MOCK_LANDING_LOGS[logIndexRef.current % MOCK_LANDING_LOGS.length];
-      const now = new Date();
-      const timeStr = now.toTimeString().split(' ')[0];
+    let active = true;
+    const fetchTelemetry = async () => {
+      try {
+        const res = await fetch("http://localhost:5001/telemetry");
+        if (res.ok) {
+          const data = await res.json();
+          if (!active) return;
+          
+          setServerOnline(true);
+          
+          // Map telemetry logs to widget format
+          const formattedLogs = data.map(log => ({
+            type: log.type,
+            time: new Date(log.timestamp).toLocaleTimeString(),
+            text: log.message
+          }));
+          
+          // Show last 7 logs
+          setLogs(formattedLogs.slice(-7));
 
-      if (nextLog.type === "ALERT") {
-        setSystemRisk(89);
-      } else if (nextLog.type === "SUCCESS" && nextLog.text.includes("PAUSED")) {
-        setSystemRisk(15);
-        setActiveStreams(prev => Math.max(0, prev - 1));
-      } else if (nextLog.type === "SUCCESS" && nextLog.text.includes("loaded")) {
-        setSystemRisk(8);
-      } else if (logIndexRef.current % MOCK_LANDING_LOGS.length === 0) {
-        setSystemRisk(12);
-        setActiveStreams(12);
-      }
-
-      setLogs(prev => {
-        const next = [...prev, { type: nextLog.type, time: timeStr, text: nextLog.text }];
-        if (next.length > 7) {
-          next.shift();
+          // Calculate actual active streams and risk from real data
+          const activeIds = new Set();
+          let maxRisk = 12; // baseline
+          
+          data.forEach(log => {
+            if (log.message.includes("Captured new subscription stream")) {
+              const parts = log.message.split("stream: ");
+              if (parts[1]) {
+                const id = parts[1].split(".")[0];
+                activeIds.add(id);
+              }
+            }
+            if (log.message.includes("StreamTerminated") || log.message.includes("terminated")) {
+              const parts = log.message.split("stream ");
+              if (parts[1]) {
+                activeIds.delete(parts[1]);
+              }
+            }
+            if (log.details && log.details.riskScore) {
+              maxRisk = Math.max(maxRisk, Number(log.details.riskScore));
+            }
+          });
+          
+          setActiveStreams(activeIds.size);
+          setSystemRisk(maxRisk);
+        } else {
+          if (active) {
+            setServerOnline(false);
+            setLogs([
+              { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "AI Auditor node connection lost. Awaiting node startup..." }
+            ]);
+            setActiveStreams(0);
+            setSystemRisk(0);
+          }
         }
-        return next;
-      });
+      } catch (err) {
+        if (active) {
+          setServerOnline(false);
+          setLogs([
+            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "AI Sentry Node offline (Cannot fetch from http://localhost:5001)." },
+            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "Please start the server backend (npm start) to view real on-chain telemetry." }
+          ]);
+          setActiveStreams(0);
+          setSystemRisk(0);
+        }
+      }
+    };
 
-      logIndexRef.current++;
-    }, 2800);
-
-    return () => clearInterval(logInterval);
+    fetchTelemetry();
+    const interval = setInterval(fetchTelemetry, 3000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const getLogColor = (type) => {

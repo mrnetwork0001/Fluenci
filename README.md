@@ -100,7 +100,7 @@ The backend handles the AI Sentry loops, OpenAI assessments, and QIE Pass sandbo
    RPC_URL=https://rpc1mainnet.qie.digital
    REGISTRY_ADDRESS=0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675
    AUDITOR_ADDRESS=0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d
-   AI_PRIVATE_KEY=0xfe3a3e160db3dd96335940f08821596df0a6ec13199568c1819a4d449b139703
+   AI_PRIVATE_KEY=your_ai_private_key_here
    OPENAI_API_KEY=your_openai_api_key_here
    QIEPASS_API_URL=https://did-stapi.qie.digital
    QIEPASS_PUBLIC_KEY=your_qiepass_public_key_here

@@ -12,6 +12,7 @@ import QiePassLogo from "./assets/qiepass.png";
 import QieWalletLogo from "./assets/qiewallet.png";
 import QieStableCoinLogo from "./assets/qusdc.png";
 import QieDexLogo from "./assets/qiedex.png";
+import QieDomainsLogo from "./assets/qiedomains.png";
 import "./App.css";
 
 // Default deployment addresses
@@ -767,88 +768,50 @@ export default function App() {
               </div>
             </section>
 
-            {/* QIE Ecosystem Integrations */}
+            {/* QIE Ecosystem Integrations — Infinite Marquee Carousel */}
             <section className="landing-section">
               <div className="section-header">
                 <h2>Native QIE Ecosystem Integrations</h2>
                 <p>Fluenci leverages the power of QIE blockchain's core components to build a seamless and secure billing protocol.</p>
               </div>
 
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", 
-                gap: "20px" 
-              }}>
-                {/* QIE Pass */}
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(0, 242, 254, 0.15)", background: "rgba(0, 242, 254, 0.01)", borderRadius: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <img 
-                      src={QiePassLogo} 
-                      alt="QIE Pass Logo" 
-                      style={{ 
-                        height: "28px", 
-                        objectFit: "contain"
-                      }} 
-                    />
-                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Pass</h3>
-                  </div>
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Digital identity and access management system. Verifies users via DID verification to prevent sybil attacks and enforce compliance.
-                  </p>
-                </div>
-
-                {/* QIE Wallet */}
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(167, 139, 250, 0.15)", background: "rgba(167, 139, 250, 0.01)", borderRadius: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <img 
-                      src={QieWalletLogo} 
-                      alt="QIE Wallet Logo" 
-                      style={{ 
-                        height: "28px", 
-                        objectFit: "contain"
-                      }} 
-                    />
-                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Wallet</h3>
-                  </div>
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Secure, user-friendly wallet for managing native tokens. Directly integrated with gas overrides and smooth, hang-free signatures.
-                  </p>
-                </div>
-
-                {/* QIE Stable Coin (qUSDC) */}
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(244, 63, 94, 0.15)", background: "rgba(244, 63, 94, 0.01)", borderRadius: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <img 
-                      src={QieStableCoinLogo} 
-                      alt="QIE Stable Coin Logo" 
-                      style={{ 
-                        height: "28px", 
-                        objectFit: "contain"
-                      }} 
-                    />
-                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Stable Coin</h3>
-                  </div>
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate token price volatility.
-                  </p>
-                </div>
-
-                {/* QIEDex */}
-                <div className="glass-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid rgba(16, 185, 129, 0.15)", background: "rgba(16, 185, 129, 0.01)", borderRadius: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <img 
-                      src={QieDexLogo} 
-                      alt="QIE Dex Logo" 
-                      style={{ 
-                        height: "28px", 
-                        objectFit: "contain"
-                      }} 
-                    />
-                    <h3 style={{ fontSize: "1.05rem", margin: 0, color: "#fff", fontWeight: "600" }}>QIE Dex</h3>
-                  </div>
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5", margin: 0 }}>
-                    Decentralized exchange for trading tokens. Integrated dual-direction swaps allow continuous conversion of QIE to qUSDC.
-                  </p>
+              <div className="ecosystem-marquee-wrapper">
+                <div className="ecosystem-marquee-track">
+                  {/* First set */}
+                  {[
+                    { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
+                    { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
+                    { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
+                    { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
+                    { logo: QieDomainsLogo, name: "QIE Domains", desc: "Onchain domain name service for human-readable wallet identities. Resolves .qie names to wallet addresses.", accent: "236, 72, 153" }
+                  ].concat([
+                    { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
+                    { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
+                    { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
+                    { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
+                    { logo: QieDomainsLogo, name: "QIE Domains", desc: "Onchain domain name service for human-readable wallet identities. Resolves .qie names to wallet addresses.", accent: "236, 72, 153" }
+                  ]).map((item, i) => (
+                    <div key={i} className="ecosystem-card" style={{
+                      borderColor: `rgba(${item.accent}, 0.2)`,
+                      background: `rgba(${item.accent}, 0.03)`
+                    }}>
+                      <div className="ecosystem-card-glow" style={{
+                        background: `radial-gradient(circle at top left, rgba(${item.accent}, 0.08), transparent 70%)`
+                      }} />
+                      <div className="ecosystem-card-header">
+                        <img src={item.logo} alt={item.name} className="ecosystem-card-logo" />
+                        <h3 className="ecosystem-card-title">{item.name}</h3>
+                      </div>
+                      <p className="ecosystem-card-desc">{item.desc}</p>
+                      <div className="ecosystem-card-tag" style={{
+                        color: `rgb(${item.accent})`,
+                        borderColor: `rgba(${item.accent}, 0.25)`,
+                        background: `rgba(${item.accent}, 0.06)`
+                      }}>
+                        Integrated
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>

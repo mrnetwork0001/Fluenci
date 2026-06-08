@@ -262,6 +262,103 @@
   font-weight: 600;
 }
 
+/* Ecosystem Marquee Carousel */
+.ecosystem-marquee-wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.ecosystem-marquee-track {
+  display: flex;
+  gap: 20px;
+  animation: marqueeScroll 35s linear infinite;
+  width: max-content;
+}
+
+.ecosystem-marquee-wrapper:hover .ecosystem-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ecosystem-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 280px;
+  padding: 28px 24px;
+  border: 1px solid;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: default;
+}
+
+.ecosystem-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.ecosystem-card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  border-radius: 18px;
+}
+
+.ecosystem-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ecosystem-card-logo {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.ecosystem-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.ecosystem-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.ecosystem-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 1px solid;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: fit-content;
+}
+
 /* CTA pulse effect */
 .btn-cta-pulse {
   position: relative;

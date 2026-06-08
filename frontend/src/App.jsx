@@ -165,7 +165,7 @@ function LandingTelemetryTerminal() {
     };
 
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 3000);
+    const interval = setInterval(fetchTelemetry, 1000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -295,7 +295,7 @@ export default function App() {
       }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 5000);
+    const interval = setInterval(fetchStats, 1000);
     return () => {
       active = false;
       clearInterval(interval);

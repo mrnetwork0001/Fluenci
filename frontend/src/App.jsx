@@ -77,16 +77,26 @@ function FAQItem({ question, answer }) {
   );
 }
 // Typewriter effect component — cycles through words with type-in / delete animation
-function TypewriterWord({ words = [], typingSpeed = 120, deletingSpeed = 80, holdDuration = 2000 }) {
+const HERO_TYPEWRITER_WORDS = ["Blind", "Rogue", "Unaudited"];
+
+function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, deletingSpeed = 80, holdDuration = 2000 }) {
+  const wordsRef = useRef(words);
   const [wordIndex, setWordIndex] = useState(0);
-  const [displayText, setDisplayText] = useState("");
+  const [displayText, setDisplayText] = useState(wordsRef.current[0] || "");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isHolding, setIsHolding] = useState(true);
 
   useEffect(() => {
-    const currentWord = words[wordIndex] || "";
+    const currentWord = wordsRef.current[wordIndex] || "";
     let timeout;
 
-    if (!isDeleting) {
+    if (isHolding) {
+      // Initial hold on first word before starting the cycle
+      timeout = setTimeout(() => {
+        setIsHolding(false);
+        setIsDeleting(true);
+      }, holdDuration);
+    } else if (!isDeleting) {
       // Typing forward
       if (displayText.length < currentWord.length) {
         timeout = setTimeout(() => {
@@ -103,22 +113,22 @@ function TypewriterWord({ words = [], typingSpeed = 120, deletingSpeed = 80, hol
           setDisplayText(displayText.slice(0, -1));
         }, deletingSpeed);
       } else {
-        // Word fully deleted — move to next word
+        // Word fully deleted — move to next word and start typing
         setIsDeleting(false);
-        setWordIndex((prev) => (prev + 1) % words.length);
+        setWordIndex((prev) => (prev + 1) % wordsRef.current.length);
       }
     }
 
     return () => clearTimeout(timeout);
-  }, [displayText, isDeleting, wordIndex, words, typingSpeed, deletingSpeed, holdDuration]);
+  }, [displayText, isDeleting, isHolding, wordIndex, typingSpeed, deletingSpeed, holdDuration]);
 
   return (
-    <span style={{ position: "relative" }}>
+    <span style={{ position: "relative", color: "var(--color-cyan)" }}>
       {displayText}
       <span style={{ 
         display: "inline-block",
         width: "3px", 
-        height: "0.9em", 
+        height: "0.85em", 
         background: "var(--color-cyan)", 
         marginLeft: "2px",
         verticalAlign: "baseline",

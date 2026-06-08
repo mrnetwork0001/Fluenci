@@ -635,7 +635,7 @@ export default function App() {
                   </div>
                   <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
                   <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Total Settled Volume</div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Settled Volume</div>
                     <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-cyan)", fontFamily: "monospace" }}>
                       ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract MockQieDomain {
+contract QieDomain {
     mapping(string => address) private domains;
     mapping(address => string) private primaryNames;
 

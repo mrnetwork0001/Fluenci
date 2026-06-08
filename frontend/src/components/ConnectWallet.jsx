@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown } from "lucide-react";
 
 export default function ConnectWallet({ 
   account, 
   accountDomain,
   chainId, 
   connectWallet, 
+  disconnectWallet, 
   loading,
   switchToQieMainnet,
   showDashboard,
@@ -14,6 +15,29 @@ export default function ConnectWallet({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [modalView, setModalView] = useState("primary"); // primary | other_evm
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(account);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
 
   const getNetworkName = (id) => {
     if (id === 1990) return "QIE Mainnet";
@@ -98,19 +122,116 @@ export default function ConnectWallet({
             </span>
           </div>
 
-          {/* Account Indicator */}
-          <button 
-            className="btn btn-secondary" 
-            style={{ 
-              fontFamily: "monospace", 
-              fontSize: "0.85rem",
-              background: "rgba(0, 242, 254, 0.05)",
-              borderColor: "rgba(0, 242, 254, 0.15)"
-            }}
-          >
-            <Wallet size={16} color="var(--color-cyan)" />
-            {accountDomain && accountDomain !== "" ? accountDomain : `${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
-          </button>
+          {/* Account Indicator with Dropdown */}
+          <div style={{ position: "relative" }}>
+            <button 
+              className="btn btn-secondary" 
+              onClick={() => setShowDropdown(!showDropdown)}
+              style={{ 
+                fontFamily: "monospace", 
+                fontSize: "0.85rem",
+                background: "rgba(0, 242, 254, 0.05)",
+                borderColor: "rgba(0, 242, 254, 0.15)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}
+            >
+              <Wallet size={16} color="var(--color-cyan)" />
+              <span>
+                {accountDomain && accountDomain !== "" ? accountDomain : `${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
+              </span>
+              <ChevronDown size={14} style={{ opacity: 0.6, transform: showDropdown ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+            </button>
+
+            {showDropdown && (
+              <div 
+                ref={dropdownRef}
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  background: "rgba(10, 16, 32, 0.95)",
+                  backdropFilter: "blur(16px)",
+                  border: "1px solid rgba(0, 242, 254, 0.2)",
+                  borderRadius: "12px",
+                  width: "260px",
+                  padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 242, 254, 0.1)",
+                  zIndex: 1000,
+                  textAlign: "left"
+                }}
+              >
+                {/* Header / Domain */}
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
+                    Connected Wallet
+                  </div>
+                  {accountDomain && (
+                    <div style={{ fontWeight: "bold", color: "#fff", fontSize: "0.95rem", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {accountDomain}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                    <span style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--color-cyan)" }}>
+                      {account.substring(0, 8)}...{account.substring(account.length - 6)}
+                    </span>
+                    <button 
+                      onClick={handleCopyAddress}
+                      style={{
+                        background: "rgba(255,255,255,0.03)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                        padding: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "6px",
+                        transition: "all 0.2s"
+                      }}
+                      title="Copy Address"
+                    >
+                      {copied ? <Check size={14} color="var(--color-emerald)" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "0" }} />
+
+                {/* Actions */}
+                <button 
+                  onClick={() => {
+                    disconnectWallet();
+                    setShowDropdown(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    width: "100%",
+                    padding: "10px",
+                    background: "rgba(244, 63, 94, 0.08)",
+                    border: "1px solid rgba(244, 63, 94, 0.2)",
+                    borderRadius: "8px",
+                    color: "var(--color-rose)",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <LogOut size={14} />
+                  Disconnect Wallet
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <button 

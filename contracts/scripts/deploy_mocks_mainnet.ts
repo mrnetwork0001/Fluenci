@@ -47,9 +47,9 @@ async function main() {
   const MockQiePass = await ethers.getContractFactory("MockQiePass");
   const qiePassAddress = await deployWith(MockQiePass, [], "MockQiePass");
 
-  // 2. Deploy MockQieDomain
-  const MockQieDomain = await ethers.getContractFactory("MockQieDomain");
-  const qieDomainAddress = await deployWith(MockQieDomain, [], "MockQieDomain");
+  // 2. Deploy QieDomain
+  const QieDomain = await ethers.getContractFactory("QieDomain");
+  const qieDomainAddress = await deployWith(QieDomain, [], "QieDomain");
 
   // 3. Update QiePass address on FluenciRegistry
   const registryAddress = "0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675";

@@ -88,7 +88,7 @@ async function main() {
     qiepass: QIE_PASS_MAINNET, // Live Mainnet QIE Pass
     auditor: auditorAddress,
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
-    qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508" // Live Mainnet QIE Domains Resolver
+    qiedomain: "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed" // Official QIE Domain Registry (mainnet)
   };
 
   console.log("\n" + "=".repeat(50));

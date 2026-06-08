@@ -11,7 +11,7 @@ async function main() {
     qiepass: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef",
-    qiedomain: "0x9A676e781A523b5d0C0e43731313A708CB607508"
+    qiedomain: "0xD0B0432395B2f414A4d9B74BD51523687a02883c"
   };
 
   for (const [name, addr] of Object.entries(addresses)) {

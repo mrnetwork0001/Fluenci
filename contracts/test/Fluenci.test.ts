@@ -7,7 +7,7 @@ import {
   FluenciRegistry, 
   FluenciAIAuditor, 
   MockQieDex, 
-  MockQieDomain 
+  QieDomain 
 } from "../typechain-types";
 
 describe("Fluenci Integration Test Suite", function () {
@@ -17,7 +17,7 @@ describe("Fluenci Integration Test Suite", function () {
   let registry: FluenciRegistry;
   let auditor: FluenciAIAuditor;
   let dex: MockQieDex;
-  let domainRegistry: MockQieDomain;
+  let domainRegistry: QieDomain;
   
   let owner: any;
   let subscriber: any;
@@ -68,9 +68,9 @@ describe("Fluenci Integration Test Suite", function () {
     dex = await MockQieDexFactory.deploy(await qusdc.getAddress(), await weth.getAddress()) as MockQieDex;
     await dex.waitForDeployment();
 
-    // 9. Deploy MockQieDomain
-    const MockQieDomainFactory = await ethers.getContractFactory("MockQieDomain");
-    domainRegistry = await MockQieDomainFactory.deploy() as MockQieDomain;
+    // 9. Deploy QieDomain
+    const QieDomainFactory = await ethers.getContractFactory("QieDomain");
+    domainRegistry = await QieDomainFactory.deploy() as QieDomain;
     await domainRegistry.waitForDeployment();
 
     // Mint initial tokens to subscriber

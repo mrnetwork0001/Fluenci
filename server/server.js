@@ -128,24 +128,32 @@ const AnalystAgent = {
   async analyzeStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop) {
     logTelemetry("ANALYST_AGENT", `Starting deep compliance audit for stream: ${subId}`);
     
-    // Resolve merchant domain if possible via domain registry
+    // Resolve merchant domain via QIE Explorer API (no on-chain reverse lookup available)
     let domainName = "Unregistered Address";
     try {
-      if (REGISTRY_ADDRESS) {
-        // Retrieve qiedomain address dynamically from useFluenci addresses or local provider lookup
-        // We use default deployment registry or address resolving
-        const domainContractAddress = "0xD0B0432395B2f414A4d9B74BD51523687a02883c"; // Mainnet domain registry
-        const domainContract = new ethers.Contract(domainContractAddress, [
-          "function lookupAddress(address addr) external view returns (string memory)"
-        ], provider);
-        const res = await domainContract.lookupAddress(merchant);
-        if (res && res !== "") {
-          domainName = res;
-          logTelemetry("ANALYST_AGENT", `Reverse domain lookup resolved: ${merchant} -> ${domainName}`);
+      const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
+      const REGISTER_SELECTOR = "0xf2101e95";
+      const explorerUrl = `https://mainnet.qie.digital/api?module=account&action=txlist&address=${merchant}&startblock=0&endblock=99999999&sort=desc`;
+      const resp = await fetch(explorerUrl);
+      const txData = await resp.json();
+      if (txData.status === "1" && txData.result) {
+        const domainTx = txData.result.find(tx =>
+          tx.to?.toLowerCase() === QIE_DOMAIN_REGISTRY.toLowerCase() &&
+          tx.input?.startsWith(REGISTER_SELECTOR) &&
+          tx.isError === "0"
+        );
+        if (domainTx) {
+          const params = "0x" + domainTx.input.slice(10);
+          const decoded = ethers.AbiCoder.defaultAbiCoder().decode(
+            ["string", "string[]", "string[]"],
+            params
+          );
+          domainName = decoded[0];
+          logTelemetry("ANALYST_AGENT", `QIE Domain resolved via explorer: ${merchant} -> ${domainName}`);
         }
       }
     } catch (err) {
-      logTelemetry("ANALYST_AGENT", "QieDomain reverse lookup failed or registry not configured.", { error: err.message });
+      logTelemetry("ANALYST_AGENT", "QIE Domain lookup via explorer failed.", { error: err.message });
     }
 
     // Determine pricing baseline & check rules

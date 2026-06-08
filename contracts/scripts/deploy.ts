@@ -58,12 +58,12 @@ async function main() {
   const dexAddress = await dex.getAddress();
   console.log(`MockQieDex deployed to: ${dexAddress}`);
 
-  // 9. Deploy MockQieDomain resolver
-  const MockQieDomain = await ethers.getContractFactory("MockQieDomain");
-  const qieDomain = await MockQieDomain.deploy();
+  // 9. Deploy QieDomain resolver
+  const QieDomain = await ethers.getContractFactory("QieDomain");
+  const qieDomain = await QieDomain.deploy();
   await qieDomain.waitForDeployment();
   const qieDomainAddress = await qieDomain.getAddress();
-  console.log(`MockQieDomain deployed to: ${qieDomainAddress}`);
+  console.log(`QieDomain deployed to: ${qieDomainAddress}`);
 
   // Pre-register some mock domains for testing
   const merchantAddress = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"; // Hardhat Account #1

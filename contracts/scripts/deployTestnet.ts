@@ -97,10 +97,10 @@ async function main() {
   const MockQieDex = await ethers.getContractFactory("MockQieDex");
   const dexAddress = await deployWith(MockQieDex, [qusdcAddress, wethAddress], "MockQieDex");
 
-  // 7. MockQieDomain
-  console.log("7/7 MockQieDomain...");
-  const MockQieDomain = await ethers.getContractFactory("MockQieDomain");
-  const qieDomainAddress = await deployWith(MockQieDomain, [], "MockQieDomain");
+  // 7. QieDomain
+  console.log("7/7 QieDomain...");
+  const QieDomain = await ethers.getContractFactory("QieDomain");
+  const qieDomainAddress = await deployWith(QieDomain, [], "QieDomain");
 
   // Output
   const addresses = {

@@ -38,11 +38,8 @@ const DEX_ABI = [
   "function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"
 ];
 
-const DOMAIN_ABI = [
-  "function registerDomain(string calldata domain, address owner) external",
-  "function resolveDomain(string calldata domain) external view returns (address)",
-  "function lookupAddress(address addr) external view returns (string memory)"
-];
+// QIE Domain resolution is handled via the QIE Explorer API (no on-chain reverse lookup available)
+// Official QIE Domain Registry: 0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed
 
 const CONTRACT_ADDRESSES_BY_CHAIN = {
   1990: { // QIE Mainnet
@@ -51,7 +48,7 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
     qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
-    qiedomain: "0xD0B0432395B2f414A4d9B74BD51523687a02883c"
+    qiedomain: "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed" // Official QIE Domain Registry (mainnet)
   }
 };
 
@@ -130,8 +127,13 @@ export function useFluenci() {
   };
 
   const getReadProvider = useCallback(() => {
+    if (chainId === 1983) {
+      return new ethers.JsonRpcProvider("https://rpc4testnet.qie.digital/");
+    } else if (chainId === 31337 || chainId === 1337) {
+      return new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+    }
     return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
-  }, []);
+  }, [chainId]);
 
   // Wait for a transaction by polling getTransactionReceipt
   // (waitForTransaction hangs on QIE RPC due to broken eth_getFilterChanges)
@@ -276,22 +278,38 @@ export function useFluenci() {
         }
       }
 
-      // Fetch Connected Account's .qie Domain Name
-      if (contracts.qiedomain) {
+      // Fetch Connected Account's .qie Domain Name via QIE Explorer API
+      // The official QIE Domain registry (0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed) does not expose
+      // a reverse lookup function. We resolve domains by querying the wallet's on-chain tx history for
+      // domain registration transactions (function selector 0xf2101e95) and decoding the domain name.
+      {
+        const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
+        const REGISTER_SELECTOR = "0xf2101e95";
         try {
-          const domainContract = new ethers.Contract(contracts.qiedomain, DOMAIN_ABI, provider);
-          const domain = await domainContract.lookupAddress(account);
-          if (domain && domain !== "") {
-            setAccountDomain(domain);
-          } else {
-            setAccountDomain("");
+          const explorerUrl = `https://mainnet.qie.digital/api?module=account&action=txlist&address=${account}&startblock=0&endblock=99999999&sort=desc`;
+          const resp = await fetch(explorerUrl);
+          const txData = await resp.json();
+          let domain = "";
+          if (txData.status === "1" && txData.result) {
+            const domainTx = txData.result.find(tx =>
+              tx.to?.toLowerCase() === QIE_DOMAIN_REGISTRY.toLowerCase() &&
+              tx.input?.startsWith(REGISTER_SELECTOR) &&
+              tx.isError === "0"
+            );
+            if (domainTx) {
+              const params = "0x" + domainTx.input.slice(10);
+              const decoded = ethers.AbiCoder.defaultAbiCoder().decode(
+                ["string", "string[]", "string[]"],
+                params
+              );
+              domain = decoded[0]; // First param is the domain name (e.g. "mrnetwork.qie")
+            }
           }
+          setAccountDomain(domain || "");
         } catch (err) {
-          console.warn("Reverse domain lookup failed for", account);
+          console.warn("QIE Domain lookup via explorer failed for", account, err.message);
           setAccountDomain("");
         }
-      } else {
-        setAccountDomain("");
       }
     } catch (err) {
       console.error("Failed to fetch account state", err);
@@ -972,6 +990,46 @@ export function useFluenci() {
     }
   };
 
+  const disconnectWallet = () => {
+    setAccount("");
+    setAccountDomain("");
+    setChainId(0);
+    activeProviderRef.current = null;
+    setError("");
+  };
+
+  const registerQieDomain = async (domainName) => {
+    if (!account) return;
+    setError("");
+    setLoading(true);
+    setTxState({ status: "preparing", action: `Registering QieDomain: ${domainName}`, hash: "", error: "" });
+    try {
+      if (!contracts.qiedomain) throw new Error("QieDomain contract not configured");
+      
+      const cleanDomain = domainName.endsWith(".qie") ? domainName : `${domainName}.qie`;
+      
+      setTxStep("awaiting_signature");
+      const tx = await executeDirectTx(
+        contracts.qiedomain,
+        DOMAIN_ABI,
+        "registerDomain",
+        [cleanDomain, account],
+        "0x0",
+        150000n
+      );
+      setTxStep("broadcasting", { hash: tx.hash });
+      setTxStep("confirming");
+      await waitForTx(tx);
+      setTxStep("confirmed");
+      setAccountDomain(cleanDomain);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setTxStep("error", { error: err.message });
+      setLoading(false);
+    }
+  };
+
   // EIP-6963 provider announcement discovery
   useEffect(() => {
     const handleAnnounce = (event) => {
@@ -1115,6 +1173,8 @@ export function useFluenci() {
     resetTx,
     contracts,
     connectWallet,
+    disconnectWallet,
+    registerQieDomain,
     approveToken,
     toggleQiePassStatus: startKycVerification,
     startKycVerification,

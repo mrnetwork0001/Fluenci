@@ -20,7 +20,7 @@ The protocol is deployed and active on QIE Mainnet. All mock contracts have been
 * **QIE Pass (KYC Staging)**: [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38)
 * **QIE Stable Coin (qUSDC)**: [`0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5`](https://mainnet.qie.digital/address/0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5)
 * **QIEDex Router**: [`0x08cd2e72e156D8563B4351eb4065C262A9f553Ef`](https://mainnet.qie.digital/address/0x08cd2e72e156D8563B4351eb4065C262A9f553Ef)
-* **QIE Domain Resolver (Mock)**: [`0xD0B0432395B2f414A4d9B74BD51523687a02883c`](https://mainnet.qie.digital/address/0xD0B0432395B2f414A4d9B74BD51523687a02883c)
+* **QIE Domain Registry (Official)**: [`0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed`](https://mainnet.qie.digital/address/0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed)
 
 ---
 

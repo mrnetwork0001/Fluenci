@@ -498,7 +498,7 @@ export default function SubscriberPanel({
           
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Rate (Tokens per hour)
+              Streaming Rate (Tokens/hr)
             </label>
             <input 
               type="number" 
@@ -510,11 +510,14 @@ export default function SubscriberPanel({
               onChange={(e) => setRate(e.target.value)}
               required
             />
+            <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+              Amount of tokens streamed per hour
+            </span>
           </div>
 
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Optional Cliff (Seconds)
+              Vesting Cliff (Seconds)
             </label>
             <input 
               type="number" 
@@ -524,11 +527,14 @@ export default function SubscriberPanel({
               value={cliffSeconds}
               onChange={(e) => setCliffSeconds(e.target.value)}
             />
+            <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+              Optional. Delay before claim starts
+            </span>
           </div>
 
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Optional Stop (Seconds)
+              Auto-Stop Duration (Seconds)
             </label>
             <input 
               type="number" 
@@ -538,6 +544,9 @@ export default function SubscriberPanel({
               value={stopSeconds}
               onChange={(e) => setStopSeconds(e.target.value)}
             />
+            <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+              Optional. Stream lifetime duration
+            </span>
           </div>
 
           <button 

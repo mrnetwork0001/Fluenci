@@ -30,6 +30,11 @@ export default function SubscriberPanel({
   const [cliffSeconds, setCliffSeconds] = useState("");
   const [stopSeconds, setStopSeconds] = useState("");
 
+  const [inputMode, setInputMode] = useState("rate"); // "rate" | "total"
+  const [totalAmount, setTotalAmount] = useState("");
+  const [durationValue, setDurationValue] = useState("");
+  const [durationUnit, setDurationUnit] = useState("hours"); // "seconds" | "hours" | "days"
+
   const [swapAmount, setSwapAmount] = useState("1");
   const [swapToken, setSwapToken] = useState("qUSDC");
   const [swapMode, setSwapMode] = useState("QIE_TO_QUSDC"); // QIE_TO_QUSDC | QUSDC_TO_QIE
@@ -91,28 +96,50 @@ export default function SubscriberPanel({
 
   const handleSubmitSubscription = (e) => {
     e.preventDefault();
-    if (!merchant || !rate) return;
-    
-    // Scale rate: rate per hour.
-    // ratePerSecond = (rate * 10^decimals) / 3600.
-    const rateVal = parseFloat(rate);
+    if (!merchant) return;
+
+    let calculatedRatePerSecond = 0n;
+    let finalStopSeconds = 0;
     const decimals = tokenSymbol === "qUSDC" ? 6 : 18;
-    const ratePerSecond = Math.floor((rateVal * (10 ** decimals)) / 3600);
+
+    if (inputMode === "rate") {
+      if (!rate) return;
+      const rateVal = parseFloat(rate);
+      calculatedRatePerSecond = BigInt(Math.floor((rateVal * (10 ** decimals)) / 3600));
+      finalStopSeconds = stopSeconds ? Number(stopSeconds) : 0;
+    } else {
+      if (!totalAmount || !durationValue) return;
+      const totalAmountVal = parseFloat(totalAmount);
+      const durVal = parseFloat(durationValue);
+      let durInSeconds = 0;
+      if (durationUnit === "seconds") durInSeconds = durVal;
+      else if (durationUnit === "hours") durInSeconds = durVal * 3600;
+      else if (durationUnit === "days") durInSeconds = durVal * 86400;
+
+      if (durInSeconds <= 0) {
+        alert("Duration must be greater than zero");
+        return;
+      }
+      calculatedRatePerSecond = BigInt(Math.floor((totalAmountVal * (10 ** decimals)) / durInSeconds));
+      finalStopSeconds = Math.floor(durInSeconds);
+    }
     
-    if (ratePerSecond <= 0) {
-      alert("Rate must be greater than zero");
+    if (calculatedRatePerSecond <= 0n) {
+      alert("Calculated streaming rate is too small. Try a higher total amount or shorter duration.");
       return;
     }
 
     createSubscription(
       merchant, 
       tokenSymbol, 
-      ratePerSecond.toString(), 
+      calculatedRatePerSecond.toString(), 
       cliffSeconds ? Number(cliffSeconds) : 0, 
-      stopSeconds ? Number(stopSeconds) : 0
+      finalStopSeconds
     );
     setMerchant("");
     setRate("");
+    setTotalAmount("");
+    setDurationValue("");
     setCliffSeconds("");
     setStopSeconds("");
   };
@@ -470,6 +497,40 @@ export default function SubscriberPanel({
         <h3 style={{ marginBottom: "14px", fontSize: "1.1rem", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "8px" }}>
           Initialize Subscription Stream (NFT Gated)
         </h3>
+
+        {/* Input Mode Selector */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+          <button 
+            type="button"
+            className={`btn ${inputMode === "rate" ? "btn-primary" : "btn-secondary"}`}
+            style={{ 
+              padding: "6px 14px", 
+              fontSize: "0.75rem", 
+              borderRadius: "8px",
+              border: "none",
+              boxShadow: inputMode === "rate" ? "var(--shadow-neon)" : "none",
+              cursor: "pointer"
+            }}
+            onClick={() => setInputMode("rate")}
+          >
+            Define by Flow Rate
+          </button>
+          <button 
+            type="button"
+            className={`btn ${inputMode === "total" ? "btn-primary" : "btn-secondary"}`}
+            style={{ 
+              padding: "6px 14px", 
+              fontSize: "0.75rem", 
+              borderRadius: "8px",
+              border: "none",
+              boxShadow: inputMode === "total" ? "var(--shadow-neon)" : "none",
+              cursor: "pointer"
+            }}
+            onClick={() => setInputMode("total")}
+          >
+            Define by Total Budget
+          </button>
+        </div>
         
         <form onSubmit={handleSubmitSubscription} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "flex-end" }}>
           <div>
@@ -496,58 +557,130 @@ export default function SubscriberPanel({
             </div>
           </div>
           
-          <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Streaming Rate (Tokens/hr)
-            </label>
-            <input 
-              type="number" 
-              step="0.0001"
-              placeholder="e.g. 5.0"
-              className="glass-card"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
-              value={rate}
-              onChange={(e) => setRate(e.target.value)}
-              required
-            />
-            <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
-              Amount of tokens streamed per hour
-            </span>
-          </div>
+          {inputMode === "rate" ? (
+            <>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Streaming Rate (Tokens/hr)
+                </label>
+                <input 
+                  type="number" 
+                  step="0.0001"
+                  placeholder="e.g. 5.0"
+                  className="glass-card"
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  required
+                />
+                <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                  Amount of tokens streamed per hour
+                </span>
+              </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Vesting Cliff (Seconds)
-            </label>
-            <input 
-              type="number" 
-              placeholder="e.g. 60"
-              className="glass-card"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
-              value={cliffSeconds}
-              onChange={(e) => setCliffSeconds(e.target.value)}
-            />
-            <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
-              Optional. Delay before claim starts
-            </span>
-          </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Vesting Cliff (Seconds)
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="e.g. 60"
+                  className="glass-card"
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  value={cliffSeconds}
+                  onChange={(e) => setCliffSeconds(e.target.value)}
+                />
+                <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                  Optional. Delay before claim starts
+                </span>
+              </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Auto-Stop Duration (Seconds)
-            </label>
-            <input 
-              type="number" 
-              placeholder="e.g. 3600"
-              className="glass-card"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
-              value={stopSeconds}
-              onChange={(e) => setStopSeconds(e.target.value)}
-            />
-            <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
-              Optional. Stream lifetime duration
-            </span>
-          </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Auto-Stop Duration (Seconds)
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="e.g. 3600"
+                  className="glass-card"
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  value={stopSeconds}
+                  onChange={(e) => setStopSeconds(e.target.value)}
+                />
+                <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                  Optional. Stream lifetime duration
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Total Budget (Tokens)
+                </label>
+                <input 
+                  type="number" 
+                  step="0.0001"
+                  placeholder="e.g. 100.0"
+                  className="glass-card"
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  value={totalAmount}
+                  onChange={(e) => setTotalAmount(e.target.value)}
+                  required
+                />
+                <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                  Total budget to stream
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Vesting Cliff (Seconds)
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="e.g. 60"
+                  className="glass-card"
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  value={cliffSeconds}
+                  onChange={(e) => setCliffSeconds(e.target.value)}
+                />
+                <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                  Optional. Delay before claim starts
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                  Stream Duration
+                </label>
+                <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 24"
+                    className="glass-card"
+                    style={{ flex: 1, minWidth: "50px", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                    value={durationValue}
+                    onChange={(e) => setDurationValue(e.target.value)}
+                    required
+                  />
+                  <select
+                    className="glass-card"
+                    style={{ width: "90px", padding: "8px", borderRadius: "6px", background: "rgba(10,15,30,0.9)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--color-cyan)", fontSize: "0.8rem", outline: "none", cursor: "pointer" }}
+                    value={durationUnit}
+                    onChange={(e) => setDurationUnit(e.target.value)}
+                  >
+                    <option value="seconds">Seconds</option>
+                    <option value="hours">Hours</option>
+                    <option value="days">Days</option>
+                  </select>
+                </div>
+                <span style={{ display: "block", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                  Stream auto-closes after this time
+                </span>
+              </div>
+            </>
+          )}
 
           <button 
             type="submit" 

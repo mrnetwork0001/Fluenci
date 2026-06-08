@@ -123,7 +123,13 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
   }, [displayText, isDeleting, isHolding, wordIndex, typingSpeed, deletingSpeed, holdDuration]);
 
   return (
-    <span style={{ position: "relative", color: "var(--color-cyan)" }}>
+    <span style={{ 
+      position: "relative", 
+      color: "var(--color-cyan)",
+      WebkitTextFillColor: "var(--color-cyan)",
+      background: "none",
+      WebkitBackgroundClip: "unset"
+    }}>
       {displayText}
       <span style={{ 
         display: "inline-block",

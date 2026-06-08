@@ -699,6 +699,18 @@ export function useFluenci() {
       setTxStep("confirming");
       await waitForTx(tx);
       setTxStep("confirmed");
+
+      // Send swap telemetry to backend asynchronously
+      try {
+        fetch(`${SERVER_URL}/swap-telemetry`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txHash: tx.hash })
+        }).catch(err => console.warn("Failed to post swap telemetry:", err));
+      } catch (telemetryErr) {
+        console.warn("Failed to send swap telemetry:", telemetryErr);
+      }
+
       await fetchAccountState();
       setLoading(false);
     } catch (err) {

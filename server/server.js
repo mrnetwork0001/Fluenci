@@ -28,6 +28,7 @@ let telemetryLogs = [
 let auditReports = {};
 let uniqueUsers = new Set();
 let totalVolume = 0n;
+let totalSwapVolume = 0n;
 let activeStreamRisks = {};
 
 let monitoringActive = false;
@@ -709,14 +710,82 @@ app.get("/status", (req, res) => {
 app.get("/stats", (req, res) => {
   const volumeFormatted = Number(totalVolume) / 1e6; // Format qUSDC (6 decimals) to dollars
   const revenueFormatted = volumeFormatted * 0.005; // 0.5% protocol fee
+  const swapVolumeFormatted = Number(totalSwapVolume) / 1e6; // Format qUSDC (6 decimals) to dollars
   const risks = Object.values(activeStreamRisks);
   const currentRisk = risks.length > 0 ? Math.max(12, ...risks) : 12;
   res.json({
     uniqueUsersCount: uniqueUsers.size,
     totalVolumeUSD: volumeFormatted,
     totalRevenueUSD: revenueFormatted,
+    totalSwapVolumeUSD: swapVolumeFormatted,
     systemRiskScore: currentRisk
   });
+});
+
+app.post("/swap-telemetry", async (req, res) => {
+  const { txHash } = req.body;
+  if (!txHash) {
+    return res.status(400).json({ error: "Missing txHash" });
+  }
+
+  logTelemetry("INFO", `Received swap telemetry for tx: ${txHash}. Verifying on-chain...`);
+
+  try {
+    if (!provider) {
+      throw new Error("Blockchain provider not initialized");
+    }
+
+    const tx = await provider.getTransaction(txHash);
+    if (!tx) {
+      throw new Error("Transaction not found");
+    }
+
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (!receipt) {
+      throw new Error("Transaction receipt not found");
+    }
+
+    if (receipt.status !== 1) {
+      throw new Error("Transaction failed on-chain");
+    }
+
+    // Verify transaction destination is QIEDex router
+    const qieDexRouter = "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef";
+    if (tx.to.toLowerCase() !== qieDexRouter.toLowerCase()) {
+      throw new Error("Transaction destination is not QIEDex router");
+    }
+
+    // Parse logs to extract qUSDC transfer amount
+    const qUSDCAddress = "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5";
+    const transferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+    
+    let qUSDCAmount = 0n;
+    for (const log of receipt.logs) {
+      if (
+        log.address.toLowerCase() === qUSDCAddress.toLowerCase() &&
+        log.topics[0] === transferTopic
+      ) {
+        const val = BigInt(log.data);
+        qUSDCAmount = val;
+        break;
+      }
+    }
+
+    if (qUSDCAmount === 0n) {
+      throw new Error("No qUSDC transfer found in transaction logs");
+    }
+
+    totalSwapVolume += qUSDCAmount;
+    logTelemetry("SUCCESS", `Verified swap of ${Number(qUSDCAmount) / 1e6} qUSDC. Total Swap Volume updated.`, {
+      txHash,
+      amount: (Number(qUSDCAmount) / 1e6).toString()
+    });
+
+    res.json({ success: true, amountSwapped: Number(qUSDCAmount) / 1e6 });
+  } catch (err) {
+    logTelemetry("ERROR", `Failed to verify swap telemetry: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/telemetry", (req, res) => {

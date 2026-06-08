@@ -375,23 +375,45 @@ async function syncHistoricalEvents() {
     const filterDisputeOpened = registryContract.filters.DisputeOpened();
     const filterDisputeResolved = registryContract.filters.DisputeResolved();
 
-    const [
-      eventsCreated,
-      eventsPaused,
-      eventsResumed,
-      eventsTerminated,
-      eventsWithdrawn,
-      eventsDisputeOpened,
-      eventsDisputeResolved
-    ] = await Promise.all([
-      registryContract.queryFilter(filterCreated, startBlock, latestBlock),
-      registryContract.queryFilter(filterPaused, startBlock, latestBlock),
-      registryContract.queryFilter(filterResumed, startBlock, latestBlock),
-      registryContract.queryFilter(filterTerminated, startBlock, latestBlock),
-      registryContract.queryFilter(filterWithdrawn, startBlock, latestBlock),
-      registryContract.queryFilter(filterDisputeOpened, startBlock, latestBlock),
-      registryContract.queryFilter(filterDisputeResolved, startBlock, latestBlock)
-    ]);
+    let eventsCreated = [];
+    let eventsPaused = [];
+    let eventsResumed = [];
+    let eventsTerminated = [];
+    let eventsWithdrawn = [];
+    let eventsDisputeOpened = [];
+    let eventsDisputeResolved = [];
+
+    const CHUNK_SIZE = 9900;
+    for (let from = startBlock; from <= latestBlock; from += CHUNK_SIZE) {
+      const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
+      logTelemetry("INFO", `Querying history block chunk ${from} to ${to}...`);
+
+      const [
+        chunkCreated,
+        chunkPaused,
+        chunkResumed,
+        chunkTerminated,
+        chunkWithdrawn,
+        chunkDisputeOpened,
+        chunkDisputeResolved
+      ] = await Promise.all([
+        registryContract.queryFilter(filterCreated, from, to),
+        registryContract.queryFilter(filterPaused, from, to),
+        registryContract.queryFilter(filterResumed, from, to),
+        registryContract.queryFilter(filterTerminated, from, to),
+        registryContract.queryFilter(filterWithdrawn, from, to),
+        registryContract.queryFilter(filterDisputeOpened, from, to),
+        registryContract.queryFilter(filterDisputeResolved, from, to)
+      ]);
+
+      eventsCreated.push(...chunkCreated);
+      eventsPaused.push(...chunkPaused);
+      eventsResumed.push(...chunkResumed);
+      eventsTerminated.push(...chunkTerminated);
+      eventsWithdrawn.push(...chunkWithdrawn);
+      eventsDisputeOpened.push(...chunkDisputeOpened);
+      eventsDisputeResolved.push(...chunkDisputeResolved);
+    }
 
     const allEvents = [
       ...eventsCreated.map(e => ({ type: "SubscriptionCreated", event: e })),

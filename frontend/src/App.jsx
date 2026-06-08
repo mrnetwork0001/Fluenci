@@ -619,38 +619,38 @@ export default function App() {
                 {/* Real-time Protocol Stats Row */}
                 <div style={{ 
                   display: "flex", 
-                  gap: "20px", 
+                  gap: "0", 
                   marginTop: "40px", 
-                  padding: "16px 20px", 
+                  padding: "16px 0", 
                   background: "rgba(255, 255, 255, 0.02)", 
                   border: "1px solid rgba(255, 255, 255, 0.05)",
                   borderRadius: "12px",
                   maxWidth: "680px"
                 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Active Users</div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#fff", fontFamily: "monospace" }}>
+                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#fff", fontFamily: "monospace" }}>
                       {stats.uniqueUsersCount}
                     </div>
                   </div>
-                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)" }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Total Settled Volume</div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-cyan)", fontFamily: "monospace" }}>
+                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
+                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Total Settled Volume</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-cyan)", fontFamily: "monospace" }}>
                       ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
-                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)" }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Swap Volume (DEX)</div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-purple)", fontFamily: "monospace" }}>
+                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
+                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Swap Volume (DEX)</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-purple)", fontFamily: "monospace" }}>
                       ${(stats.totalSwapVolumeUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
-                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)" }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>App Revenue (0.5%)</div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-emerald)", fontFamily: "monospace" }}>
+                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
+                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>App Revenue (0.5%)</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-emerald)", fontFamily: "monospace" }}>
                       ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>

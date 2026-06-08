@@ -3,6 +3,7 @@ import { Shield, Settings, Terminal, RefreshCw, AlertOctagon, Info, CheckCircle2
 
 export default function AISecurityDesk({
   contracts,
+  account,
   updateContractAddresses,
   subscriberStreams,
   merchantStreams,
@@ -35,10 +36,11 @@ export default function AISecurityDesk({
 
   const consoleEndRef = useRef(null);
 
-  // Fetch telemetry logs from Express server
+  // Fetch telemetry logs from Express server (wallet-scoped)
   const fetchTelemetry = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5001/telemetry");
+      const walletParam = account ? `?wallet=${account}` : "";
+      const res = await fetch(`http://127.0.0.1:5001/telemetry${walletParam}`);
       if (res.ok) {
         const data = await res.json();
         const logsArray = Array.isArray(data) ? data : (data.logs || []);
@@ -132,7 +134,7 @@ export default function AISecurityDesk({
     fetchTelemetry();
     const interval = setInterval(fetchTelemetry, 3000);
     return () => clearInterval(interval);
-  }, [contracts]);
+  }, [contracts, account]);
 
   // Auto scroll console to bottom
   useEffect(() => {

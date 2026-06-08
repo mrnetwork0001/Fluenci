@@ -369,6 +369,7 @@ export default function App() {
         return (
           <AISecurityDesk
             contracts={fluenci.contracts}
+            account={fluenci.account}
             updateContractAddresses={fluenci.updateContractAddresses}
             subscriberStreams={fluenci.subscriberStreams}
             merchantStreams={fluenci.merchantStreams}

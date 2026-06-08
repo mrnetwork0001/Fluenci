@@ -68,15 +68,43 @@ function generateQiePassHeaders() {
 }
 
 function logTelemetry(type, message, details = {}) {
+  // Extract wallet addresses from details for wallet-scoped filtering
+  const relatedAddresses = [];
+  if (details.subscriber) relatedAddresses.push(details.subscriber.toLowerCase());
+  if (details.merchant) relatedAddresses.push(details.merchant.toLowerCase());
+  // Also scan the message for ethereum addresses
+  const addrMatches = message.match(/0x[a-fA-F0-9]{40}/g);
+  if (addrMatches) {
+    addrMatches.forEach(a => {
+      if (!relatedAddresses.includes(a.toLowerCase())) relatedAddresses.push(a.toLowerCase());
+    });
+  }
+
   const logEntry = {
     id: telemetryLogs.length + 1,
     timestamp: new Date().toISOString(),
     type,
     message,
-    details
+    details,
+    relatedAddresses
   };
   telemetryLogs.push(logEntry);
   console.log(`[${type}] ${message}`, details);
+}
+
+// Anonymize wallet addresses in a string (e.g. 0x07f3d74e...96c05a8 → 0x••••••••)
+function anonymizeAddresses(str) {
+  return str.replace(/0x[a-fA-F0-9]{40}/g, (match) => `0x${match.slice(2, 6)}••••${match.slice(-4)}`);
+}
+
+// Anonymize a log entry for public display (landing page)
+function anonymizeLog(log) {
+  return {
+    ...log,
+    message: anonymizeAddresses(log.message),
+    details: log.details ? JSON.parse(anonymizeAddresses(JSON.stringify(log.details))) : {},
+    relatedAddresses: undefined // Strip wallet associations from public response
+  };
 }
 
 // ==========================================
@@ -799,8 +827,26 @@ app.post("/swap-telemetry", async (req, res) => {
 app.get("/telemetry", (req, res) => {
   const risks = Object.values(activeStreamRisks);
   const currentRisk = risks.length > 0 ? Math.max(12, ...risks) : 12;
+  const walletFilter = req.query.wallet ? req.query.wallet.toLowerCase() : null;
+
+  let filteredLogs;
+  if (walletFilter) {
+    // Wallet-scoped mode (AI Security Desk): only show logs related to the connected wallet
+    filteredLogs = telemetryLogs.filter(log => {
+      // Always include system/info logs (non-wallet-specific)
+      if (["INFO", "SYSTEM", "ERROR"].includes(log.type) && (!log.relatedAddresses || log.relatedAddresses.length === 0)) {
+        return true;
+      }
+      // Include logs that mention this wallet
+      return log.relatedAddresses && log.relatedAddresses.includes(walletFilter);
+    });
+  } else {
+    // Public mode (Landing Page): anonymize all wallet addresses for privacy
+    filteredLogs = telemetryLogs.map(anonymizeLog);
+  }
+
   res.json({
-    logs: telemetryLogs,
+    logs: filteredLogs,
     systemRiskScore: currentRisk,
     activeStreamsCount: Object.keys(activeStreamRisks).length
   });

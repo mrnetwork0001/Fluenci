@@ -77,6 +77,39 @@ function FAQItem({ question, answer }) {
   );
 }
 
+// Typewriter cycling effect for hero headline
+function TypewriterWord({ words = [], typingSpeed = 100, deletingSpeed = 60, pauseDuration = 2000 }) {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [text, setText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentWord = words[wordIndex];
+    let timeout;
+
+    if (!isDeleting && text === currentWord) {
+      // Pause at full word before deleting
+      timeout = setTimeout(() => setIsDeleting(true), pauseDuration);
+    } else if (isDeleting && text === "") {
+      // Move to next word
+      setIsDeleting(false);
+      setWordIndex((prev) => (prev + 1) % words.length);
+    } else {
+      timeout = setTimeout(() => {
+        setText(currentWord.substring(0, text.length + (isDeleting ? -1 : 1)));
+      }, isDeleting ? deletingSpeed : typingSpeed);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [text, isDeleting, wordIndex, words, typingSpeed, deletingSpeed, pauseDuration]);
+
+  return (
+    <span style={{ borderRight: "2px solid var(--color-cyan)", paddingRight: "2px", animation: "pulse 1s infinite" }}>
+      {text}
+    </span>
+  );
+}
+
 // Live AI Telemetry widget for Landing Page
 function LandingTelemetryTerminal() {
   const [logs, setLogs] = useState([
@@ -601,7 +634,7 @@ export default function App() {
                   AI-Shielded Subscriptions
                 </div>
                 <h1 className="gradient-title">
-                  Stop Blind Streams.<br />
+                  Stop <TypewriterWord words={["Blind", "Rogue", "Unaudited"]} /> Streams.<br />
                   <span className="gradient-title-accent">AI-Shielded</span> Payments.
                 </h1>
                 <p className="hero-subtitle">

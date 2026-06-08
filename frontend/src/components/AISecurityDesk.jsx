@@ -93,7 +93,7 @@ export default function AISecurityDesk({
       }
     } catch (err) {
       console.warn("Backend node offline. Deployed addresses updated in browser local storage.");
-      alert("Local storage updated. Connect to local Node.js backend to enable on-chain AI automation.");
+      alert("Local storage updated. Connect to local Node.js backend to enable onchain AI automation.");
     } finally {
       setSavingConfig(false);
     }
@@ -115,7 +115,7 @@ export default function AISecurityDesk({
       });
       
       if (res.ok) {
-        alert("AI Safety Pause triggered successfully on-chain!");
+        alert("AI Safety Pause triggered successfully onchain!");
         fetchTelemetry();
         refreshData();
       } else {
@@ -217,7 +217,7 @@ export default function AISecurityDesk({
               <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#10b981" }}>Decision Agent</span>
               <span className="status-indicator status-online" style={{ background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
             </div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Autonomous on-chain safety pausing</span>
+            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Autonomous onchain safety pausing</span>
           </div>
 
           <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(245, 158, 11, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(245, 158, 11, 0.02)" }}>
@@ -312,7 +312,7 @@ export default function AISecurityDesk({
             SecOps Emergency Control
           </h3>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "16px" }}>
-            Manually trigger an anomaly alert for a payment stream. The AI Sentry node will compile the compliance audit report and execute an autonomous safety pause on-chain.
+            Manually trigger an anomaly alert for a payment stream. The AI Sentry node will compile the compliance audit report and execute an autonomous safety pause onchain.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

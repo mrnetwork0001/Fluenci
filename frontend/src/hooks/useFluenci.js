@@ -38,7 +38,7 @@ const DEX_ABI = [
   "function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"
 ];
 
-// QIE Domain resolution is handled via the QIE Explorer API (no on-chain reverse lookup available)
+// QIE Domain resolution is handled via the QIE Explorer API (no onchain reverse lookup available)
 // Official QIE Domain Registry: 0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed
 
 const CONTRACT_ADDRESSES_BY_CHAIN = {
@@ -280,7 +280,7 @@ export function useFluenci() {
 
       // Fetch Connected Account's .qie Domain Name via QIE Explorer API
       // The official QIE Domain registry (0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed) does not expose
-      // a reverse lookup function. We resolve domains by querying the wallet's on-chain tx history for
+      // a reverse lookup function. We resolve domains by querying the wallet's onchain tx history for
       // domain registration transactions (function selector 0xf2101e95) and decoding the domain name.
       {
         const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
@@ -571,7 +571,7 @@ export function useFluenci() {
   const claimKyc = async (requestId) => {
     try {
       setKycState(prev => ({ ...prev, status: "claiming" }));
-      setTxStep("confirming", { action: "Verifying credentials on-chain..." });
+      setTxStep("confirming", { action: "Verifying credentials onchain..." });
       const res = await fetch(`${SERVER_URL}/qiepass/claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

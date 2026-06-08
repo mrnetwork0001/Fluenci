@@ -158,7 +158,7 @@ const AnalystAgent = {
   async analyzeStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop) {
     logTelemetry("ANALYST_AGENT", `Starting deep compliance audit for stream: ${subId}`);
     
-    // Resolve merchant domain via QIE Explorer API (no on-chain reverse lookup available)
+    // Resolve merchant domain via QIE Explorer API (no onchain reverse lookup available)
     let domainName = "Unregistered Address";
     try {
       const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
@@ -303,15 +303,15 @@ const DecisionAgent = {
     logTelemetry("DECISION_AGENT", `Evaluating Audit Report for stream ${subId}. Risk: ${risk}% (Threshold: ${riskThreshold}%)`);
 
     if (risk >= riskThreshold) {
-      logTelemetry("DECISION_AGENT", `CRITICAL: Risk score ${risk}% exceeds threshold! Executing autonomous safety pause on-chain...`);
+      logTelemetry("DECISION_AGENT", `CRITICAL: Risk score ${risk}% exceeds threshold! Executing autonomous safety pause onchain...`);
 
       if (auditorContract && aiWallet) {
         try {
           // Send transaction containing IPFS CID of the audit report as the reason
           const tx = await auditorContract.triggerSafetyPause(subId, ipfsCID);
-          logTelemetry("DECISION_AGENT", `On-chain safety pause tx broadcasted. Hash: ${tx.hash}`);
+          logTelemetry("DECISION_AGENT", `onchain safety pause tx broadcasted. Hash: ${tx.hash}`);
           const receipt = await tx.wait();
-          logTelemetry("DECISION_AGENT", `Safety pause confirmed in block ${receipt.blockNumber}. Stream has been locked on-chain.`);
+          logTelemetry("DECISION_AGENT", `Safety pause confirmed in block ${receipt.blockNumber}. Stream has been locked onchain.`);
         } catch (err) {
           logTelemetry("DECISION_AGENT", `FAILED to execute safety pause: ${err.message}`);
         }
@@ -400,7 +400,7 @@ Return your response EXACTLY as a JSON object, with no markdown styling, in this
 async function syncHistoricalEvents() {
   if (!registryContract) return;
   isSyncing = true;
-  logTelemetry("INFO", "Starting historical on-chain event synchronization...");
+  logTelemetry("INFO", "Starting historical onchain event synchronization...");
   try {
     const startBlock = Number(START_BLOCK);
     const latestBlock = await provider.getBlockNumber();
@@ -543,7 +543,7 @@ async function syncHistoricalEvents() {
             id: telemetryLogs.length + 1,
             timestamp: eventTimestamp,
             type: "DECISION_AGENT",
-            message: `CRITICAL: Risk score ${riskScore}% exceeds threshold! Stream pause registered in on-chain history.`,
+            message: `CRITICAL: Risk score ${riskScore}% exceeds threshold! Stream pause registered in onchain history.`,
             details: {}
           });
         }
@@ -689,7 +689,7 @@ async function connectBlockchain() {
 function setupEventListeners() {
   if (!registryContract) return;
 
-  logTelemetry("INFO", "Registering on-chain contract event listeners...");
+  logTelemetry("INFO", "Registering onchain contract event listeners...");
 
   registryContract.on("SubscriptionCreated", async (subId, subscriber, merchant, tokenAddress, rate, cliff, stop) => {
     uniqueUsers.add(subscriber);
@@ -766,7 +766,7 @@ app.post("/swap-telemetry", async (req, res) => {
     return res.status(400).json({ error: "Missing txHash" });
   }
 
-  logTelemetry("INFO", `Received swap telemetry for tx: ${txHash}. Verifying on-chain...`);
+  logTelemetry("INFO", `Received swap telemetry for tx: ${txHash}. Verifying onchain...`);
 
   try {
     if (!provider) {
@@ -784,7 +784,7 @@ app.post("/swap-telemetry", async (req, res) => {
     }
 
     if (receipt.status !== 1) {
-      throw new Error("Transaction failed on-chain");
+      throw new Error("Transaction failed onchain");
     }
 
     // Verify transaction destination is QIEDex router
@@ -1019,7 +1019,7 @@ app.get("/qiepass/status/:requestId", async (req, res) => {
   }
 });
 
-// Claim and verify QIE Pass credentials, then register identity on-chain
+// Claim and verify QIE Pass credentials, then register identity onchain
 app.post("/qiepass/claim", async (req, res) => {
   const { requestId, walletAddress } = req.body;
   if (!requestId || !walletAddress) {
@@ -1054,11 +1054,11 @@ app.post("/qiepass/claim", async (req, res) => {
       return res.status(400).json({ success: false, error: "Credential verification failed" });
     }
 
-    logTelemetry("QIEPASS", `Credentials verified for ${walletAddress}. Registering identity on-chain...`, {
+    logTelemetry("QIEPASS", `Credentials verified for ${walletAddress}. Registering identity onchain...`, {
       claims: Object.keys(data.requestedClaims || {})
     });
 
-    // Register identity on-chain via the QiePass contract
+    // Register identity onchain via the QiePass contract
     let txHash = null;
     if (aiWallet && provider) {
       try {
@@ -1071,9 +1071,9 @@ app.post("/qiepass/claim", async (req, res) => {
         const tx = await qiePassContract.registerIdentity(walletAddress, true, { gasLimit: 100000n });
         await tx.wait();
         txHash = tx.hash;
-        logTelemetry("QIEPASS", `Identity registered on-chain for ${walletAddress}. TX: ${txHash}`);
+        logTelemetry("QIEPASS", `Identity registered onchain for ${walletAddress}. TX: ${txHash}`);
       } catch (chainErr) {
-        logTelemetry("QIEPASS", `On-chain registration failed: ${chainErr.message}. KYC still valid via API.`);
+        logTelemetry("QIEPASS", `onchain registration failed: ${chainErr.message}. KYC still valid via API.`);
       }
     }
 

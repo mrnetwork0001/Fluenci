@@ -238,7 +238,7 @@ contract FluenciRegistry {
 ---
 
 ### Contract 2: `FluenciAIAuditor.sol`
-*Defines registry metrics for the off-chain AI transaction verification worker.*
+*Defines registry metrics for the offchain AI transaction verification worker.*
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -420,7 +420,7 @@ main().catch((error) => {
 
 ---
 
-## 🤖 AI Auditor Worker Script (Off-chain Node Service)
+## 🤖 AI Auditor Worker Script (offchain Node Service)
 Create a quick Node.js script inside a `/server` folder to act as the AI audit router.
 
 ```javascript
@@ -463,7 +463,7 @@ async function monitorTelemetry() {
 
 async function auditMerchantPricing(merchant, rate) {
   // Simple AI audit verification logic:
-  // Decoupled off-chain analyzer comparing active rate against baseline index database
+  // Decoupled offchain analyzer comparing active rate against baseline index database
   return true; // Return false if flagged
 }
 

@@ -4,7 +4,7 @@ Fluenci is a decentralized, real-time streaming payment protocol built on the **
 
 Fluenci introduces two major innovations to Web3 billing:
 1. **Tradeable Subscription NFTs**: Each payment stream is represented as a unique ERC-721 NFT. Ownership of a subscription can be transferred, gifted, or traded, automatically shifting the billing obligations to the new owner's wallet.
-2. **Autonomous AI Sentry Network**: An off-chain Multi-Agent node (Sentry, Analyst, Decision, and Arbitrator) that monitors streams, uses OpenAI GPT-4o to analyze billing velocity anomalies, generates IPFS audit reports, and executes on-chain safety pauses autonomously.
+2. **Autonomous AI Sentry Network**: An offchain Multi-Agent node (Sentry, Analyst, Decision, and Arbitrator) that monitors streams, uses OpenAI GPT-4o to analyze billing velocity anomalies, generates IPFS audit reports, and executes onchain safety pauses autonomously.
 
 ---
 
@@ -32,14 +32,14 @@ graph TD
     UI -->|Web3 Wallet Transaction| Wallet[QIE Wallet Extension]
     Wallet -->|Sends TX| BC[QIE Blockchain]
     
-    subgraph On-Chain Contracts
+    subgraph onchain Contracts
         BC --> Registry[FluenciRegistry.sol]
         BC --> Auditor[FluenciAIAuditor.sol]
         BC --> QPass[MockQiePass.sol]
         BC --> QDex[QIEDex Router]
     end
     
-    subgraph Off-Chain AI Sentry Node
+    subgraph offchain AI Sentry Node
         Sentry[Sentry Agent] -->|Listen Events| Registry
         Sentry -->|Ingests data| Analyst[Analyst Agent]
         Analyst -->|GPT-4o Evaluation| Decision[Decision Agent]
@@ -53,18 +53,18 @@ graph TD
 
 ### 1. The Real-Time Payment Stream Model (Pull-Based)
 * Fluenci utilizes a **pull-based streaming architecture**. Creating a stream does not lock tokens inside the contract up-front.
-* Instead, it registers stream parameters on-chain. When a merchant claims accrued funds, the contract executes a direct `transferFrom` pull from the subscriber's wallet.
+* Instead, it registers stream parameters onchain. When a merchant claims accrued funds, the contract executes a direct `transferFrom` pull from the subscriber's wallet.
 * This allows subscribers to maintain custody of their tokens, but claims will fail if the subscriber's balance falls below the accumulated amount.
 
 ### 2. Multi-Agent AI Sentry Node
-* **Sentry Agent**: Ingests on-chain blockchain events (`SubscriptionCreated`, `DisputeOpened`, etc.) in real-time.
+* **Sentry Agent**: Ingests onchain blockchain events (`SubscriptionCreated`, `DisputeOpened`, etc.) in real-time.
 * **Analyst Agent**: Queries OpenAI GPT-4o to audit stream rates and verify the merchant domain's reputation. It compiles an audit report and pins it to simulated IPFS, generating a cryptographic hash.
-* **Decision Agent**: Executes autonomous safety overrides on-chain. If risk exceeds 75%, it signs and broadcasts a `triggerSafetyPause` transaction to lock the stream.
-* **Arbitrator Agent**: Resolves subscriber disputes. Evaluates text evidence via GPT-4o, determines a refund/payout split, and issues a cryptographic signature. The contract verifies this signature on-chain to distribute disputed funds.
+* **Decision Agent**: Executes autonomous safety overrides onchain. If risk exceeds 75%, it signs and broadcasts a `triggerSafetyPause` transaction to lock the stream.
+* **Arbitrator Agent**: Resolves subscriber disputes. Evaluates text evidence via GPT-4o, determines a refund/payout split, and issues a cryptographic signature. The contract verifies this signature onchain to distribute disputed funds.
 
 ### 3. QIE Pass KYC Integration
 * Users must be identity-verified to interact with the protocol.
-* Integrates with the **QIE Pass Sandbox API** (`https://did-stapi.qie.digital`) to create verification requests, poll for user consent, verify credentials, and register identity status on-chain.
+* Integrates with the **QIE Pass Sandbox API** (`https://did-stapi.qie.digital`) to create verification requests, poll for user consent, verify credentials, and register identity status onchain.
 
 ### 4. QIEDex Swap & Reverse Swap
 * Integrates a DeFi swap panel supporting **`QIE ⇄ qUSDC`** directly through the official QIEDex pools.
@@ -141,7 +141,7 @@ For a decentralized subscription protocol merging AI Agents and Web3 payments to
 
 ### 2. Premium AI Sentry Subscription (SaaS)
 * **Mechanism**: Basic security telemetry is free, but merchants can stream a monthly subscription (e.g., $10/month in `qUSDC`) using Fluenci's own streaming mechanics to enable **AI Sentry Premium Defense** (faster queues, deeper reputation checks, and custom alert thresholds).
-* **Sustainability**: Provides stable, predictable cash flow to cover off-chain AI node operational costs.
+* **Sustainability**: Provides stable, predictable cash flow to cover offchain AI node operational costs.
 
 ### 3. AI Dispute Arbitration Fee
 * **Mechanism**: Resolving disputes involves gas consumption (EIP-712 signatures) and LLM API costs. A fixed fee is charged upon opening a dispute to cover AI agent computation costs.
@@ -160,5 +160,5 @@ To demonstrate the full autonomous security pipeline:
 4. Select an active payment stream, type an exploit reason, and click **Trigger Safety Pause**.
 5. The Sentry Agent will capture the manual trigger:
    * **Analyst Agent** evaluates the stream risk via GPT-4o, compiles a report, and pins it to IPFS.
-   * **Decision Agent** broadcasts the safety pause on-chain.
+   * **Decision Agent** broadcasts the safety pause onchain.
    * You will see the telemetry logs output in the desk's terminal, and the stream's status will instantly change to **"Paused by AI"**!

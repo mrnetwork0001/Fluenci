@@ -158,7 +158,7 @@ function LandingTelemetryTerminal() {
           setServerOnline(false);
           setLogs([
             { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "AI Sentry Node offline (Cannot fetch from http://localhost:5001)." },
-            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "Please start the server backend (npm start) to view real on-chain telemetry." }
+            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "Please start the server backend (npm start) to view real onchain telemetry." }
           ]);
           setActiveStreams(0);
           setSystemRisk(0);
@@ -677,7 +677,7 @@ export default function App() {
                     <UserCircle size={24} />
                   </div>
                   <h3>QIE Pass KYC Identity</h3>
-                  <p>Subscribers and merchants are verified using on-chain DIDs. Prevent sybil attacks and track identity-gated payment history securely.</p>
+                  <p>Subscribers and merchants are verified using onchain DIDs. Prevent sybil attacks and track identity-gated payment history securely.</p>
                 </div>
 
                 <div className="step-card">
@@ -806,7 +806,7 @@ export default function App() {
                     <tr>
                       <td className="matrix-feature-name">Exploit / Rate Spike Protection</td>
                       <td className="matrix-standard-col">None (Streams drain completely)</td>
-                      <td className="matrix-fluenci-col">Instant On-Chain AI Safety Pause</td>
+                      <td className="matrix-fluenci-col">Instant onchain AI Safety Pause</td>
                     </tr>
                     <tr>
                       <td className="matrix-feature-name">KYC/Identity Gating</td>
@@ -842,7 +842,7 @@ export default function App() {
               
               <FAQItem 
                 question="How does the autonomous AI Sentry Node pause streaming exploits?"
-                answer="The off-chain Sentry Agent continuously monitors the blockchain for new stream creations. When a stream is detected, the Analyst Agent uses reputation checkers and heuristics to determine if the rate is safe. If the velocity is dangerously high (e.g. attempting to drain the subscriber's balance), the Decision Agent signs a safety-pause transaction and broadcasts it to lock the stream on-chain until it is verified."
+                answer="The offchain Sentry Agent continuously monitors the blockchain for new stream creations. When a stream is detected, the Analyst Agent uses reputation checkers and heuristics to determine if the rate is safe. If the velocity is dangerously high (e.g. attempting to drain the subscriber's balance), the Decision Agent signs a safety-pause transaction and broadcasts it to lock the stream onchain until it is verified."
               />
               <FAQItem 
                 question="Why are payment streams minted as transferable NFTs?"
@@ -850,7 +850,7 @@ export default function App() {
               />
               <FAQItem 
                 question="How does AI-arbitrated dispute resolution work?"
-                answer="If a subscriber opens a dispute, the stream is paused. The off-chain Arbitrator Agent evaluates the text evidence provided by both parties, determines a fair split of the accrued tokens, and signs an EIP-712 cryptographic message containing the resolution. The smart contract validates the AI's signature on-chain to unlock and distribute the funds securely."
+                answer="If a subscriber opens a dispute, the stream is paused. The offchain Arbitrator Agent evaluates the text evidence provided by both parties, determines a fair split of the accrued tokens, and signs an EIP-712 cryptographic message containing the resolution. The smart contract validates the AI's signature onchain to unlock and distribute the funds securely."
               />
               <FAQItem 
                 question="Do I need to deposit all my subscription funds upfront?"

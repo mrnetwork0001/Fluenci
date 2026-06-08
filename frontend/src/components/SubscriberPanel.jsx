@@ -148,7 +148,7 @@ export default function SubscriberPanel({
     return parseFloat(qusdcAllowance) > 0;
   };
 
-  // Request AI arbitration details from off-chain node
+  // Request AI arbitration details from offchain node
   const requestArbitration = async (subId, stream) => {
     try {
       const response = await fetch("http://127.0.0.1:5001/arbitrate-dispute", {

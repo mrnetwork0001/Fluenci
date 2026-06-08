@@ -6,7 +6,7 @@ const TX_STEPS = [
   { key: "preparing", label: "Preparing Transaction", icon: Clock },
   { key: "awaiting_signature", label: "Awaiting Wallet Signature", icon: Wallet },
   { key: "broadcasting", label: "Broadcasting to Network", icon: Send },
-  { key: "confirming", label: "Confirming On-Chain", icon: Radio },
+  { key: "confirming", label: "Confirming onchain", icon: Radio },
 ];
 
 const EXPLORER_URL = "https://mainnet.qie.digital";
@@ -107,7 +107,7 @@ export default function TransactionModal({ txState, onClose }) {
             </h3>
             <p className="tx-modal-subtitle">
               {status === "confirmed"
-                ? "Your transaction was successfully confirmed on-chain."
+                ? "Your transaction was successfully confirmed onchain."
                 : status === "error"
                 ? "Something went wrong during the transaction."
                 : "Please wait while your transaction is processed."}

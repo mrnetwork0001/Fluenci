@@ -92,9 +92,11 @@ function logTelemetry(type, message, details = {}) {
   console.log(`[${type}] ${message}`, details);
 }
 
-// Anonymize wallet addresses in a string (e.g. 0x07f3d74e...96c05a8 → 0x••••••••)
+// Anonymize ALL sensitive hex data in a string for public display.
+// Masks any 0x-prefixed hex string of 20+ chars (covers wallet addresses,
+// tx hashes, stream/subscription IDs, KYC identifiers, contract addresses, etc.)
 function anonymizeAddresses(str) {
-  return str.replace(/0x[a-fA-F0-9]{40}/g, (match) => `0x${match.slice(2, 6)}••••${match.slice(-4)}`);
+  return str.replace(/0x[a-fA-F0-9]{20,}/g, (match) => `0x${match.slice(2, 6)}••••${match.slice(-4)}`);
 }
 
 // Anonymize a log entry for public display (landing page)

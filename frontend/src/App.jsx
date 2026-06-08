@@ -101,11 +101,13 @@ function LandingTelemetryTerminal() {
           const riskFromBackend = data && typeof data.systemRiskScore === 'number' ? data.systemRiskScore : null;
           const streamsFromBackend = data && typeof data.activeStreamsCount === 'number' ? data.activeStreamsCount : null;
 
-          // Map telemetry logs to widget format
+          // Map telemetry logs to widget format with client-side anonymization safety net
+          // Masks all 0x-prefixed hex strings (wallets, tx hashes, stream IDs, KYC IDs, etc.)
+          const maskHex = (s) => s.replace(/0x[a-fA-F0-9]{20,}/g, (m) => `0x${m.slice(2, 6)}••••${m.slice(-4)}`);
           const formattedLogs = logsArray.map(log => ({
             type: log.type,
             time: new Date(log.timestamp).toLocaleTimeString(),
-            text: log.message
+            text: maskHex(log.message || "")
           }));
           
           // Show last 7 logs

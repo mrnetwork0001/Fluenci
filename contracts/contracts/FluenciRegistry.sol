@@ -143,6 +143,8 @@ contract FluenciRegistry {
      */
     function claimStream(bytes32 subId) external {
         Subscription storage sub = subscriptions[subId];
+        require(msg.sender == sub.merchant, "Only merchant can claim");
+        require(IQiePass(qiePass).verifyIdentity(msg.sender), "Merchant must hold verified QIE Pass to withdraw");
         require(sub.active, "Subscription is not active");
         require(!sub.pausedByAI, "Stream paused by AI due to anomaly");
         require(sub.dispute != DisputeState.OPEN, "Stream is currently disputed");

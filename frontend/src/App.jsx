@@ -76,36 +76,54 @@ function FAQItem({ question, answer }) {
     </div>
   );
 }
-
-// Typewriter cycling effect for hero headline
-function TypewriterWord({ words = [], typingSpeed = 100, deletingSpeed = 60, pauseDuration = 2000 }) {
+// Typewriter effect component — cycles through words with type-in / delete animation
+function TypewriterWord({ words = [], typingSpeed = 120, deletingSpeed = 80, holdDuration = 2000 }) {
   const [wordIndex, setWordIndex] = useState(0);
-  const [text, setText] = useState("");
+  const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const currentWord = words[wordIndex];
+    const currentWord = words[wordIndex] || "";
     let timeout;
 
-    if (!isDeleting && text === currentWord) {
-      // Pause at full word before deleting
-      timeout = setTimeout(() => setIsDeleting(true), pauseDuration);
-    } else if (isDeleting && text === "") {
-      // Move to next word
-      setIsDeleting(false);
-      setWordIndex((prev) => (prev + 1) % words.length);
+    if (!isDeleting) {
+      // Typing forward
+      if (displayText.length < currentWord.length) {
+        timeout = setTimeout(() => {
+          setDisplayText(currentWord.slice(0, displayText.length + 1));
+        }, typingSpeed);
+      } else {
+        // Word fully typed — hold, then start deleting
+        timeout = setTimeout(() => setIsDeleting(true), holdDuration);
+      }
     } else {
-      timeout = setTimeout(() => {
-        setText(currentWord.substring(0, text.length + (isDeleting ? -1 : 1)));
-      }, isDeleting ? deletingSpeed : typingSpeed);
+      // Deleting backward
+      if (displayText.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayText(displayText.slice(0, -1));
+        }, deletingSpeed);
+      } else {
+        // Word fully deleted — move to next word
+        setIsDeleting(false);
+        setWordIndex((prev) => (prev + 1) % words.length);
+      }
     }
 
     return () => clearTimeout(timeout);
-  }, [text, isDeleting, wordIndex, words, typingSpeed, deletingSpeed, pauseDuration]);
+  }, [displayText, isDeleting, wordIndex, words, typingSpeed, deletingSpeed, holdDuration]);
 
   return (
-    <span style={{ borderRight: "2px solid var(--color-cyan)", paddingRight: "2px", animation: "pulse 1s infinite" }}>
-      {text}
+    <span style={{ position: "relative" }}>
+      {displayText}
+      <span style={{ 
+        display: "inline-block",
+        width: "3px", 
+        height: "0.9em", 
+        background: "var(--color-cyan)", 
+        marginLeft: "2px",
+        verticalAlign: "baseline",
+        animation: "pulse 0.8s infinite"
+      }} />
     </span>
   );
 }

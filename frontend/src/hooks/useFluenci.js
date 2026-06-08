@@ -196,11 +196,34 @@ export function useFluenci() {
         targetProvider = providerDetail.provider;
         activeProviderRef.current = providerDetail.provider;
       } else {
-        if (!window.ethereum) {
-          throw new Error("Please install MetaMask or Qie Wallet to interact with Fluenci");
+        // Prioritize QIE Wallet detection to prevent hijacking by OKX, Rabby, etc.
+        const qieAnnounced = announcedProviders.find(
+          (p) => p.info.name.toLowerCase().includes("qie") || p.info.rdns.toLowerCase().includes("qie")
+        );
+        
+        if (qieAnnounced && qieAnnounced.provider) {
+          targetProvider = qieAnnounced.provider;
+          activeProviderRef.current = qieAnnounced.provider;
+        } else if (window.ethereum) {
+          // Check if QIE Wallet is present in window.ethereum.providers list (injected by multiple extensions)
+          let qieProviderObj = null;
+          if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
+            qieProviderObj = window.ethereum.providers.find(p => p.isQieWallet || p.isQIE);
+          } else if (window.ethereum.isQieWallet || window.ethereum.isQIE) {
+            qieProviderObj = window.ethereum;
+          }
+
+          if (qieProviderObj) {
+            targetProvider = qieProviderObj;
+            activeProviderRef.current = qieProviderObj;
+          } else {
+            // Fallback to window.ethereum if QIE Wallet is not detected
+            targetProvider = window.ethereum;
+            activeProviderRef.current = window.ethereum;
+          }
+        } else {
+          throw new Error("Please install Qie Wallet to interact with Fluenci");
         }
-        targetProvider = window.ethereum;
-        activeProviderRef.current = window.ethereum;
       }
 
       const accounts = await targetProvider.request({ method: "eth_requestAccounts" });

@@ -8,7 +8,8 @@ import {
   ArrowRight, 
   Terminal, 
   AlertCircle,
-  Play
+  Play,
+  Gamepad2
 } from "lucide-react";
 
 export default function FluenciDocs() {
@@ -19,6 +20,7 @@ export default function FluenciDocs() {
     { id: "sentry", title: "AI Sentry & Protection", icon: <ShieldCheck size={16} /> },
     { id: "qiepass", title: "QIE Pass & Trust", icon: <KeyRound size={16} /> },
     { id: "router", title: "Router & DEX Swaps", icon: <Coins size={16} /> },
+    { id: "arcade", title: "Fluenci Arcade", icon: <Gamepad2 size={16} /> },
     { id: "guide", title: "Mainnet Interaction Guide", icon: <Play size={16} /> }
   ];
 
@@ -216,6 +218,53 @@ export default function FluenciDocs() {
                 Swapping native QIE to QUSDC through FluenciRouter registers a <code>FluenciSwap</code> event onchain. This ensures full attribution for judges to verify swap volumes originating from our front-end!
               </p>
             </div>
+          </div>
+        );
+
+      case "arcade":
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
+              Fluenci Arcade
+            </h2>
+            <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
+              The Fluenci Arcade merges interactive utility and user support with real-time micro-payment streaming. Users can play games or chat with our intelligent copilot, paying a low, continuous stream rate of <strong>0.0001 QUSDC per second</strong>.
+            </p>
+
+            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#111111", margin: "8px 0 4px 0" }}>
+              Arcade Modules
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div className="glass-card" style={{ padding: "16px", borderRadius: "12px", background: "#fdfdfd" }}>
+                <strong style={{ fontSize: "0.9rem", color: "#111111", display: "block", marginBottom: "4px" }}>
+                  Qie Snake Game
+                </strong>
+                <p style={{ fontSize: "0.82rem", color: "#555555", margin: 0, lineHeight: "1.4" }}>
+                  A stream-to-play arcade classic where the game environment scales in speed and difficulty as you stream. Tracks your high scores locally and helps demonstrate stream starts and finishes.
+                </p>
+              </div>
+
+              <div className="glass-card" style={{ padding: "16px", borderRadius: "12px", background: "#fdfdfd" }}>
+                <strong style={{ fontSize: "0.9rem", color: "#111111", display: "block", marginBottom: "4px" }}>
+                  AI Chat Copilot
+                </strong>
+                <p style={{ fontSize: "0.82rem", color: "#555555", margin: 0, lineHeight: "1.4" }}>
+                  A ChatGPT-style support assistant integrated directly into the arcade. Backed by GPT-4o-mini, it responds to questions about the QIE blockchain ecosystem, KYC procedures, and Fluenci stream management. Features fullscreen display modes, message history persistence, and chat session creation.
+                </p>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#111111", margin: "12px 0 4px 0" }}>
+              Onchain Payment Flow
+            </h3>
+            <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
+              When you click Start AI Session or Insert QUSDC to Play:
+            </p>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.85rem", color: "#555555", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <li>The frontend opens a QUSDC payment stream to the platform's destination address: <code>0xfe5f1d13a31a5b86833adf4486720331d6e4a6bb</code> (domain: <code>fluenci.qie</code>).</li>
+              <li>A micro-payment stream of <strong>0.0001 QUSDC/second</strong> starts flowing.</li>
+              <li>When you end the session, the stream is automatically terminated onchain, ensuring you only pay for the exact duration of your activity.</li>
+            </ul>
           </div>
         );
 

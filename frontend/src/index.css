@@ -127,16 +127,17 @@ h1, h2, h3, h4, h5, h6 {
 .btn {
   font-family: 'Montserrat', var(--font-title);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   padding: 10px 20px;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid transparent;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .btn-primary {

@@ -796,7 +796,7 @@ export default function App() {
                     AI-Shielded Subscriptions
                   </div>
                   <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
-                    <span style={{ fontSize: "3.8rem" }}>Stop <span style={{ color: "#0066FF", borderRight: "3px solid #0066FF", paddingRight: "2px" }}>{heroDisplay}</span> Streams.</span>
+                    <span style={{ fontSize: "3.8rem", whiteSpace: "nowrap" }}>Stop <span style={{ color: "#0066FF", borderRight: "3px solid #0066FF", paddingRight: "2px" }}>{heroDisplay}</span> Streams</span>
                     <br />
                     <span style={{ color: "#555555" }}>AI-Shielded Payments.</span>
                   </h1>

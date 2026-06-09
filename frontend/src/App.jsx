@@ -607,18 +607,20 @@ export default function App() {
           </nav>
         )}
 
-        <ConnectWallet
-          account={fluenci.account}
-          accountDomain={fluenci.accountDomain}
-          chainId={fluenci.chainId}
-          connectWallet={fluenci.connectWallet}
-          disconnectWallet={fluenci.disconnectWallet}
-          loading={fluenci.loading}
-          switchToQieMainnet={fluenci.switchToQieMainnet}
-          showDashboard={viewMode === "dashboard"}
-          onLaunchApp={() => setViewMode("dashboard")}
-          announcedProviders={fluenci.announcedProviders}
-        />
+        {viewMode === "dashboard" && (
+          <ConnectWallet
+            account={fluenci.account}
+            accountDomain={fluenci.accountDomain}
+            chainId={fluenci.chainId}
+            connectWallet={fluenci.connectWallet}
+            disconnectWallet={fluenci.disconnectWallet}
+            loading={fluenci.loading}
+            switchToQieMainnet={fluenci.switchToQieMainnet}
+            showDashboard={viewMode === "dashboard"}
+            onLaunchApp={() => setViewMode("dashboard")}
+            announcedProviders={fluenci.announcedProviders}
+          />
+        )}
       </header>
 
       {/* Main Content Area */}

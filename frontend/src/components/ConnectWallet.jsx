@@ -117,7 +117,7 @@ export default function ConnectWallet({
             ) : (
               <ShieldAlert size={16} color="#777777" />
             )}
-            <span style={{ color: isSupportedNetwork ? "var(--text-primary)" : "#999999", fontWeight: "bold" }}>
+            <span style={{ color: isSupportedNetwork ? "#111111" : "#cc3333", fontWeight: "bold" }}>
               {getNetworkName(chainId)}
             </span>
           </div>

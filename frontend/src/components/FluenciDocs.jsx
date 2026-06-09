@@ -95,7 +95,7 @@ export default function FluenciDocs() {
               AI Sentry & Protection Desk
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
-              Traditional streaming protocols continue draining your wallet even if a hack occurs, relying on manual user actions to cancel. Fluenci introduces an **autonomous AI Sentry agent** that continuously monitors stream behaviors.
+              Traditional streaming protocols continue draining your wallet even if a hack occurs, relying on manual user actions to cancel. Fluenci introduces an <strong>autonomous AI Sentry agent</strong> that continuously monitors stream behaviors.
             </p>
 
             <div style={{ 
@@ -153,7 +153,7 @@ export default function FluenciDocs() {
               QIE Pass & Identity Trust
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
-              To ensure compliance and prevent malicious Sybil attacks (where attackers create hundreds of fake addresses to bypass security), Fluenci integrates the official **QIE Pass Decentralized Identity (DID)** registry.
+              To ensure compliance and prevent malicious Sybil attacks (where attackers create hundreds of fake addresses to bypass security), Fluenci integrates the official <strong>QIE Pass Decentralized Identity (DID)</strong> registry.
             </p>
 
             <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#111111", margin: "8px 0 4px 0" }}>
@@ -161,7 +161,7 @@ export default function FluenciDocs() {
             </h3>
             <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.88rem", color: "#555555", display: "flex", flexDirection: "column", gap: "8px" }}>
               <li><strong>Identity Proofing:</strong> Subscribers and merchants are required to have a verified identity on the QIE Pass contract before they can create streaming agreements.</li>
-              <li><strong>KYC Integration:</strong> Registering identity requires switching your wallet network to **QIE Testnet** to complete the verification step on the QIE Pass registry. Once completed, users switch back to **QIE Mainnet** to utilize their verified status for payment streams.</li>
+              <li><strong>KYC Integration:</strong> Registering identity requires switching your wallet network to <strong>QIE Testnet</strong> to complete the verification step on the QIE Pass registry. Once completed, users switch back to <strong>QIE Mainnet</strong> to utilize their verified status for payment streams.</li>
               <li><strong>Domain Resolution:</strong> Fluenci decodes wallet domains (e.g. `mrnetwork.qie`) directly from the QIE Domain Registry history, displaying friendly names instead of hex addresses.</li>
             </ul>
 
@@ -189,10 +189,10 @@ export default function FluenciDocs() {
               Fluenci Router & DEX Swaps
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
-              Subscription billing requires stablecoin payments (like **QUSDC**) to ensure merchants receive constant value regardless of token price movements. However, users often hold native QIE.
+              Subscription billing requires stablecoin payments (like <strong>QUSDC</strong>) to ensure merchants receive constant value regardless of token price movements. However, users often hold native QIE.
             </p>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
-              The **FluenciRouter** smart contract bridges this gap by wrapping liquidity swaps directly through the **QIEDex** AMM.
+              The <strong>FluenciRouter</strong> smart contract bridges this gap by wrapping liquidity swaps directly through the <strong>QIEDex</strong> AMM.
             </p>
 
             <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#111111", margin: "8px 0 4px 0" }}>

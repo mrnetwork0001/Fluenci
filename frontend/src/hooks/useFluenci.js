@@ -442,18 +442,19 @@ export function useFluenci() {
     }
   };
 
-  // Approve Tokens
+  // Approve Tokens — approves a sensible cap (10,000 QUSDC) instead of unlimited
   const approveToken = async (tokenSymbol) => {
     setError("");
     setLoading(true);
     setTxState({ status: "preparing", action: `Approving QUSDC`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
+      const approveAmount = ethers.parseUnits("10000", 6); // 10,000 QUSDC cap
       const tx = await executeDirectTx(
         contracts.qusdc,
         ERC20_ABI,
         "approve",
-        [contracts.registry, ethers.MaxUint256],
+        [contracts.registry, approveAmount],
         "0x0",
         100000n
       );
@@ -794,6 +795,32 @@ export function useFluenci() {
       const cliffTime = cliffSeconds > 0 ? currentTimestamp + Number(cliffSeconds) : 0;
       const stopTime = stopSeconds > 0 ? currentTimestamp + Number(stopSeconds) : 0;
 
+      // Smart auto-approval: check allowance and top up if needed
+      const qusdcContract = new ethers.Contract(tokenAddress, ERC20_ABI, getReadProvider());
+      const currentAllowance = await qusdcContract.allowance(account, contracts.registry);
+      // Estimate needed: rate * 1 hour (generous buffer) or rate * stopTime
+      const estimatedNeed = stopSeconds > 0
+        ? BigInt(ratePerSecond) * BigInt(stopSeconds) * 2n  // 2x buffer
+        : BigInt(ratePerSecond) * 3600n;  // 1 hour buffer
+      
+      if (currentAllowance < estimatedNeed) {
+        setTxState({ status: "preparing", action: "Approving QUSDC for this stream...", hash: "", error: "" });
+        setTxStep("awaiting_signature");
+        const approveAmount = estimatedNeed > ethers.parseUnits("10000", 6) ? estimatedNeed : ethers.parseUnits("10000", 6);
+        const approveTx = await executeDirectTx(
+          contracts.qusdc,
+          ERC20_ABI,
+          "approve",
+          [contracts.registry, approveAmount],
+          "0x0",
+          100000n
+        );
+        setTxStep("broadcasting", { hash: approveTx.hash });
+        setTxStep("confirming");
+        await waitForTx(approveTx);
+        setTxState({ status: "preparing", action: "Creating Subscription Stream", hash: "", error: "" });
+      }
+
       setTxStep("awaiting_signature");
       const tx = await executeDirectTx(
         contracts.registry,
@@ -1133,8 +1160,12 @@ export function useFluenci() {
             const subsecondFraction = ((now % 1000) / 1000) * (stream.ratePerSecond / (10 ** scalar));
             const smoothClaimable = claimable + subsecondFraction;
             
-            if (next[stream.id] !== smoothClaimable) {
-              next[stream.id] = smoothClaimable;
+            // Only update if value increased (prevents jitter from blockchain poll race)
+            const prevValue = prev[stream.id] || 0;
+            const finalValue = smoothClaimable >= prevValue ? smoothClaimable : prevValue;
+            
+            if (next[stream.id] !== finalValue) {
+              next[stream.id] = finalValue;
               updated = true;
             }
           } else {

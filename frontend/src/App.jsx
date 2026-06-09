@@ -636,7 +636,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main style={viewMode === "landing" ? {
+      <main className={viewMode === "dashboard" ? "dashboard-content" : ""} style={viewMode === "landing" ? {
         flexGrow: 1,
         padding: 0,
         maxWidth: "none",

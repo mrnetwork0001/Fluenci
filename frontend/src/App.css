@@ -1281,83 +1281,83 @@
 
 /* Cards on white dashboard background */
 .dashboard-header ~ main .glass-card,
-main[style*="f5f5f5"] .glass-card {
+.dashboard-content .glass-card {
   background: #ffffff;
   border: 1px solid #e5e5e5;
   color: #111111;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-main[style*="f5f5f5"] .glass-card:hover {
+.dashboard-content .glass-card:hover {
   border-color: #cccccc;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Text inside dashboard cards */
-main[style*="f5f5f5"] .glass-card h2,
-main[style*="f5f5f5"] .glass-card h3,
-main[style*="f5f5f5"] .glass-card h4,
-main[style*="f5f5f5"] .glass-card strong {
+.dashboard-content .glass-card h2,
+.dashboard-content .glass-card h3,
+.dashboard-content .glass-card h4,
+.dashboard-content .glass-card strong {
   color: #111111;
 }
 
-main[style*="f5f5f5"] .glass-card p,
-main[style*="f5f5f5"] .glass-card span,
-main[style*="f5f5f5"] .glass-card label,
-main[style*="f5f5f5"] .glass-card div {
+.dashboard-content .glass-card p,
+.dashboard-content .glass-card span,
+.dashboard-content .glass-card label,
+.dashboard-content .glass-card div {
   color: #333333;
 }
 
 /* Buttons inside dashboard */
-main[style*="f5f5f5"] .btn-primary {
+.dashboard-content .btn-primary {
   background: #111111;
   color: #ffffff;
 }
 
-main[style*="f5f5f5"] .btn-primary:hover {
+.dashboard-content .btn-primary:hover {
   background: #222222;
 }
 
-main[style*="f5f5f5"] .btn-secondary {
+.dashboard-content .btn-secondary {
   background: #f5f5f5;
   border: 1px solid #d0d0d0;
   color: #333333;
 }
 
-main[style*="f5f5f5"] .btn-secondary:hover {
+.dashboard-content .btn-secondary:hover {
   background: #e8e8e8;
   border-color: #b0b0b0;
   color: #111111;
 }
 
-main[style*="f5f5f5"] .btn-danger {
+.dashboard-content .btn-danger {
   background: #fff5f5;
   border: 1px solid #e8c4c4;
   color: #cc3333;
 }
 
 /* Inputs and selects */
-main[style*="f5f5f5"] input,
-main[style*="f5f5f5"] select,
-main[style*="f5f5f5"] textarea {
+.dashboard-content input,
+.dashboard-content select,
+.dashboard-content textarea {
   background: #f8f8f8;
   border: 1px solid #d0d0d0;
   color: #111111;
   border-radius: 8px;
 }
 
-main[style*="f5f5f5"] input::placeholder {
+.dashboard-content input::placeholder {
   color: #999999;
 }
 
-main[style*="f5f5f5"] input:focus,
-main[style*="f5f5f5"] select:focus {
+.dashboard-content input:focus,
+.dashboard-content select:focus {
   border-color: #888888;
   outline: none;
 }
 
 /* Code / monospace */
-main[style*="f5f5f5"] code {
+.dashboard-content code {
   background: #f0f0f0;
   color: #111111;
   padding: 2px 6px;
@@ -1365,25 +1365,25 @@ main[style*="f5f5f5"] code {
 }
 
 /* Muted text overrides */
-main[style*="f5f5f5"] .glass-card [style*="color: #888"],
-main[style*="f5f5f5"] .glass-card [style*="color: #999"],
-main[style*="f5f5f5"] .glass-card [style*="color: #666"] {
+.dashboard-content .glass-card [style*="color: #888"],
+.dashboard-content .glass-card [style*="color: #999"],
+.dashboard-content .glass-card [style*="color: #666"] {
   color: #888888 !important;
 }
 
 /* Scanner line on light bg */
-main[style*="f5f5f5"] .scanner-line {
+.dashboard-content .scanner-line {
   background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08), transparent);
 }
 
 /* Progress bars */
-main[style*="f5f5f5"] [style*="background: #1a1a1a"],
-main[style*="f5f5f5"] [style*="background: #0a0a0a"] {
+.dashboard-content [style*="background: #1a1a1a"],
+.dashboard-content [style*="background: #0a0a0a"] {
   background: #e8e8e8 !important;
 }
 
 /* Uniform button height inside dashboard content (not header tabs) */
-main[style*="f5f5f5"] .btn {
+.dashboard-content .btn {
   height: 38px !important;
   padding: 0 16px !important;
   font-size: 0.78rem !important;

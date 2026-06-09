@@ -208,10 +208,31 @@ contract FluenciRegistry {
 
     /**
      * @notice Subscriber terminates a subscription stream permanently.
+     *         Auto-settles any accumulated QUSDC to the merchant before deactivation.
      */
     function terminateStream(bytes32 subId) external onlySubscriber(subId) {
         Subscription storage sub = subscriptions[subId];
         require(sub.active, "Stream already inactive");
+
+        // Auto-settle accumulated amount to merchant before termination
+        if (!sub.pausedByAI && sub.dispute == DisputeState.NONE) {
+            uint256 claimEnd = block.timestamp;
+            if (sub.stopTime > 0 && claimEnd > sub.stopTime) {
+                claimEnd = sub.stopTime;
+            }
+            if (claimEnd > sub.lastClaimedTimestamp && (sub.cliffTime == 0 || block.timestamp >= sub.cliffTime)) {
+                uint256 claimableDuration = claimEnd - sub.lastClaimedTimestamp;
+                uint256 claimableAmount = claimableDuration * sub.ratePerSecond;
+                sub.lastClaimedTimestamp = claimEnd;
+
+                // Transfer accumulated QUSDC to merchant
+                bool success = IERC20(sub.tokenAddress).transferFrom(sub.subscriber, sub.merchant, claimableAmount);
+                if (success) {
+                    emit FundsWithdrawn(subId, sub.merchant, claimableAmount);
+                }
+            }
+        }
+
         sub.active = false;
         emit StreamTerminated(subId);
     }

@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-verify";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -26,6 +27,24 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 1_500_000_000, // 1.5 Gwei
     }
+  },
+  etherscan: {
+    apiKey: {
+      'qieMainnet': 'abc'
+    },
+    customChains: [
+      {
+        network: "qieMainnet",
+        chainId: 1990,
+        urls: {
+          apiURL: "https://mainnet.qie.digital/api",
+          browserURL: "https://mainnet.qie.digital"
+        }
+      }
+    ]
+  },
+  sourcify: {
+    enabled: false
   }
 };
 

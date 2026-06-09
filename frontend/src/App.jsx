@@ -6,7 +6,7 @@ import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
 import TransactionModal from "./components/TransactionModal";
-import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity } from "lucide-react";
+import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X } from "lucide-react";
 import LogoImage from "./assets/logo.png";
 import QiePassLogo from "./assets/qiepass.png";
 import QieWalletLogo from "./assets/qiewallet.png";
@@ -22,6 +22,7 @@ const DEFAULT_HARDHAT_CONTRACTS = {
   qiepass: "0x774758CE0Cb704AC54f1cc0cace59d2957d8250A",
   auditor: "0x75475647f52531D4086296415392E4AA94b92de7",
   qiedex: "0xE21F69c4394dFA41FC5F31a9B994e0275B47cD34",
+  fluenciRouter: "",
   qiedomain: "0x5b66380309C29D00Ff82388a856fB5e87fF09A7E"
 };
 
@@ -126,8 +127,8 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
   return (
     <span style={{ 
       position: "relative", 
-      color: "var(--color-cyan)",
-      WebkitTextFillColor: "var(--color-cyan)",
+      color: "#2563eb",
+      WebkitTextFillColor: "#2563eb",
       background: "none",
       WebkitBackgroundClip: "unset"
     }}>
@@ -136,7 +137,7 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
         display: "inline-block",
         width: "3px", 
         height: "0.85em", 
-        background: "var(--color-cyan)", 
+        background: "#2563eb", 
         marginLeft: "2px",
         verticalAlign: "baseline",
         animation: "pulse 0.8s infinite"
@@ -242,96 +243,72 @@ function LandingTelemetryTerminal() {
     };
   }, []);
 
-  const getLogColor = (type) => {
+  const getLogBadgeStyle = (type) => {
     switch (type) {
-      case "ALERT": return "var(--color-rose)";
-      case "ACTION": return "var(--color-amber)";
-      case "SUCCESS": return "var(--color-emerald)";
-      case "AUDIT": return "var(--color-cyan)";
-      default: return "var(--text-secondary)";
+      case "ALERT": return { background: "rgba(239, 68, 68, 0.15)", color: "#f87171", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
+      case "ACTION": return { background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
+      case "SUCCESS": return { background: "rgba(16, 185, 129, 0.15)", color: "#34d399", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
+      case "AUDIT": return { background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
+      default: return { background: "rgba(113, 113, 122, 0.15)", color: "#a1a1aa", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
     }
   };
 
+  const latestLog = logs.length > 0 ? logs[logs.length - 1] : { text: "Monitoring recurring streams on QIE Mainnet. System secured.", type: "INFO" };
+
   return (
-    <div className="telemetry-mock-box">
-      {/* Terminal Titlebar */}
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        padding: "12px 16px", 
-        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
-        background: "rgba(0, 0, 0, 0.2)"
-      }}>
+    <div className="copilot-card">
+      <div className="copilot-header">
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span className="status-indicator status-online" />
-          <span style={{ fontSize: "0.75rem", fontFamily: "monospace", color: "#fff", fontWeight: "bold", letterSpacing: "0.05em" }}>
-            AI-TELEMETRY.NODE
-          </span>
+          <Sparkles size={14} color="#c084fc" />
+          <span style={{ fontWeight: "700", fontSize: "0.8rem", color: "#ffffff", fontFamily: "'Montserrat', sans-serif" }}>Copilot</span>
         </div>
-        <div style={{ display: "flex", gap: "6px" }}>
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "rgba(255,255,255,0.1)" }} />
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "rgba(255,255,255,0.1)" }} />
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "rgba(255,255,255,0.1)" }} />
-        </div>
+        <X size={14} style={{ opacity: 0.5, color: "#ffffff" }} />
       </div>
-
-      {/* Terminal Stats */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "1fr 1fr", 
-        gap: "10px", 
-        padding: "14px 16px", 
-        borderBottom: "1px solid rgba(255, 255, 255, 0.03)",
-        background: "rgba(255,255,255,0.01)"
-      }}>
-        <div style={{ borderLeft: "2px solid var(--color-cyan)", paddingLeft: "8px" }}>
-          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Active Streams</div>
-          <div style={{ fontSize: "1.2rem", fontWeight: "bold", fontFamily: "monospace", color: "#fff" }}>{activeStreams}</div>
-        </div>
-        <div style={{ borderLeft: `2px solid ${systemRisk > 50 ? 'var(--color-rose)' : 'var(--color-emerald)'}`, paddingLeft: "8px" }}>
-          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase" }}>System Risk Score</div>
-          <div style={{ 
-            fontSize: "1.2rem", 
-            fontWeight: "bold", 
-            fontFamily: "monospace", 
-            color: systemRisk > 50 ? 'var(--color-rose)' : 'var(--color-emerald)',
-            textShadow: systemRisk > 50 ? '0 0 10px rgba(244, 63, 94, 0.2)' : 'none'
-          }}>{systemRisk}%</div>
-        </div>
+      <div className="copilot-tabs">
+        <span className="copilot-tab active">Sentry Node</span>
+        <span className="copilot-tab" style={{ color: "#a1a1aa" }}>Live Risk: <strong style={{ color: systemRisk > 40 ? '#f87171' : '#34d399' }}>{systemRisk}%</strong></span>
       </div>
-
-      {/* Screen scanline */}
-      <div className="scanner-line" style={{ height: "1px" }} />
-
-      {/* Screen logs */}
-      <div style={{ 
-        flexGrow: 1, 
-        padding: "16px", 
-        fontFamily: "monospace", 
-        fontSize: "0.75rem", 
-        color: "var(--text-primary)", 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: "8px", 
-        overflowY: "hidden" 
-      }}>
-        {logs.map((log, i) => (
-          <div key={i} style={{ display: "flex", gap: "6px", alignItems: "flex-start" }}>
-            <span style={{ color: "var(--text-muted)" }}>[{log.time}]</span>
-            <span style={{ color: getLogColor(log.type), fontWeight: "bold" }}>[{log.type}]</span>
-            <span style={{ flexGrow: 1, wordBreak: "break-all" }}>{log.text}</span>
+      <div className="copilot-list">
+        {/* Active Stream Alert Card */}
+        <div className="copilot-item active-source">
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+            <div className="copilot-avatar purple">
+              <Shield size={12} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: "700", fontSize: "0.75rem", color: "#ffffff" }}>
+                  {systemRisk > 40 ? "Anomaly Blocked" : "Active Monitor"}
+                </span>
+                <span className={systemRisk > 40 ? "pill-badge red" : "pill-badge green"}>
+                  {systemRisk > 40 ? "Exploit paused" : "Shield active"}
+                </span>
+              </div>
+              <p style={{ fontSize: "0.65rem", color: "#a1a1aa", marginTop: "4px", lineHeight: "1.3" }}>
+                {latestLog.text}
+              </p>
+            </div>
           </div>
-        ))}
-        {/* Blinking cursor at the end */}
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <span style={{ color: "var(--color-cyan)" }}>&gt;</span>
-          <span style={{ 
-            width: "6px", 
-            height: "12px", 
-            background: "var(--color-cyan)", 
-            animation: "pulse 1s infinite" 
-          }} />
+        </div>
+
+        {/* Secondary Info Card */}
+        <div className="copilot-item">
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+            <div className="copilot-avatar">
+              <Activity size={12} color="#10b981" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: "700", fontSize: "0.75rem", color: "#ffffff" }}>Protocol Streams</span>
+                <span className="pill-badge green" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#34d399" }}>
+                  {activeStreams} Active
+                </span>
+              </div>
+              <p style={{ fontSize: "0.65rem", color: "#a1a1aa", marginTop: "4px", lineHeight: "1.3" }}>
+                AI Sentry agent continuously auditing stream velocities.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -343,6 +320,78 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("subscriber");
   const [viewMode, setViewMode] = useState("landing");
   const prevAccountRef = useRef(fluenci.account);
+  const cardRef = useRef(null);
+
+  const handleCardMouseMove = (e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    const rotateX = -y / 6;
+    const rotateY = x / 6;
+    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  };
+
+  const handleCardMouseLeave = () => {
+    const card = cardRef.current;
+    if (card) {
+      card.style.transform = "rotateX(20deg) rotateY(-15deg)";
+    }
+  };
+
+  useEffect(() => {
+    if (viewMode !== "landing") return;
+    
+    const timer = setTimeout(() => {
+      if (!window.gsap || !window.SplitType) return;
+      
+      try {
+        window.gsap.registerPlugin(window.ScrollTrigger);
+        
+        const splitText = new window.SplitType(".split-lines", {
+          types: "lines"
+        });
+        
+        const lines = document.querySelectorAll(".split-lines .line");
+        lines.forEach(line => {
+          if (!line.querySelector(".line-mask")) {
+            const mask = document.createElement("div");
+            mask.className = "line-mask";
+            line.appendChild(mask);
+          }
+        });
+        
+        const lineElements = document.querySelectorAll(".split-lines .line");
+        lineElements.forEach(line => {
+          const mask = line.querySelector(".line-mask");
+          if (mask) {
+            window.gsap.to(mask, {
+              width: "0%",
+              scrollTrigger: {
+                trigger: line,
+                start: "top 85%",
+                end: "bottom 70%",
+                scrub: true
+              }
+            });
+          }
+        });
+      } catch (err) {
+        console.warn("GSAP/SplitType animation setup failed:", err);
+      }
+    }, 400);
+    
+    return () => {
+      clearTimeout(timer);
+      if (window.ScrollTrigger) {
+        try {
+          window.ScrollTrigger.getAll().forEach(t => t.kill());
+        } catch (e) {}
+      }
+    };
+  }, [viewMode]);
+
   const [stats, setStats] = useState({
     uniqueUsersCount: 0,
     totalVolumeUSD: 0,
@@ -365,7 +414,7 @@ export default function App() {
       }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 1000);
+    const interval = setInterval(fetchStats, 5000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -455,10 +504,21 @@ export default function App() {
   const isSupportedNetwork = fluenci.chainId === 1990;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "var(--bg-primary)" }}>
       {/* Navbar */}
       <header 
-        style={{ 
+        className={viewMode === "landing" ? "landing-header" : "dashboard-header"}
+        style={viewMode === "landing" ? { 
+          padding: "20px 40px", 
+          borderBottom: "none", 
+          background: "rgba(255, 255, 255, 1)",
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          position: "sticky",
+          top: 0,
+          zIndex: 100
+        } : { 
           padding: "20px 40px", 
           borderBottom: "1px solid var(--border-color)", 
           background: "rgba(10, 15, 30, 0.5)",
@@ -479,7 +539,13 @@ export default function App() {
           <img 
             src={LogoImage} 
             alt="Fluenci Logo" 
-            style={{ 
+            style={viewMode === "landing" ? { 
+              width: "42px", 
+              height: "42px", 
+              borderRadius: "50%",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+              border: "1px solid #e2e8f0"
+            } : { 
               width: "42px", 
               height: "42px", 
               borderRadius: "10px",
@@ -488,14 +554,28 @@ export default function App() {
             }} 
           />
           <div>
-            <h1 style={{ fontSize: "1.4rem", fontWeight: "800", color: "#fff", lineHeight: "1.2" }}>
+            <h1 style={{ fontSize: "1.4rem", fontWeight: "900", color: viewMode === "landing" ? "#000000" : "#fff", lineHeight: "1.2", fontFamily: "'Montserrat', sans-serif" }}>
               Fluenci
             </h1>
-            <span style={{ fontSize: "0.75rem", color: "var(--color-cyan)", fontWeight: "600", tracking: "0.05em" }}>
-              AI-SHIELDED PAYMENT STREAMS & DISPUTE NFT
-            </span>
+            {viewMode !== "landing" && (
+              <span style={{ fontSize: "0.75rem", color: "var(--color-cyan)", fontWeight: "600", tracking: "0.05em" }}>
+                AI-SHIELDED PAYMENT STREAMS & DISPUTE NFT
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Center Links for Landing Page */}
+        {viewMode === "landing" && (
+          <nav style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+            <a href="#features" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Features</a>
+            <a href="#how-it-works" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>How it works</a>
+            <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>AI Arbitration</a>
+            <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
+            <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
+          </nav>
+        )}
+
 
         {/* Tab Navigation (visible when dashboard view is active) */}
         {viewMode === "dashboard" && (!fluenci.account || isSupportedNetwork) && (
@@ -542,7 +622,19 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main style={{ flexGrow: 1, padding: "40px", maxWidth: "1200px", width: "100%", margin: "0 auto" }}>
+      <main style={viewMode === "landing" ? {
+        flexGrow: 1,
+        padding: 0,
+        maxWidth: "none",
+        width: "100%",
+        margin: 0
+      } : {
+        flexGrow: 1,
+        padding: "40px",
+        maxWidth: "1200px",
+        width: "100%",
+        margin: "0 auto"
+      }}>
         
         {/* Error alert banners */}
         {fluenci.error && (fluenci.error.includes("rpc1mainnet") || fluenci.error.includes("timed out") || fluenci.error.includes("request failed") || fluenci.error.includes("Failed to fetch") || fluenci.error.includes("coalesce") || fluenci.error.includes("32603")) ? (
@@ -662,114 +754,238 @@ export default function App() {
             <div className="dot-grid" />
             
             {/* Hero Section */}
-            <section className="landing-section hero-grid">
-              <div style={{ textAlign: "left", zIndex: 1 }}>
-                <div className="hero-badge">
-                  <Sparkles size={12} />
-                  AI-Shielded Subscriptions
-                </div>
-                <h1 className="gradient-title">
-                  Stop <TypewriterWord words={["Blind", "Rogue", "Unaudited"]} /> Streams.<br />
-                  <span className="gradient-title-accent">AI-Shielded</span> Payments.
-                </h1>
-                <p className="hero-subtitle">
-                  Fluenci is the first recurring billing protocol on QIE Blockchain that integrates an autonomous AI Auditor Agent to audit transaction telemetry and prevent billing exploits.
-                </p>
-                <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                  <button className="btn btn-primary btn-cta-pulse" onClick={() => setViewMode("dashboard")}>
-                    Launch App
-                  </button>
-                  <a href="#how-it-works" className="btn btn-secondary" style={{ textDecoration: "none" }}>
-                    How it works
-                  </a>
+            <section className="home-hero-section" id="features">
+              <div className="hero-grid">
+                <div style={{ textAlign: "left", zIndex: 1 }}>
+                  <div className="hero-badge">
+                    <Sparkles size={12} />
+                    AI-Shielded Subscriptions
+                  </div>
+                  <h1 className="gradient-title" style={{ fontSize: "3.8rem", color: "#000000", fontWeight: "900" }}>
+                    Better Security for<br />
+                    <span style={{ color: "#000000" }}>Better Payments.</span>
+                  </h1>
+                  <p className="hero-subtitle">
+                    Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.
+                  </p>
+                  <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                    <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
+                      Launch App
+                    </button>
+                    <a href="#how-it-works" className="btn btn-secondary" style={{ textDecoration: "none" }}>
+                      Explore the Platform
+                    </a>
+                  </div>
+
+                  {/* Real-time Protocol Stats Row */}
+                  <div style={{ 
+                    display: "flex", 
+                    gap: "0", 
+                    marginTop: "40px", 
+                    padding: "16px 0", 
+                    background: "#f8fafc", 
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    maxWidth: "680px"
+                  }}>
+                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>
+                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#0f172a", fontFamily: "monospace" }}>
+                        {stats.uniqueUsersCount}
+                      </div>
+                    </div>
+                    <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
+                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Settled Volume</div>
+                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
+                        ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
+                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Swap Volume (DEX)</div>
+                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
+                        ${(stats.totalSwapVolumeUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                    <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
+                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>App Revenue (0.5%)</div>
+                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
+                        ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Real-time Protocol Stats Row */}
-                <div style={{ 
-                  display: "flex", 
-                  gap: "0", 
-                  marginTop: "40px", 
-                  padding: "16px 0", 
-                  background: "rgba(255, 255, 255, 0.02)", 
-                  border: "1px solid rgba(255, 255, 255, 0.05)",
-                  borderRadius: "12px",
-                  maxWidth: "680px"
-                }}>
-                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>
-                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#fff", fontFamily: "monospace" }}>
-                      {stats.uniqueUsersCount}
+                {/* Layered Browser + Copilot Telemetry Mockup */}
+                <div className="hero-mockup-wrapper">
+                  {/* Browser window mockup in background */}
+                  <div className="browser-mockup">
+                    <div className="browser-header">
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <span className="browser-dot red"></span>
+                        <span className="browser-dot yellow"></span>
+                        <span className="browser-dot green"></span>
+                      </div>
+                      <div className="browser-url-bar">fluenci.app/dashboard</div>
+                    </div>
+                    <div className="browser-content">
+                      <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "10px", marginBottom: "12px" }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: "bold", color: "#1e293b" }}>Active Streams</span>
+                        <span style={{ fontSize: "0.65rem", color: "#64748b" }}>QIE Mainnet</span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div className="browser-stream-row active-target">
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "700", color: "#0f172a" }}>Acme Corp SaaS</span>
+                            <span className="mock-badge green">Streaming</span>
+                          </div>
+                          <div className="mock-progress-bar">
+                            <div className="mock-progress-fill" style={{ width: "65%" }}></div>
+                          </div>
+                        </div>
+                        <div className="browser-stream-row">
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>Netflix Premium</span>
+                            <span className="mock-badge green">Streaming</span>
+                          </div>
+                          <div className="mock-progress-bar">
+                            <div className="mock-progress-fill" style={{ width: "40%" }}></div>
+                          </div>
+                        </div>
+                        <div className="browser-stream-row paused">
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>Rogue Hacker Node</span>
+                            <span className="mock-badge red">Sentry Paused</span>
+                          </div>
+                          <div className="mock-progress-bar">
+                            <div className="mock-progress-fill red" style={{ width: "100%" }}></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
-                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Settled Volume</div>
-                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-cyan)", fontFamily: "monospace" }}>
-                      ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
-                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>Swap Volume (DEX)</div>
-                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-purple)", fontFamily: "monospace" }}>
-                      ${(stats.totalSwapVolumeUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div style={{ width: "1px", background: "rgba(255,255,255,0.08)", alignSelf: "stretch" }} />
-                  <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>App Revenue (0.5%)</div>
-                    <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-emerald)", fontFamily: "monospace" }}>
-                      ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
+
+                  {/* SVG connecting dotted arc */}
+                  <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 3 }}>
+                    <path 
+                      className="connecting-path"
+                      d="M 330,190 Q 210,140 140,200" 
+                      fill="none" 
+                      stroke="#a855f7" 
+                      strokeWidth="2" 
+                      strokeDasharray="4,4" 
+                      markerEnd="url(#arrow)"
+                    />
+                    <defs>
+                      <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#a855f7" />
+                      </marker>
+                    </defs>
+                  </svg>
+
+                  {/* Copilot window on top with live telemetry styled as UI card */}
+                  <div className="copilot-mockup">
+                    <LandingTelemetryTerminal />
                   </div>
                 </div>
-              </div>
-
-              {/* Live Telemetry Terminal Simulation */}
-              <div style={{ zIndex: 1, position: "relative" }}>
-                <LandingTelemetryTerminal />
               </div>
             </section>
 
-            {/* How It Works Section */}
-            <section id="how-it-works" className="landing-section">
-              <div className="section-header">
-                <h2>Continuous Flow, Protected in Real-Time</h2>
-                <p>Fluenci integrates three layers of verification to make subscription billing safe for everyone.</p>
+
+            {/* Scroll-Highlight Sticky Text Section */}
+            <section className="home-text-highlight-section">
+              <div className="home-text-highlight-container">
+                <p className="split-lines home">
+                  At Fluenci, we believe real-time payment streams are the heartbeat of the modern Web3 economy. That's why we built an AI-shielded protocol to protect transactions at the optimal moment—guiding every subscription stream with clarity and confidence.
+                </p>
               </div>
+            </section>
 
-              <div className="step-cards-grid">
-                <div className="step-card">
-                  <div className="step-number">01</div>
-                  <div className="step-icon-wrapper">
-                    <UserCircle size={24} />
-                  </div>
-                  <h3>QIE Pass KYC Identity</h3>
-                  <p>Subscribers and merchants are verified using onchain DIDs. Prevent sybil attacks and track identity-gated payment history securely.</p>
+            {/* Fixing the Hidden Gaps in Web3 Billing Section */}
+            <section id="how-it-works" className="home-fixing-section">
+              <div className="home-fixing-container">
+                <div className="track">
+                  <h2>Fixing the Hidden Gaps in Web3 Billing</h2>
+                  <p>
+                    When streaming subscriptions go unmonitored, exploiters drain balances. Fluenci's platform bridges the gap between static blockchain addresses and automated security monitoring to ensure smooth, safe transitions.
+                  </p>
                 </div>
-
-                <div className="step-card">
-                  <div className="step-number">02</div>
-                  <div className="step-icon-wrapper">
-                    <Sparkles size={24} />
+                <div className="benefit-stack">
+                  <div className="benefit-card">
+                    <div className="benefit-card-icon">
+                      <Shield size={24} />
+                    </div>
+                    <h3>Reduced Exploit Losses</h3>
+                    <p>
+                      The autonomous AI sentry flags abnormal transaction telemetry early, pausing compromised streams onchain before assets drain.
+                    </p>
                   </div>
-                  <h3>Stablecoin Payment Streams</h3>
-                  <p>Stream real-time value settled in qUSD stablecoins to eliminate price volatility. Setup custom cliff periods and stop-times for dynamic contracts.</p>
+                  <div className="benefit-card">
+                    <div className="benefit-card-icon">
+                      <UserCircle size={24} />
+                    </div>
+                    <h3>Verified Sybil-Proof DIDs</h3>
+                    <p>
+                      Integrating QIE Pass DIDs ensures both subscribers and merchants are verified onchain, preventing identity-spoofing and sybil attacks.
+                    </p>
+                  </div>
+                  <div className="benefit-card">
+                    <div className="benefit-card-icon">
+                      <Activity size={24} />
+                    </div>
+                    <h3>Zero Volatility Slashes</h3>
+                    <p>
+                      Streams are settled in qUSD stablecoins alongside automated dual-direction conversions via QIE DEX, preventing price volatility.
+                    </p>
+                  </div>
                 </div>
+              </div>
+            </section>
 
-                <div className="step-card">
-                  <div className="step-number">03</div>
-                  <div className="step-icon-wrapper">
-                    <Shield size={24} />
+            {/* AI-First. Safe-by-Design Section with Interactive 3D Card */}
+            <section id="arbitration" className="landing-section home-ai-first-section">
+              <div className="ai-first-grid-container">
+                <div className="card-wrapper" onMouseMove={handleCardMouseMove} onMouseLeave={handleCardMouseLeave}>
+                  <div ref={cardRef} className="perspective-3d-card">
+                    <img src={LogoImage} alt="Fluenci Logo" className="perspective-card-image" />
                   </div>
-                  <h3>Autonomous AI Oracle Sentry</h3>
-                  <p>An autonomous AI auditor watches every stream. Upon detecting pricing exploits or abnormal billing drift, it executes contract-level pauses.</p>
+                </div>
+                <div className="ai-first-description">
+                  <h2>AI-First. Shielded-by-Design. Empathetically Built.</h2>
+                  <p>
+                    Fluenci is not another protocol that requires continuous manual checks. Our autonomous AI Sentry agents integrate directly into the transaction layer, dynamically adapting based on stream flow rates and KYC credentials.
+                  </p>
+                </div>
+              </div>
+              <div className="ai-features-grid">
+                <div className="ai-feature-cell">
+                  <Shield className="ai-feature-cell-icon" />
+                  <h3>Adaptive Sentry Nodes</h3>
+                  <p>
+                    Surfaces only verified transaction signals and pauses rogue stream creators at the protocol level.
+                  </p>
+                </div>
+                <div className="ai-feature-cell">
+                  <Activity className="ai-feature-cell-icon" />
+                  <h3>Dynamic Real-Time Claims</h3>
+                  <p>
+                    Allows merchants to pull accrued stablecoin balances continuously without manual withdrawal overhead.
+                  </p>
+                </div>
+                <div className="ai-feature-cell">
+                  <Sparkles className="ai-feature-cell-icon" />
+                  <h3>Moment-Driven Arbitration</h3>
+                  <p>
+                    Resolves billing disputes autonomously onchain utilizing EIP-712 cryptographic signatures.
+                  </p>
                 </div>
               </div>
             </section>
 
             {/* QIE Ecosystem Integrations — Infinite Marquee Carousel */}
-            <section className="landing-section">
+            <section className="landing-section marquee-section">
               <div className="section-header">
                 <h2>Native QIE Ecosystem Integrations</h2>
                 <p>Fluenci leverages the power of QIE blockchain's core components to build a seamless and secure billing protocol.</p>
@@ -777,7 +993,6 @@ export default function App() {
 
               <div className="ecosystem-marquee-wrapper">
                 <div className="ecosystem-marquee-track">
-                  {/* First set */}
                   {[
                     { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
                     { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
@@ -817,7 +1032,7 @@ export default function App() {
             </section>
 
             {/* Feature Comparison Matrix */}
-            <section className="landing-section">
+            <section id="comparison" className="landing-section matrix-section">
               <div className="section-header">
                 <h2>Standard Payments vs. Fluenci AI-Shield</h2>
                 <p>Why Fluenci represents the next generation of trustless Web3 subscriptions.</p>
@@ -864,7 +1079,7 @@ export default function App() {
             </section>
 
             {/* FAQ Accordion Section */}
-            <section className="landing-section" style={{ maxWidth: "800px", margin: "0 auto" }}>
+            <section id="faq" className="landing-section faq-section" style={{ maxWidth: "800px", margin: "0 auto" }}>
               <div className="section-header" style={{ textAlign: "center" }}>
                 <h2>Frequently Asked Questions</h2>
                 <p>Everything you need to know about the Fluenci protocol and how the AI sentries protect your assets.</p>
@@ -887,13 +1102,36 @@ export default function App() {
                 answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of qUSDC in your wallet to cover the continuous claims."
               />
             </section>
+
+            {/* Explore the Platform CTA */}
+            <section className="landing-section cta-section">
+              <div className="section-header">
+                <h2>Explore the Platform</h2>
+                <p style={{ marginBottom: "28px" }}>See how Fluenci bridges gaps, aligns protocols, and protects stream transitions—without disrupting your flow.</p>
+                <button className="btn btn-primary btn-cta-pulse" onClick={() => setViewMode("dashboard")}>
+                  Launch App
+                </button>
+              </div>
+            </section>
           </div>
+
         )}
       </main>
 
       {/* Footer */}
       <footer 
-        style={{ 
+        style={viewMode === "landing" ? { 
+          padding: "30px 40px", 
+          borderTop: "1px solid #111111", 
+          background: "#000000",
+          textAlign: "center",
+          fontSize: "0.85rem",
+          color: "#94a3b8",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          alignItems: "center"
+        } : { 
           padding: "30px 40px", 
           borderTop: "1px solid var(--border-color)", 
           background: "rgba(7, 10, 19, 0.8)",
@@ -906,17 +1144,19 @@ export default function App() {
           alignItems: "center"
         }}
       >
-        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px" }}>
-          <span>Registry: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.registry}</strong></span>
-          <span>qUSDC: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.qusdc}</strong></span>
-          <span>WETH: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.weth}</strong></span>
-          <span>QiePass KYC: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.qiepass}</strong></span>
-          <span>AI Auditor: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.auditor}</strong></span>
-          <span>Qiedex: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.qiedex}</strong></span>
-          <span>Qiedomain: <strong style={{ color: "var(--color-cyan)" }}>{fluenci.contracts.qiedomain}</strong></span>
+        <div style={{ fontSize: "0.75rem", color: viewMode === "landing" ? "#64748b" : "var(--text-muted)", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px" }}>
+          <span>Registry: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.registry}</strong></span>
+          <span>qUSDC: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qusdc}</strong></span>
+          <span>WETH: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.weth}</strong></span>
+          <span>QiePass KYC: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qiepass}</strong></span>
+          <span>AI Auditor: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.auditor}</strong></span>
+          <span>Qiedex: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qiedex}</strong></span>
+          {fluenci.contracts.fluenciRouter && <span>FluenciRouter: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.fluenciRouter}</strong></span>}
+          <span>Qiedomain: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qiedomain}</strong></span>
         </div>
         <p>© 2026 Fluenci Protocol. Built for QIE Blockchain Hackathon. All rights reserved.</p>
       </footer>
+
 
       {/* Transaction Progress Modal */}
       <TransactionModal txState={fluenci.txState} onClose={fluenci.resetTx} />

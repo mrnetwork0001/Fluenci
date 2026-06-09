@@ -48,6 +48,7 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
     qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
+    fluenciRouter: "0x75475647f52531D4086296415392E4AA94b92de7", // FluenciRouter (wraps QieDex with on-chain attribution)
     qiedomain: "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed" // Official QIE Domain Registry (mainnet)
   }
 };
@@ -103,6 +104,7 @@ export function useFluenci() {
     qiepass: "",
     auditor: "",
     qiedex: "",
+    fluenciRouter: "",
     qiedomain: ""
   });
 
@@ -656,9 +658,14 @@ export function useFluenci() {
       const decimalsIn = isReverse ? 6 : 18;
       const parsedAmount = ethers.parseUnits(amount, decimalsIn);
       
+      
+      // Use FluenciRouter for swap execution (falls back to qiedex if router not set)
+      const swapTarget = contracts.fluenciRouter || contracts.qiedex;
+
       let amountOutMin = 0n;
       try {
         const readProvider = getReadProvider();
+        // Use QieDex directly for quotes (read-only, no attribution needed)
         const readDex = new ethers.Contract(contracts.qiedex, DEX_ABI, readProvider);
         const amounts = await Promise.race([
           readDex.getAmountsOut(parsedAmount, path),
@@ -677,7 +684,7 @@ export function useFluenci() {
         setTxState({ status: "preparing", action: "Checking qUSDC Allowance...", hash: "", error: "" });
         const readProvider = getReadProvider();
         const qusdcContract = new ethers.Contract(contracts.qusdc, ERC20_ABI, readProvider);
-        const allowance = await qusdcContract.allowance(account, contracts.qiedex);
+        const allowance = await qusdcContract.allowance(account, swapTarget);
         
         if (allowance < parsedAmount) {
           setTxState({ status: "preparing", action: "Approving qUSDC for Swap", hash: "", error: "" });
@@ -686,7 +693,7 @@ export function useFluenci() {
             contracts.qusdc,
             ERC20_ABI,
             "approve",
-            [contracts.qiedex, ethers.MaxUint256],
+            [swapTarget, ethers.MaxUint256],
             "0x0",
             100000n
           );
@@ -716,7 +723,7 @@ export function useFluenci() {
           method: "eth_sendTransaction",
           params: [{
             from: account,
-            to: contracts.qiedex,
+            to: swapTarget,
             data: data,
             value: valueHex,
             gas: gasHex
@@ -727,7 +734,7 @@ export function useFluenci() {
       } else {
         // qUSDC ➔ QIE
         tx = await executeDirectTx(
-          contracts.qiedex,
+          swapTarget,
           DEX_ABI,
           "swapExactTokensForETH",
           [parsedAmount, amountOutMin, path, account, deadline],

@@ -51,12 +51,13 @@ export default function SubscriberPanel({
   useEffect(() => {
     let active = true;
     const fetchOutput = async () => {
-      if (!swapAmount || isNaN(swapAmount) || parseFloat(swapAmount) <= 0 || !contracts.qiedex || !contracts.qusdc) {
+      if (!swapAmount || isNaN(swapAmount) || parseFloat(swapAmount) <= 0 || !contracts.qusdc || (!contracts.fluenciRouter && !contracts.qiedex)) {
         setExpectedOutput("0");
         return;
       }
       setCalculatingSwap(true);
       try {
+        // Use QieDex directly for quotes (read-only, no attribution needed)
         const provider = new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
         const dexContract = new ethers.Contract(
           contracts.qiedex, 
@@ -92,7 +93,7 @@ export default function SubscriberPanel({
       active = false;
       clearTimeout(delayDebounceFn);
     };
-  }, [swapAmount, swapMode, contracts.qiedex, contracts.qusdc]);
+  }, [swapAmount, swapMode, contracts.fluenciRouter, contracts.qiedex, contracts.qusdc]);
 
   const handleSubmitSubscription = (e) => {
     e.preventDefault();

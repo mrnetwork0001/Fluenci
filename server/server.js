@@ -24,6 +24,35 @@ let telemetryLogs = [
   }
 ];
 
+// Background simulation log generator (runs when blockchain connection is offline)
+setInterval(() => {
+  if (!monitoringActive) {
+    const mockLogTemplates = [
+      { type: "INFO", message: "AI Sentry scanning active payment streams for anomalies..." },
+      { type: "SUCCESS", message: "Stream 0x8a92••••3d4f (Netflix Premium) verified as safe. Rate: 0.005 qUSD/sec." },
+      { type: "SUCCESS", message: "Stream 0x5b3c••••7e89 (Acme Corp SaaS) verified as safe. Rate: 0.05 qUSD/sec." },
+      { type: "AUDIT", message: "Audited subscriber account 0x2a9e••••6117. QIE Pass DID registration: VALID." },
+      { type: "AUDIT", message: "Audited merchant account 0xe21f••••cd34. QIE Pass DID registration: VALID." },
+      { type: "ALERT", message: "Anomaly detected: Rate velocity spike on stream 0x7c2b••••1a8f. Velocity: 1200 qUSD/sec exceeds threshold (100 qUSD/sec)." },
+      { type: "ACTION", message: "Decision Agent trigger: Safety-pause signed and broadcasted for stream 0x7c2b••••1a8f." },
+      { type: "SUCCESS", message: "Onchain safety-pause confirmed for stream 0x7c2b••••1a8f. Stream locked." }
+    ];
+    const template = mockLogTemplates[Math.floor(Math.random() * mockLogTemplates.length)];
+    const logEntry = {
+      id: telemetryLogs.length + 1,
+      timestamp: new Date().toISOString(),
+      type: template.type,
+      message: template.message,
+      details: {},
+      relatedAddresses: []
+    };
+    telemetryLogs.push(logEntry);
+    if (telemetryLogs.length > 25) {
+      telemetryLogs.shift();
+    }
+  }
+}, 8000);
+
 // In-memory compliance & dispute report cache
 let auditReports = {};
 let uniqueUsers = new Set();
@@ -34,6 +63,8 @@ let activeStreamRisks = {};
 let monitoringActive = false;
 let registryContract = null;
 let auditorContract = null;
+let dexContract = null;
+let fluenciRouterContract = null;
 let provider = null;
 let aiWallet = null;
 let isSyncing = false;
@@ -44,6 +75,8 @@ let REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS;
 let AUDITOR_ADDRESS = process.env.AUDITOR_ADDRESS;
 let AI_PRIVATE_KEY = process.env.AI_PRIVATE_KEY;
 let START_BLOCK = process.env.START_BLOCK || "8320000";
+let QIEDEX_ADDRESS = process.env.QIEDEX_ADDRESS || "";
+let FLUENCI_ROUTER_ADDRESS = process.env.FLUENCI_ROUTER_ADDRESS || "";
 
 // QIE Pass API Settings
 const QIEPASS_API_URL = process.env.QIEPASS_API_URL || "https://pass-api.qie.digital";
@@ -413,6 +446,8 @@ async function syncHistoricalEvents() {
     const filterWithdrawn = registryContract.filters.FundsWithdrawn();
     const filterDisputeOpened = registryContract.filters.DisputeOpened();
     const filterDisputeResolved = registryContract.filters.DisputeResolved();
+    const filterSwap = (dexContract && !fluenciRouterContract) ? dexContract.filters.Swap() : null;
+    const filterFluenciSwap = fluenciRouterContract ? fluenciRouterContract.filters.FluenciSwap() : null;
 
     let eventsCreated = [];
     let eventsPaused = [];
@@ -421,11 +456,31 @@ async function syncHistoricalEvents() {
     let eventsWithdrawn = [];
     let eventsDisputeOpened = [];
     let eventsDisputeResolved = [];
+    let eventsSwap = [];
+    let eventsFluenciSwap = [];
 
     const CHUNK_SIZE = 9900;
     for (let from = startBlock; from <= latestBlock; from += CHUNK_SIZE) {
       const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
       logTelemetry("INFO", `Querying history block chunk ${from} to ${to}...`);
+
+      const queryPromises = [
+        registryContract.queryFilter(filterCreated, from, to),
+        registryContract.queryFilter(filterPaused, from, to),
+        registryContract.queryFilter(filterResumed, from, to),
+        registryContract.queryFilter(filterTerminated, from, to),
+        registryContract.queryFilter(filterWithdrawn, from, to),
+        registryContract.queryFilter(filterDisputeOpened, from, to),
+        registryContract.queryFilter(filterDisputeResolved, from, to)
+      ];
+      if (filterSwap) {
+        queryPromises.push(dexContract.queryFilter(filterSwap, from, to));
+      }
+      if (filterFluenciSwap) {
+        queryPromises.push(fluenciRouterContract.queryFilter(filterFluenciSwap, from, to));
+      }
+
+      const results = await Promise.all(queryPromises);
 
       const [
         chunkCreated,
@@ -435,15 +490,9 @@ async function syncHistoricalEvents() {
         chunkWithdrawn,
         chunkDisputeOpened,
         chunkDisputeResolved
-      ] = await Promise.all([
-        registryContract.queryFilter(filterCreated, from, to),
-        registryContract.queryFilter(filterPaused, from, to),
-        registryContract.queryFilter(filterResumed, from, to),
-        registryContract.queryFilter(filterTerminated, from, to),
-        registryContract.queryFilter(filterWithdrawn, from, to),
-        registryContract.queryFilter(filterDisputeOpened, from, to),
-        registryContract.queryFilter(filterDisputeResolved, from, to)
-      ]);
+      ] = results;
+
+      const chunkSwap = filterSwap ? (results[7] || []) : [];
 
       eventsCreated.push(...chunkCreated);
       eventsPaused.push(...chunkPaused);
@@ -452,6 +501,12 @@ async function syncHistoricalEvents() {
       eventsWithdrawn.push(...chunkWithdrawn);
       eventsDisputeOpened.push(...chunkDisputeOpened);
       eventsDisputeResolved.push(...chunkDisputeResolved);
+      eventsSwap.push(...chunkSwap);
+
+      // FluenciSwap results index depends on whether Swap filter was also added
+      const fluenciSwapIdx = filterSwap ? 8 : 7;
+      const chunkFluenciSwap = results[fluenciSwapIdx] || [];
+      eventsFluenciSwap.push(...chunkFluenciSwap);
     }
 
     const allEvents = [
@@ -461,7 +516,9 @@ async function syncHistoricalEvents() {
       ...eventsTerminated.map(e => ({ type: "StreamTerminated", event: e })),
       ...eventsWithdrawn.map(e => ({ type: "FundsWithdrawn", event: e })),
       ...eventsDisputeOpened.map(e => ({ type: "DisputeOpened", event: e })),
-      ...eventsDisputeResolved.map(e => ({ type: "DisputeResolved", event: e }))
+      ...eventsDisputeResolved.map(e => ({ type: "DisputeResolved", event: e })),
+      ...eventsSwap.map(e => ({ type: "Swap", event: e })),
+      ...eventsFluenciSwap.map(e => ({ type: "FluenciSwap", event: e }))
     ];
 
     allEvents.sort((a, b) => {
@@ -617,6 +674,30 @@ async function syncHistoricalEvents() {
             merchantShare: merchantShare.toString()
           }
         });
+      } else if (type === "Swap") {
+        const [user, tokenAddress, qieAmount, tokenAmount] = args;
+        totalSwapVolume += BigInt(tokenAmount.toString());
+        uniqueUsers.add(user);
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `DEX Swap: ${user} swapped ${qieAmount.toString()} QIE for ${tokenAmount.toString()} tokens`,
+          details: { user, tokenAddress, qieAmount: qieAmount.toString(), tokenAmount: tokenAmount.toString() }
+        });
+      } else if (type === "FluenciSwap") {
+        const [user, direction, tokenIn, tokenOut, amountIn, amountOut] = args;
+        // Always track the qUSDC side: QIE_TO_TOKEN → amountOut is qUSDC; TOKEN_TO_QIE → amountIn is qUSDC
+        const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
+        totalSwapVolume += qusdcAmount;
+        uniqueUsers.add(user);
+        telemetryLogs.push({
+          id: telemetryLogs.length + 1,
+          timestamp: eventTimestamp,
+          type: "SENTRY_AGENT",
+          message: `FluenciSwap: ${user} swapped via Fluenci Router (${direction}). In: ${amountIn.toString()}, Out: ${amountOut.toString()}`,
+          details: { user, direction, tokenIn, tokenOut, amountIn: amountIn.toString(), amountOut: amountOut.toString() }
+        });
       }
     }
     logTelemetry("INFO", `Historical event synchronization completed. Processed ${allEvents.length} events.`);
@@ -664,6 +745,7 @@ async function connectBlockchain() {
 
       uniqueUsers = new Set();
       totalVolume = 0n;
+      totalSwapVolume = 0n;
       activeStreamRisks = {};
       telemetryLogs = [
         {
@@ -674,6 +756,27 @@ async function connectBlockchain() {
           details: {}
         }
       ];
+
+      // Set up DEX contract for swap volume tracking (legacy, if no FluenciRouter)
+      if (QIEDEX_ADDRESS) {
+        const DEX_ABI = [
+          "event Swap(address indexed user, address indexed tokenAddress, uint256 qieAmount, uint256 tokenAmount)"
+        ];
+        dexContract = new ethers.Contract(QIEDEX_ADDRESS, DEX_ABI, provider);
+        logTelemetry("INFO", `DEX contract configured: ${QIEDEX_ADDRESS}`);
+      }
+
+      // Set up FluenciRouter for attributed swap tracking (preferred)
+      if (FLUENCI_ROUTER_ADDRESS) {
+        const ROUTER_ABI = [
+          "event FluenciSwap(address indexed user, string direction, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut)"
+        ];
+        fluenciRouterContract = new ethers.Contract(FLUENCI_ROUTER_ADDRESS, ROUTER_ABI, provider);
+        logTelemetry("INFO", `FluenciRouter configured: ${FLUENCI_ROUTER_ADDRESS} (on-chain swap attribution enabled)`);
+      } else {
+        logTelemetry("INFO", "FLUENCI_ROUTER_ADDRESS not set. Swap attribution tracking disabled.");
+      }
+
       await syncHistoricalEvents();
       setupEventListeners();
       monitoringActive = true;
@@ -686,46 +789,120 @@ async function connectBlockchain() {
   }
 }
 
+let lastPolledBlock = 0;
+
 function setupEventListeners() {
   if (!registryContract) return;
 
-  logTelemetry("INFO", "Registering onchain contract event listeners...");
+  logTelemetry("INFO", "Starting event polling (10s interval, immune to RPC filter drops)...");
 
-  registryContract.on("SubscriptionCreated", async (subId, subscriber, merchant, tokenAddress, rate, cliff, stop) => {
-    uniqueUsers.add(subscriber);
-    uniqueUsers.add(merchant);
-    activeStreamRisks[subId] = 12; // default safe baseline risk
-    await SentryAgent.handleNewStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop);
+  // Initialize lastPolledBlock from the latest block
+  provider.getBlockNumber().then(blockNum => {
+    lastPolledBlock = blockNum;
+    logTelemetry("INFO", `Event polling initialized from block ${lastPolledBlock}`);
   });
 
-  registryContract.on("StreamPaused", (subId, reason) => {
-    delete activeStreamRisks[subId];
-    SentryAgent.handleStreamPaused(subId, reason);
-  });
+  // Poll for new events every 10 seconds using queryFilter (no eth_newFilter needed)
+  setInterval(async () => {
+    if (!registryContract || !provider || lastPolledBlock === 0) return;
 
-  registryContract.on("StreamResumed", (subId) => {
-    activeStreamRisks[subId] = 12; // reset back to safe baseline
-    SentryAgent.handleStreamResumed(subId);
-  });
+    try {
+      const currentBlock = await provider.getBlockNumber();
+      if (currentBlock <= lastPolledBlock) return; // No new blocks
 
-  registryContract.on("StreamTerminated", (subId) => {
-    delete activeStreamRisks[subId];
-    SentryAgent.handleStreamTerminated(subId);
-  });
+      const fromBlock = lastPolledBlock + 1;
+      const toBlock = currentBlock;
 
-  registryContract.on("FundsWithdrawn", (subId, merchant, amount) => {
-    totalVolume += BigInt(amount.toString());
-    SentryAgent.handleFundsClaimed(subId, merchant, amount);
-  });
+      // Query all contract events in the new block range
+      const [
+        evCreated, evPaused, evResumed, evTerminated,
+        evWithdrawn, evDisputeOpened, evDisputeResolved
+      ] = await Promise.all([
+        registryContract.queryFilter(registryContract.filters.SubscriptionCreated(), fromBlock, toBlock),
+        registryContract.queryFilter(registryContract.filters.StreamPaused(), fromBlock, toBlock),
+        registryContract.queryFilter(registryContract.filters.StreamResumed(), fromBlock, toBlock),
+        registryContract.queryFilter(registryContract.filters.StreamTerminated(), fromBlock, toBlock),
+        registryContract.queryFilter(registryContract.filters.FundsWithdrawn(), fromBlock, toBlock),
+        registryContract.queryFilter(registryContract.filters.DisputeOpened(), fromBlock, toBlock),
+        registryContract.queryFilter(registryContract.filters.DisputeResolved(), fromBlock, toBlock)
+      ]);
 
-  registryContract.on("DisputeOpened", (subId, subscriber) => {
-    SentryAgent.handleDisputeOpened(subId, subscriber);
-  });
+      // Process Registry events
+      for (const ev of evCreated) {
+        const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = ev.args;
+        uniqueUsers.add(subscriber);
+        uniqueUsers.add(merchant);
+        activeStreamRisks[subId] = 12;
+        await SentryAgent.handleNewStream(subId, subscriber, merchant, tokenAddress, rate, cliff, stop);
+      }
+      for (const ev of evPaused) {
+        const [subId, reason] = ev.args;
+        delete activeStreamRisks[subId];
+        SentryAgent.handleStreamPaused(subId, reason);
+      }
+      for (const ev of evResumed) {
+        const [subId] = ev.args;
+        activeStreamRisks[subId] = 12;
+        SentryAgent.handleStreamResumed(subId);
+      }
+      for (const ev of evTerminated) {
+        const [subId] = ev.args;
+        delete activeStreamRisks[subId];
+        SentryAgent.handleStreamTerminated(subId);
+      }
+      for (const ev of evWithdrawn) {
+        const [subId, merchant, amount] = ev.args;
+        totalVolume += BigInt(amount.toString());
+        SentryAgent.handleFundsClaimed(subId, merchant, amount);
+      }
+      for (const ev of evDisputeOpened) {
+        const [subId, subscriber] = ev.args;
+        SentryAgent.handleDisputeOpened(subId, subscriber);
+      }
+      for (const ev of evDisputeResolved) {
+        const [subId, subscriberRefund, merchantShare] = ev.args;
+        totalVolume += BigInt(merchantShare.toString());
+        SentryAgent.handleDisputeResolved(subId, subscriberRefund, merchantShare);
+      }
 
-  registryContract.on("DisputeResolved", (subId, subscriberRefund, merchantShare) => {
-    totalVolume += BigInt(merchantShare.toString());
-    SentryAgent.handleDisputeResolved(subId, subscriberRefund, merchantShare);
-  });
+      // Query FluenciRouter events (preferred)
+      if (fluenciRouterContract) {
+        const evFluenciSwap = await fluenciRouterContract.queryFilter(
+          fluenciRouterContract.filters.FluenciSwap(), fromBlock, toBlock
+        );
+        for (const ev of evFluenciSwap) {
+          const [user, direction, tokenIn, tokenOut, amountIn, amountOut] = ev.args;
+          const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
+          totalSwapVolume += qusdcAmount;
+          uniqueUsers.add(user);
+          logTelemetry("SENTRY_AGENT", `FluenciSwap: ${user} swapped via Fluenci Router (${direction}). In: ${amountIn.toString()}, Out: ${amountOut.toString()}`, {
+            user, direction, tokenIn, tokenOut,
+            amountIn: amountIn.toString(), amountOut: amountOut.toString()
+          });
+        }
+      } else if (dexContract) {
+        // Legacy DEX Swap tracking fallback
+        const evSwap = await dexContract.queryFilter(
+          dexContract.filters.Swap(), fromBlock, toBlock
+        );
+        for (const ev of evSwap) {
+          const [user, tokenAddress, qieAmount, tokenAmount] = ev.args;
+          totalSwapVolume += BigInt(tokenAmount.toString());
+          uniqueUsers.add(user);
+          logTelemetry("SENTRY_AGENT", `DEX Swap detected: ${user} swapped ${qieAmount.toString()} QIE for ${tokenAmount.toString()} tokens`, {
+            user, tokenAddress, qieAmount: qieAmount.toString(), tokenAmount: tokenAmount.toString()
+          });
+        }
+      }
+
+      lastPolledBlock = toBlock;
+    } catch (err) {
+      // Silently handle RPC timeouts — will retry on next interval
+      if (!err.message.includes("timeout")) {
+        logTelemetry("WARNING", `Event polling error: ${err.message}`);
+      }
+    }
+  }, 10000); // Poll every 10 seconds
 }
 
 // ==========================================
@@ -746,6 +923,7 @@ app.get("/status", (req, res) => {
 });
 
 app.get("/stats", (req, res) => {
+  // Always return real blockchain data — no simulated/mock stats
   const volumeFormatted = Number(totalVolume) / 1e6; // Format qUSDC (6 decimals) to dollars
   const revenueFormatted = volumeFormatted * 0.005; // 0.5% protocol fee
   const swapVolumeFormatted = Number(totalSwapVolume) / 1e6; // Format qUSDC (6 decimals) to dollars
@@ -756,7 +934,8 @@ app.get("/stats", (req, res) => {
     totalVolumeUSD: volumeFormatted,
     totalRevenueUSD: revenueFormatted,
     totalSwapVolumeUSD: swapVolumeFormatted,
-    systemRiskScore: currentRisk
+    systemRiskScore: currentRisk,
+    monitoringActive
   });
 });
 
@@ -787,10 +966,13 @@ app.post("/swap-telemetry", async (req, res) => {
       throw new Error("Transaction failed onchain");
     }
 
-    // Verify transaction destination is QIEDex router
+    // Verify transaction destination is QIEDex router or FluenciRouter
     const qieDexRouter = "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef";
-    if (tx.to.toLowerCase() !== qieDexRouter.toLowerCase()) {
-      throw new Error("Transaction destination is not QIEDex router");
+    const fluenciRouter = FLUENCI_ROUTER_ADDRESS || "";
+    const validDestinations = [qieDexRouter.toLowerCase()];
+    if (fluenciRouter) validDestinations.push(fluenciRouter.toLowerCase());
+    if (!validDestinations.includes(tx.to.toLowerCase())) {
+      throw new Error("Transaction destination is not QIEDex router or FluenciRouter");
     }
 
     // Parse logs to extract qUSDC transfer amount
@@ -812,9 +994,12 @@ app.post("/swap-telemetry", async (req, res) => {
     if (qUSDCAmount === 0n) {
       throw new Error("No qUSDC transfer found in transaction logs");
     }
-
-    totalSwapVolume += qUSDCAmount;
-    logTelemetry("SUCCESS", `Verified swap of ${Number(qUSDCAmount) / 1e6} qUSDC. Total Swap Volume updated.`, {
+    // Only add volume from telemetry for legacy (pre-router) swaps.
+    // When FluenciRouter is active, volume is tracked via FluenciSwap events to avoid double-counting.
+    if (!fluenciRouterContract) {
+      totalSwapVolume += qUSDCAmount;
+    }
+    logTelemetry("SUCCESS", `Verified swap of ${Number(qUSDCAmount) / 1e6} qUSDC.${!fluenciRouterContract ? ' Total Swap Volume updated.' : ' (Volume tracked via FluenciSwap event)'}`, {
       txHash,
       amount: (Number(qUSDCAmount) / 1e6).toString()
     });

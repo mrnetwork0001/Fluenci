@@ -1381,3 +1381,10 @@ main[style*="f5f5f5"] [style*="background: #1a1a1a"],
 main[style*="f5f5f5"] [style*="background: #0a0a0a"] {
   background: #e8e8e8 !important;
 }
+
+/* Uniform button height inside dashboard content (not header tabs) */
+main[style*="f5f5f5"] .btn {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 0.78rem;
+}

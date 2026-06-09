@@ -769,7 +769,7 @@ export default function App() {
                     <Sparkles size={12} />
                     AI-Shielded Subscriptions
                   </div>
-                  <h1 className="gradient-title" style={{ fontSize: "3.8rem", color: "#000000", fontWeight: "900" }}>
+                  <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
                     Stop Blind Streams.
                     <br />
                     <span style={{ color: "#000000" }}>AI-Shielded Payments.</span>

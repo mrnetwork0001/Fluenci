@@ -150,16 +150,16 @@ export default function AISecurityDesk({
 
   const getLogColor = (type) => {
     switch (type) {
-      case "ALERT": return "var(--color-rose)";
-      case "ACTION": return "var(--color-amber)";
-      case "SUCCESS": return "var(--color-emerald)";
-      case "AUDIT": return "var(--color-cyan)";
-      case "SENTRY_AGENT": return "#3b82f6"; // Blue
-      case "ANALYST_AGENT": return "#9d4edd"; // Purple
+      case "ALERT": return "#999999";
+      case "ACTION": return "#999999";
+      case "SUCCESS": return "#ffffff";
+      case "AUDIT": return "#ffffff";
+      case "SENTRY_AGENT": return "#ffffff"; // Blue
+      case "ANALYST_AGENT": return "#888888"; // Purple
       case "DECISION_AGENT": return "#10b981"; // Emerald
       case "ARBITRATOR_AGENT": return "#f59e0b"; // Amber
       case "SIMULATION": return "#a78bfa"; // Violet
-      case "WARNING": return "var(--color-amber)";
+      case "WARNING": return "#999999";
       default: return "var(--text-secondary)";
     }
   };
@@ -174,7 +174,7 @@ export default function AISecurityDesk({
         <div className="glass-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <h3 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px" }}>
-              <Shield size={18} color="var(--color-cyan)" />
+              <Shield size={18} color="#ffffff" />
               AI Sentry Control Center
             </h3>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -198,16 +198,16 @@ export default function AISecurityDesk({
           
           <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(59, 130, 246, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(59, 130, 246, 0.02)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#3b82f6" }}>Sentry Agent</span>
-              <span className="status-indicator status-online" style={{ background: "#3b82f6", boxShadow: "0 0 8px #3b82f6" }} />
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#ffffff" }}>Sentry Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#ffffff", boxShadow: "0 0 8px #ffffff" }} />
             </div>
             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Blockchain ingestion & mempool filter</span>
           </div>
 
-          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(157, 78, 221, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(157, 78, 221, 0.02)" }}>
+          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(255,255,255,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#9d4edd" }}>Analyst Agent</span>
-              <span className="status-indicator status-online" style={{ background: "#9d4edd", boxShadow: "0 0 8px #9d4edd" }} />
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#888888" }}>Analyst Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#888888", boxShadow: "0 0 8px #888888" }} />
             </div>
             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>LLM pricing audits & IPFS reports</span>
           </div>
@@ -233,7 +233,7 @@ export default function AISecurityDesk({
         {/* Dynamic Contract Address Configuration Form */}
         <div className="glass-card">
           <h3 style={{ fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
-            <Settings size={18} color="var(--color-purple)" />
+            <Settings size={18} color="#888888" />
             Auditor Node Configuration
           </h3>
           
@@ -307,7 +307,7 @@ export default function AISecurityDesk({
 
         {/* Manual Anomaly Trigger Gating */}
         <div className="glass-card" style={{ border: "1px dashed rgba(244, 63, 94, 0.3)" }}>
-          <h3 style={{ fontSize: "1.1rem", color: "var(--color-rose)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ fontSize: "1.1rem", color: "#999999", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
             <AlertOctagon size={18} />
             SecOps Emergency Control
           </h3>
@@ -367,7 +367,7 @@ export default function AISecurityDesk({
         {/* Terminal Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
           <h3 style={{ fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Terminal size={18} color="var(--color-cyan)" />
+            <Terminal size={18} color="#ffffff" />
             AI Sentry Log Telemetry
           </h3>
           <button 

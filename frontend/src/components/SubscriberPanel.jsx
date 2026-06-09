@@ -225,7 +225,7 @@ export default function SubscriberPanel({
         {/* Token balances Card */}
         <div className="glass-card">
           <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
-            <Coins size={16} color="var(--color-cyan)" />
+            <Coins size={16} color="#ffffff" />
             Self-Custody Balances
           </h3>
           <div style={{ display: "grid", gap: "8px" }}>
@@ -235,7 +235,7 @@ export default function SubscriberPanel({
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>qUSDC stable:</span>
-              <strong style={{ color: "var(--color-cyan)" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
+              <strong style={{ color: "#ffffff" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
             </div>
           </div>
         </div>
@@ -243,7 +243,7 @@ export default function SubscriberPanel({
         {/* Option C: Qiedex Swap Card */}
         <div className="glass-card">
           <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
-            <Scale size={16} color="var(--color-cyan)" />
+            <Scale size={16} color="#ffffff" />
             Qiedex Instant Auto-Swap
           </h3>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
@@ -263,7 +263,7 @@ export default function SubscriberPanel({
                     fontSize: "0.85rem", 
                     color: "#fff", 
                     background: "rgba(0,0,0,0.2)", 
-                    border: isInsufficientBalance ? "1px solid var(--color-rose)" : "1px solid rgba(255,255,255,0.08)",
+                    border: isInsufficientBalance ? "1px solid #999999" : "1px solid rgba(255,255,255,0.08)",
                     outline: "none",
                     boxSizing: "border-box"
                   }}
@@ -290,7 +290,7 @@ export default function SubscriberPanel({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "var(--color-cyan)",
+                  color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -305,7 +305,7 @@ export default function SubscriberPanel({
                 <RefreshCw size={14} />
               </button>
               
-              <strong style={{ fontSize: "0.85rem", color: swapMode === "QIE_TO_QUSDC" ? "var(--color-cyan)" : "#fff" }}>
+              <strong style={{ fontSize: "0.85rem", color: swapMode === "QIE_TO_QUSDC" ? "#ffffff" : "#fff" }}>
                 {swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE"}
               </strong>
             </div>
@@ -313,7 +313,7 @@ export default function SubscriberPanel({
             {parseFloat(swapAmount) > 0 && (
               <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", margin: "-2px 0 2px 0", padding: "0 4px" }}>
                 <span>Est. Received:</span>
-                <strong style={{ color: swapMode === "QIE_TO_QUSDC" ? "var(--color-cyan)" : "#fff" }}>
+                <strong style={{ color: swapMode === "QIE_TO_QUSDC" ? "#ffffff" : "#fff" }}>
                   {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} ${swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE"}`}
                 </strong>
               </div>
@@ -331,8 +331,8 @@ export default function SubscriberPanel({
                 fontSize: "0.8rem", 
                 padding: "8px 16px",
                 width: "100%",
-                background: isInsufficientBalance ? "var(--color-rose)" : undefined,
-                borderColor: isInsufficientBalance ? "var(--color-rose)" : undefined,
+                background: isInsufficientBalance ? "#999999" : undefined,
+                borderColor: isInsufficientBalance ? "#999999" : undefined,
                 color: isInsufficientBalance ? "#fff" : undefined,
                 borderRadius: "6px"
               }}
@@ -348,7 +348,7 @@ export default function SubscriberPanel({
         <div className="glass-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-              <Sparkles size={16} color="var(--color-purple)" />
+              <Sparkles size={16} color="#888888" />
               QIE Pass Identity
             </h3>
             <span className={`status-indicator ${qiePassVerified ? "status-online" : kycState?.status === "error" ? "status-offline" : kycState?.status !== "idle" ? "status-warning" : "status-offline"}`} />
@@ -356,31 +356,31 @@ export default function SubscriberPanel({
           <div style={{ margin: "8px 0" }}>
             {/* Status text based on KYC state */}
             {qiePassVerified || kycState?.status === "verified" ? (
-              <p style={{ color: "var(--color-emerald)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#ffffff", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ✓ Verified via QIE Pass
               </p>
             ) : kycState?.status === "creating" ? (
-              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Creating verification request…
               </p>
             ) : kycState?.status === "pending_kyc" ? (
-              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ⏳ Complete KYC in QIE Wallet
               </p>
             ) : kycState?.status === "pending_consent" ? (
-              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Waiting for your consent…
               </p>
             ) : kycState?.status === "claiming" ? (
-              <p style={{ color: "var(--color-amber)", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Verifying credentials…
               </p>
             ) : kycState?.status === "error" ? (
-              <p style={{ color: "var(--color-rose)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ✗ {kycState.error || "Verification failed"}
               </p>
             ) : (
-              <p style={{ color: "var(--color-rose)", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ⚠ Identity Unverified
               </p>
             )}
@@ -394,7 +394,7 @@ export default function SubscriberPanel({
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             {qiePassVerified || kycState?.status === "verified" ? (
-              <span style={{ fontSize: "0.75rem", color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "0.75rem", color: "#ffffff", display: "flex", alignItems: "center", gap: "4px" }}>
                 <ShieldCheck size={14} /> KYC Active
               </span>
             ) : kycState?.status === "pending_kyc" ? (
@@ -445,7 +445,7 @@ export default function SubscriberPanel({
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "10px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
               <span>qUSDC Registry:</span>
-              <strong style={{ color: isAllowanceApproved("qUSDC") ? "var(--color-emerald)" : "var(--color-rose)" }}>
+              <strong style={{ color: isAllowanceApproved("qUSDC") ? "#ffffff" : "#999999" }}>
                 {isAllowanceApproved("qUSDC") ? "Approved" : "None"}
               </strong>
             </div>
@@ -467,20 +467,20 @@ export default function SubscriberPanel({
       <div className="glass-card" style={{ padding: "16px 20px" }}>
         <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#fff" }}>Real-Time Stream Velocity Matrix</h3>
         <p style={{ margin: "0 0 16px 0", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-          Current hourly spend velocity: <strong style={{ color: "var(--color-cyan)" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong>
+          Current hourly spend velocity: <strong style={{ color: "#ffffff" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong>
         </p>
         <div style={{ height: "100px", position: "relative", background: "rgba(0,0,0,0.15)", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.02)" }}>
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
             <defs>
               <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-cyan)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--color-cyan)" stopOpacity="0" />
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path 
               d={`M 0 90 Q 100 ${totalUSDCActiveOutflow > 0 ? 30 : 90} 200 ${totalUSDCActiveOutflow > 0 ? 10 : 90} T 400 ${totalUSDCActiveOutflow > 0 ? 20 : 90}`} 
               fill="none" 
-              stroke="var(--color-cyan)" 
+              stroke="#ffffff" 
               strokeWidth="3" 
             />
             <path 
@@ -489,7 +489,7 @@ export default function SubscriberPanel({
             />
             <line x1="0" y1="90" x2="400" y2="90" stroke="rgba(255,255,255,0.05)" strokeDasharray="4" />
           </svg>
-          {totalUSDCActiveOutflow > 0 && <div className="streaming-active-glow" style={{ position: "absolute", top: "10px", right: "10px", width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-cyan)" }} />}
+          {totalUSDCActiveOutflow > 0 && <div className="streaming-active-glow" style={{ position: "absolute", top: "10px", right: "10px", width: "8px", height: "8px", borderRadius: "50%", background: "#ffffff" }} />}
         </div>
       </div>
 
@@ -509,7 +509,7 @@ export default function SubscriberPanel({
               fontSize: "0.75rem", 
               borderRadius: "8px",
               border: "none",
-              boxShadow: inputMode === "rate" ? "var(--shadow-neon)" : "none",
+              boxShadow: inputMode === "rate" ? "none" : "none",
               cursor: "pointer"
             }}
             onClick={() => setInputMode("rate")}
@@ -524,7 +524,7 @@ export default function SubscriberPanel({
               fontSize: "0.75rem", 
               borderRadius: "8px",
               border: "none",
-              boxShadow: inputMode === "total" ? "var(--shadow-neon)" : "none",
+              boxShadow: inputMode === "total" ? "none" : "none",
               cursor: "pointer"
             }}
             onClick={() => setInputMode("total")}
@@ -553,7 +553,7 @@ export default function SubscriberPanel({
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
               Streaming Token
             </label>
-            <div style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--color-cyan)", fontSize: "0.85rem", fontWeight: "bold" }}>
+            <div style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", fontSize: "0.85rem", fontWeight: "bold" }}>
               qUSDC (6 Decimals)
             </div>
           </div>
@@ -667,7 +667,7 @@ export default function SubscriberPanel({
                   />
                   <select
                     className="glass-card"
-                    style={{ width: "90px", padding: "8px", borderRadius: "6px", background: "rgba(10,15,30,0.9)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--color-cyan)", fontSize: "0.8rem", outline: "none", cursor: "pointer" }}
+                    style={{ width: "90px", padding: "8px", borderRadius: "6px", background: "rgba(10,15,30,0.9)", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", fontSize: "0.8rem", outline: "none", cursor: "pointer" }}
                     value={durationUnit}
                     onChange={(e) => setDurationUnit(e.target.value)}
                   >
@@ -695,7 +695,7 @@ export default function SubscriberPanel({
         </form>
         
         {(!qiePassVerified || !isAllowanceApproved(tokenSymbol)) && (
-          <p style={{ color: "var(--color-amber)", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
+          <p style={{ color: "#999999", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
             ⚠ You must verify KYC (QIE Pass) and approve the selected token to begin streaming.
           </p>
         )}
@@ -755,7 +755,7 @@ export default function SubscriberPanel({
                           padding: "12px 6px", 
                           fontFamily: "monospace", 
                           fontWeight: "bold",
-                          color: isPaused ? "var(--color-rose)" : "var(--color-cyan)"
+                          color: isPaused ? "#999999" : "#ffffff"
                         }}
                       >
                         {stream.active ? (
@@ -768,21 +768,21 @@ export default function SubscriberPanel({
                         {!stream.active ? (
                           <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Inactive</span>
                         ) : stream.disputeState === 1 ? (
-                          <span style={{ color: "var(--color-amber)", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#999999", fontSize: "0.75rem", fontWeight: "bold" }}>
                             ⚠️ DISPUTED
                           </span>
                         ) : stream.disputeState === 2 ? (
-                          <span style={{ color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#ffffff", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             <ShieldCheck size={12} />
                             Dispute Resolved
                           </span>
                         ) : isPaused ? (
-                          <span style={{ color: "var(--color-rose)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#999999", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             <ShieldAlert size={12} className="pulse" />
                             PAUSED BY AI
                           </span>
                         ) : (
-                          <span style={{ color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}>
+                          <span style={{ color: "#ffffff", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}>
                             <ShieldCheck size={12} />
                             Shield Active
                           </span>
@@ -808,7 +808,7 @@ export default function SubscriberPanel({
                             {stream.active && stream.disputeState === 0 && (
                               <button 
                                 className="btn btn-secondary"
-                                style={{ padding: "4px 8px", fontSize: "0.7rem", color: "var(--color-amber)", borderColor: "rgba(245, 158, 11, 0.2)" }}
+                                style={{ padding: "4px 8px", fontSize: "0.7rem", color: "#999999", borderColor: "rgba(245, 158, 11, 0.2)" }}
                                 onClick={() => openDispute(stream.id)}
                                 disabled={loading}
                               >
@@ -831,7 +831,7 @@ export default function SubscriberPanel({
                           </div>
 
                           {stream.active && stream.disputeState === 2 && (
-                            <span style={{ fontSize: "0.7rem", color: "var(--color-emerald)", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
+                            <span style={{ fontSize: "0.7rem", color: "#ffffff", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
                               <ShieldCheck size={10} /> Arbitrated by AI
                             </span>
                           )}
@@ -898,7 +898,7 @@ export default function SubscriberPanel({
                                 )}
                               </div>
                               {arbitrationDetails[stream.id] && (
-                                <div style={{ fontSize: "0.65rem", color: "#00e676", marginTop: "4px", lineHeight: "1.2" }}>
+                                <div style={{ fontSize: "0.65rem", color: "#ffffff", marginTop: "4px", lineHeight: "1.2" }}>
                                   decision: {arbitrationDetails[stream.id].decision}
                                 </div>
                               )}

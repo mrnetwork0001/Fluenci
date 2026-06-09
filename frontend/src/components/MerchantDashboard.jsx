@@ -35,17 +35,17 @@ export default function MerchantDashboard({
         {/* Wallet Balances */}
         <div className="glass-card">
           <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Coins size={16} color="#ffffff" />
+            <Coins size={16} color="#333333" />
             Merchant Balances
           </h3>
           <div style={{ display: "grid", gap: "6px" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>QIE:</span>
-              <strong style={{ color: "#fff" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
+              <strong style={{ color: "#111111" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>qUSDC:</span>
-              <strong style={{ color: "#ffffff" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
+              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
             </div>
           </div>
         </div>
@@ -54,13 +54,13 @@ export default function MerchantDashboard({
         <div className="glass-card" style={{ borderLeft: "4px solid #ffffff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
-              <ArrowDownRight size={16} color="#ffffff" />
+              <ArrowDownRight size={16} color="#333333" />
               Revenue Outflow
             </h3>
-            <span style={{ fontSize: "0.75rem", color: "#ffffff", fontWeight: "bold" }}>+Live Outflows</span>
+            <span style={{ fontSize: "0.75rem", color: "#111111", fontWeight: "bold" }}>+Live Outflows</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#ffffff" }}>
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#111111" }}>
               {totalUSDCIncoming.toFixed(2)} <span style={{ fontSize: "0.85rem" }}>qUSDC/hr</span>
             </div>
           </div>
@@ -70,13 +70,13 @@ export default function MerchantDashboard({
         <div className="glass-card" style={{ borderLeft: "4px solid #888888" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
-              <Clock size={16} color="#888888" />
+              <Clock size={16} color="#666666" />
               Pending Settlement
             </h3>
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Claimable</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#ffffff" }} className="streaming-active-glow">
+            <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#111111" }} className="streaming-active-glow">
               {totalUSDCPending.toFixed(4)} <span style={{ fontSize: "0.85rem" }}>qUSDC</span>
             </div>
           </div>
@@ -85,13 +85,13 @@ export default function MerchantDashboard({
 
       {/* 2. SVG Revenue Analytics Chart */}
       <div className="glass-card" style={{ padding: "16px 20px" }}>
-        <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#fff" }}>Projected Revenue Velocity Estimate</h3>
+        <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#111111" }}>Projected Revenue Velocity Estimate</h3>
         <div style={{ height: "100px", position: "relative", background: "rgba(0,0,0,0.15)", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.02)" }}>
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
             <defs>
               <linearGradient id="merchantGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="0%" stopColor="#111111" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#111111" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path 
@@ -177,21 +177,21 @@ export default function MerchantDashboard({
                         {!stream.active ? (
                           <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Terminated</span>
                         ) : isDisputed ? (
-                          <span style={{ color: "#999999", background: "rgba(245, 158, 11, 0.1)", padding: "4px 8px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#777777", background: "rgba(245, 158, 11, 0.1)", padding: "4px 8px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             ⚠️ DISPUTED
                           </span>
                         ) : stream.disputeState === 2 ? (
-                          <span style={{ color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", background: "rgba(16, 185, 129, 0.15)", padding: "4px 8px", borderRadius: "4px", fontWeight: "bold" }}>
+                          <span style={{ color: "#111111", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", background: "rgba(16, 185, 129, 0.15)", padding: "4px 8px", borderRadius: "4px", fontWeight: "bold" }}>
                             <ShieldCheck size={12} />
                             Dispute Resolved
                           </span>
                         ) : isPaused ? (
-                          <span style={{ color: "#999999", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold", background: "rgba(244, 63, 94, 0.1)", padding: "4px 8px", borderRadius: "4px" }}>
+                          <span style={{ color: "#777777", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold", background: "rgba(244, 63, 94, 0.1)", padding: "4px 8px", borderRadius: "4px" }}>
                             <AlertTriangle size={12} className="pulse" />
                             AI Paused
                           </span>
                         ) : (
-                          <span style={{ color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", background: "rgba(16, 185, 129, 0.1)", padding: "4px 8px", borderRadius: "4px" }}>
+                          <span style={{ color: "#111111", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", background: "rgba(16, 185, 129, 0.1)", padding: "4px 8px", borderRadius: "4px" }}>
                             <ShieldCheck size={12} />
                             Active
                           </span>

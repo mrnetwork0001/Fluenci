@@ -670,10 +670,10 @@ export default function App() {
               <Shield size={22} color="#f59e0b" />
               <strong style={{ fontSize: "1.05rem" }}>Wallet RPC Misconfiguration Detected</strong>
             </div>
-            <p style={{ fontSize: "0.88rem", color: "#888888", margin: 0, lineHeight: "1.5" }}>
+            <p style={{ fontSize: "0.88rem", color: "#666666", margin: 0, lineHeight: "1.5" }}>
               Your wallet is trying to reach the QIE Mainnet node but it appears to be down or unreachable.
-              Please check your wallet's <strong style={{ color: "#cccccc" }}>Custom Network settings</strong> for QIE Mainnet (Chain ID 1990)
-              and ensure the RPC URL is set to <code style={{ color: "#ffffff" }}>https://rpc1mainnet.qie.digital</code>, then try again.
+              Please check your wallet's <strong style={{ color: "#333333" }}>Custom Network settings</strong> for QIE Mainnet (Chain ID 1990)
+              and ensure the RPC URL is set to <code style={{ color: "#111111" }}>https://rpc1mainnet.qie.digital</code>, then try again.
             </p>
             <button 
               className="btn btn-primary" 

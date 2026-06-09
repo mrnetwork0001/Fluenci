@@ -225,17 +225,17 @@ export default function SubscriberPanel({
         {/* Token balances Card */}
         <div className="glass-card">
           <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
-            <Coins size={16} color="#ffffff" />
+            <Coins size={16} color="#333333" />
             Self-Custody Balances
           </h3>
           <div style={{ display: "grid", gap: "8px" }}>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>Native QIE:</span>
-              <strong style={{ color: "#fff" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
+              <strong style={{ color: "#111111" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>qUSDC stable:</span>
-              <strong style={{ color: "#ffffff" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
+              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
             </div>
           </div>
         </div>
@@ -243,7 +243,7 @@ export default function SubscriberPanel({
         {/* Option C: Qiedex Swap Card */}
         <div className="glass-card">
           <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
-            <Scale size={16} color="#ffffff" />
+            <Scale size={16} color="#333333" />
             Qiedex Instant Auto-Swap
           </h3>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
@@ -261,8 +261,8 @@ export default function SubscriberPanel({
                     width: "100%", 
                     borderRadius: "6px", 
                     fontSize: "0.85rem", 
-                    color: "#fff", 
-                    background: "rgba(0,0,0,0.2)", 
+                    color: "#111111", 
+                    background: "rgba(0,0,0,0.04)", 
                     border: isInsufficientBalance ? "1px solid #999999" : "1px solid rgba(255,255,255,0.08)",
                     outline: "none",
                     boxSizing: "border-box"
@@ -290,7 +290,7 @@ export default function SubscriberPanel({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "#ffffff",
+                  color: "#111111",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -348,7 +348,7 @@ export default function SubscriberPanel({
         <div className="glass-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-              <Sparkles size={16} color="#888888" />
+              <Sparkles size={16} color="#666666" />
               QIE Pass Identity
             </h3>
             <span className={`status-indicator ${qiePassVerified ? "status-online" : kycState?.status === "error" ? "status-offline" : kycState?.status !== "idle" ? "status-warning" : "status-offline"}`} />
@@ -356,31 +356,31 @@ export default function SubscriberPanel({
           <div style={{ margin: "8px 0" }}>
             {/* Status text based on KYC state */}
             {qiePassVerified || kycState?.status === "verified" ? (
-              <p style={{ color: "#ffffff", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#111111", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ✓ Verified via QIE Pass
               </p>
             ) : kycState?.status === "creating" ? (
-              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Creating verification request…
               </p>
             ) : kycState?.status === "pending_kyc" ? (
-              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ⏳ Complete KYC in QIE Wallet
               </p>
             ) : kycState?.status === "pending_consent" ? (
-              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Waiting for your consent…
               </p>
             ) : kycState?.status === "claiming" ? (
-              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Verifying credentials…
               </p>
             ) : kycState?.status === "error" ? (
-              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ✗ {kycState.error || "Verification failed"}
               </p>
             ) : (
-              <p style={{ color: "#999999", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ⚠ Identity Unverified
               </p>
             )}
@@ -394,7 +394,7 @@ export default function SubscriberPanel({
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             {qiePassVerified || kycState?.status === "verified" ? (
-              <span style={{ fontSize: "0.75rem", color: "#ffffff", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "0.75rem", color: "#111111", display: "flex", alignItems: "center", gap: "4px" }}>
                 <ShieldCheck size={14} /> KYC Active
               </span>
             ) : kycState?.status === "pending_kyc" ? (
@@ -465,16 +465,16 @@ export default function SubscriberPanel({
 
       {/* 2. Interactive SVG Cash Flow velocity visual */}
       <div className="glass-card" style={{ padding: "16px 20px" }}>
-        <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#fff" }}>Real-Time Stream Velocity Matrix</h3>
+        <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#111111" }}>Real-Time Stream Velocity Matrix</h3>
         <p style={{ margin: "0 0 16px 0", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-          Current hourly spend velocity: <strong style={{ color: "#ffffff" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong>
+          Current hourly spend velocity: <strong style={{ color: "#111111" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong>
         </p>
         <div style={{ height: "100px", position: "relative", background: "rgba(0,0,0,0.15)", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.02)" }}>
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
             <defs>
               <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="0%" stopColor="#111111" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#111111" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path 
@@ -542,7 +542,7 @@ export default function SubscriberPanel({
               type="text" 
               placeholder="e.g. netflix.qie or 0x..."
               className="glass-card"
-              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+              style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
               value={merchant}
               onChange={(e) => setMerchant(e.target.value)}
               required
@@ -553,7 +553,7 @@ export default function SubscriberPanel({
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
               Streaming Token
             </label>
-            <div style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", fontSize: "0.85rem", fontWeight: "bold" }}>
+            <div style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem", fontWeight: "bold" }}>
               qUSDC (6 Decimals)
             </div>
           </div>
@@ -569,7 +569,7 @@ export default function SubscriberPanel({
                   step="0.0001"
                   placeholder="e.g. 5.0"
                   className="glass-card"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
                   required
@@ -587,7 +587,7 @@ export default function SubscriberPanel({
                   type="number" 
                   placeholder="e.g. 60"
                   className="glass-card"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
                   value={cliffSeconds}
                   onChange={(e) => setCliffSeconds(e.target.value)}
                 />
@@ -604,7 +604,7 @@ export default function SubscriberPanel({
                   type="number" 
                   placeholder="e.g. 3600"
                   className="glass-card"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
                   value={stopSeconds}
                   onChange={(e) => setStopSeconds(e.target.value)}
                 />
@@ -624,7 +624,7 @@ export default function SubscriberPanel({
                   step="0.0001"
                   placeholder="e.g. 100.0"
                   className="glass-card"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
                   value={totalAmount}
                   onChange={(e) => setTotalAmount(e.target.value)}
                   required
@@ -642,7 +642,7 @@ export default function SubscriberPanel({
                   type="number" 
                   placeholder="e.g. 60"
                   className="glass-card"
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
                   value={cliffSeconds}
                   onChange={(e) => setCliffSeconds(e.target.value)}
                 />
@@ -660,14 +660,14 @@ export default function SubscriberPanel({
                     type="number" 
                     placeholder="e.g. 24"
                     className="glass-card"
-                    style={{ flex: 1, minWidth: "50px", padding: "8px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "0.85rem" }}
+                    style={{ flex: 1, minWidth: "50px", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem" }}
                     value={durationValue}
                     onChange={(e) => setDurationValue(e.target.value)}
                     required
                   />
                   <select
                     className="glass-card"
-                    style={{ width: "90px", padding: "8px", borderRadius: "6px", background: "rgba(10,15,30,0.9)", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", fontSize: "0.8rem", outline: "none", cursor: "pointer" }}
+                    style={{ width: "90px", padding: "8px", borderRadius: "6px", background: "#f0f0f0", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.8rem", outline: "none", cursor: "pointer" }}
                     value={durationUnit}
                     onChange={(e) => setDurationUnit(e.target.value)}
                   >
@@ -695,7 +695,7 @@ export default function SubscriberPanel({
         </form>
         
         {(!qiePassVerified || !isAllowanceApproved(tokenSymbol)) && (
-          <p style={{ color: "#999999", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
+          <p style={{ color: "#777777", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
             ⚠ You must verify KYC (QIE Pass) and approve the selected token to begin streaming.
           </p>
         )}
@@ -768,21 +768,21 @@ export default function SubscriberPanel({
                         {!stream.active ? (
                           <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Inactive</span>
                         ) : stream.disputeState === 1 ? (
-                          <span style={{ color: "#999999", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#777777", fontSize: "0.75rem", fontWeight: "bold" }}>
                             ⚠️ DISPUTED
                           </span>
                         ) : stream.disputeState === 2 ? (
-                          <span style={{ color: "#ffffff", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#111111", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             <ShieldCheck size={12} />
                             Dispute Resolved
                           </span>
                         ) : isPaused ? (
-                          <span style={{ color: "#999999", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
+                          <span style={{ color: "#777777", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem", fontWeight: "bold" }}>
                             <ShieldAlert size={12} className="pulse" />
                             PAUSED BY AI
                           </span>
                         ) : (
-                          <span style={{ color: "#ffffff", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}>
+                          <span style={{ color: "#111111", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.75rem" }}>
                             <ShieldCheck size={12} />
                             Shield Active
                           </span>
@@ -808,7 +808,7 @@ export default function SubscriberPanel({
                             {stream.active && stream.disputeState === 0 && (
                               <button 
                                 className="btn btn-secondary"
-                                style={{ padding: "4px 8px", fontSize: "0.7rem", color: "#999999", borderColor: "rgba(245, 158, 11, 0.2)" }}
+                                style={{ padding: "4px 8px", fontSize: "0.7rem", color: "#777777", borderColor: "#d0d0d0" }}
                                 onClick={() => openDispute(stream.id)}
                                 disabled={loading}
                               >
@@ -831,7 +831,7 @@ export default function SubscriberPanel({
                           </div>
 
                           {stream.active && stream.disputeState === 2 && (
-                            <span style={{ fontSize: "0.7rem", color: "#ffffff", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
+                            <span style={{ fontSize: "0.7rem", color: "#111111", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
                               <ShieldCheck size={10} /> Arbitrated by AI
                             </span>
                           )}
@@ -843,7 +843,7 @@ export default function SubscriberPanel({
                                 type="text"
                                 placeholder="Recipient address or .qie"
                                 className="glass-card"
-                                style={{ padding: "4px 8px", fontSize: "0.7rem", width: "120px", color: "#fff", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)" }}
+                                style={{ padding: "4px 8px", fontSize: "0.7rem", width: "120px", color: "#111111", background: "rgba(0,0,0,0.04)", border: "1px solid #e0e0e0" }}
                                 value={transferTarget[stream.id] || ""}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -866,13 +866,13 @@ export default function SubscriberPanel({
 
                           {/* Option A: Dispute handling interface */}
                           {stream.active && stream.disputeState === 1 && (
-                            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,160,0,0.1)", padding: "8px", borderRadius: "6px", marginTop: "4px", width: "240px", textAlign: "left" }}>
+                            <div style={{ background: "#f8f8f8", border: "1px solid rgba(255,160,0,0.1)", padding: "8px", borderRadius: "6px", marginTop: "4px", width: "240px", textAlign: "left" }}>
                               <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "4px" }}>Dispute Resolution Desk</div>
                               <input 
                                 type="text"
                                 placeholder="Submit evidence (e.g. Downtime)"
                                 className="glass-card"
-                                style={{ padding: "4px 6px", fontSize: "0.7rem", width: "100%", color: "#fff", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)", marginBottom: "6px" }}
+                                style={{ padding: "4px 6px", fontSize: "0.7rem", width: "100%", color: "#111111", background: "rgba(0,0,0,0.04)", border: "1px solid #e0e0e0", marginBottom: "6px" }}
                                 value={disputeEvidence[stream.id] || ""}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -898,7 +898,7 @@ export default function SubscriberPanel({
                                 )}
                               </div>
                               {arbitrationDetails[stream.id] && (
-                                <div style={{ fontSize: "0.65rem", color: "#ffffff", marginTop: "4px", lineHeight: "1.2" }}>
+                                <div style={{ fontSize: "0.65rem", color: "#111111", marginTop: "4px", lineHeight: "1.2" }}>
                                   decision: {arbitrationDetails[stream.id].decision}
                                 </div>
                               )}

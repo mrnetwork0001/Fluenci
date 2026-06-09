@@ -153,8 +153,8 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
     <div className="glass-card doodle-portal-container" style={{ marginTop: "24px", padding: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: "1.4rem", color: "#ffffff", fontWeight: "bold" }}>👾 QieDoodle Micro-Stream Arcade</h2>
-          <p style={{ margin: "4px 0 0 0", color: "#888888", fontSize: "0.9rem" }}>
+          <h2 style={{ margin: 0, fontSize: "1.4rem", color: "#111111", fontWeight: "bold" }}>👾 QieDoodle Micro-Stream Arcade</h2>
+          <p style={{ margin: "4px 0 0 0", color: "#666666", fontSize: "0.9rem" }}>
             Experience real-time gaming payment streams. Powered by continuous micro-fees.
           </p>
         </div>
@@ -176,13 +176,13 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
       <div style={{ display: "flex", gap: "24px", flexDirection: window.innerWidth < 800 ? "column" : "row" }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", background: "#060914", borderRadius: "16px", minHeight: "350px", border: "1px solid rgba(255,255,255,0.05)" }}>
           {isPlaying ? (
-            <canvas ref={canvasRef} width="320" height="350" style={{ borderRadius: "12px", background: "#0a0a0a" }} />
+            <canvas ref={canvasRef} width="320" height="350" style={{ borderRadius: "12px", background: "#f8f8f8" }} />
           ) : (
             <div style={{ textAlign: "center", padding: "20px" }}>
               <div style={{ fontSize: "3.5rem", marginBottom: "12px" }}>🛸</div>
               {hasActiveStream ? (
                 <>
-                  <p style={{ color: "#fff", fontWeight: "bold", margin: "0 0 16px 0" }}>Steam is Active! Ready to launch Doodle.</p>
+                  <p style={{ color: "#111111", fontWeight: "bold", margin: "0 0 16px 0" }}>Steam is Active! Ready to launch Doodle.</p>
                   <button 
                     onClick={() => { setScore(0); setIsPlaying(true); }}
                     className="gradient-btn"
@@ -193,7 +193,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
                 </>
               ) : (
                 <>
-                  <p style={{ color: "#888888", maxWidth: "260px", margin: "0 auto 20px auto", fontSize: "0.85rem" }}>
+                  <p style={{ color: "#666666", maxWidth: "260px", margin: "0 auto 20px auto", fontSize: "0.85rem" }}>
                     To unlock this arcade doodle session, you must start a micro-transaction payment stream to <strong>qiedoodle.qie</strong>.
                   </p>
                   <button 
@@ -210,36 +210,36 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
         </div>
 
         <div style={{ flex: 1.2, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <div className="glass-card" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", padding: "16px" }}>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "1rem", color: "#fff" }}>Stream Telemetry Logs</h4>
+          <div className="glass-card" style={{ background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.04)", padding: "16px" }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "1rem", color: "#111111" }}>Stream Telemetry Logs</h4>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px" }}>
-                <div style={{ fontSize: "0.75rem", color: "#888888" }}>TARGET MERCHANT</div>
-                <div style={{ fontSize: "0.8rem", color: "#ffffff", fontWeight: "bold", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+              <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#666666" }}>TARGET MERCHANT</div>
+                <div style={{ fontSize: "0.8rem", color: "#111111", fontWeight: "bold", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                   qiedoodle.qie
                 </div>
               </div>
-              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px" }}>
-                <div style={{ fontSize: "0.75rem", color: "#888888" }}>STREAM RATE</div>
-                <div style={{ fontSize: "0.85rem", color: "#fff", fontWeight: "bold" }}>
+              <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#666666" }}>STREAM RATE</div>
+                <div style={{ fontSize: "0.85rem", color: "#111111", fontWeight: "bold" }}>
                   0.0001 qUSDC / sec
                 </div>
               </div>
-              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px" }}>
-                <div style={{ fontSize: "0.75rem", color: "#888888" }}>GAME SCORE</div>
-                <div style={{ fontSize: "1.2rem", color: "#ffffff", fontWeight: "bold" }}>
+              <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#666666" }}>GAME SCORE</div>
+                <div style={{ fontSize: "1.2rem", color: "#111111", fontWeight: "bold" }}>
                   {score} pts
                 </div>
               </div>
-              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px" }}>
-                <div style={{ fontSize: "0.75rem", color: "#888888" }}>ESTIMATED SPEND</div>
-                <div style={{ fontSize: "0.85rem", color: "#999999", fontWeight: "bold" }}>
+              <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
+                <div style={{ fontSize: "0.75rem", color: "#666666" }}>ESTIMATED SPEND</div>
+                <div style={{ fontSize: "0.85rem", color: "#777777", fontWeight: "bold" }}>
                   {doodleStream ? "ACTIVE" : "0.0000 qUSDC"}
                 </div>
               </div>
             </div>
             
-            <div style={{ fontSize: "0.8rem", color: "#888888", lineHeight: "1.4" }}>
+            <div style={{ fontSize: "0.8rem", color: "#666666", lineHeight: "1.4" }}>
               💡 <strong>How it works:</strong> The QieDoodle Arcade operates by opening a micro-fee payment stream. Unlike web2 subscriptions, there are no upfront monthly costs. The moment you stop playing, you can pause or terminate the stream in your Subscriber Panel, ensuring you are billed only for what you use.
             </div>
           </div>

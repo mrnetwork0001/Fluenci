@@ -517,7 +517,7 @@ export default function App() {
   const isSupportedNetwork = fluenci.chainId === 1990;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#000000" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "#f5f5f5" }}>
       {/* Navbar */}
       <header 
         className={viewMode === "landing" ? "landing-header" : "dashboard-header"}
@@ -647,7 +647,8 @@ export default function App() {
         padding: "40px",
         maxWidth: "1200px",
         width: "100%",
-        margin: "0 auto"
+        margin: "0 auto",
+        background: "#f5f5f5"
       }}>
         
         {/* Error alert banners */}
@@ -730,7 +731,6 @@ export default function App() {
             className="glass-card" 
             style={{ 
               marginBottom: "24px", 
-              borderColor: "#2a2a2a", 
               padding: "16px",
               display: "flex",
               alignItems: "center",
@@ -738,10 +738,10 @@ export default function App() {
               gap: "12px"
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#888888" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#666666" }}>
               <Shield size={20} />
               <span>
-                <strong style={{ color: "#ffffff" }}>Read-Only Preview:</strong> Connect your wallet to start payment streams, claim funds, or verify identity.
+                <strong style={{ color: "#111111" }}>Read-Only Preview:</strong> Connect your wallet to start payment streams, claim funds, or verify identity.
               </span>
             </div>
             <button className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.80rem", whiteSpace: "nowrap" }} onClick={fluenci.connectWallet}>

@@ -152,8 +152,7 @@ export default function ConnectWallet({
                   position: "absolute",
                   top: "calc(100% + 8px)",
                   right: 0,
-                  background: "rgba(10, 16, 32, 0.95)",
-                  backdropFilter: "blur(16px)",
+                  background: "#ffffff",
                   border: "1px solid #e0e0e0",
                   borderRadius: "12px",
                   width: "260px",
@@ -161,14 +160,14 @@ export default function ConnectWallet({
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
-                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255,255,255,0.08)",
+                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.06)",
                   zIndex: 1000,
                   textAlign: "left"
                 }}
               >
                 {/* Header / Domain */}
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#888888", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
                     Connected Wallet
                   </div>
                   {accountDomain && (
@@ -201,7 +200,7 @@ export default function ConnectWallet({
                   </div>
                 </div>
 
-                <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "0" }} />
+                <hr style={{ border: "none", borderTop: "1px solid #e8e8e8", margin: "0" }} />
 
                 {/* Actions */}
                 <button 
@@ -216,10 +215,10 @@ export default function ConnectWallet({
                     gap: "8px",
                     width: "100%",
                     padding: "10px",
-                    background: "rgba(244, 63, 94, 0.08)",
-                    border: "1px solid rgba(244, 63, 94, 0.2)",
+                    background: "#fff5f5",
+                    border: "1px solid #e8c4c4",
                     borderRadius: "8px",
-                    color: "#777777",
+                    color: "#cc3333",
                     fontSize: "0.85rem",
                     fontWeight: "bold",
                     cursor: "pointer",

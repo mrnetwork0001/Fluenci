@@ -2,7 +2,7 @@
 
 > **Stop Blind Streams. AI-Shielded Payments.**
 
-Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second — for subscriptions, API usage, salaries, and more — using `qUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
+Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second — for subscriptions, API usage, salaries, and more — using `QUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
 
 ---
 
@@ -34,17 +34,18 @@ Fluenci is built natively on the QIE ecosystem, integrating:
 
 The protocol is deployed and active on QIE Mainnet. All contracts are fully verified and operational:
 
-### Fluenci Protocol Contracts
+### Fluenci Protocol Contracts (v2 — with auto-settle on terminate)
 | Contract | Address |
 |---|---|
-| **FluenciRegistry** | [`0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675`](https://mainnet.qie.digital/address/0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675) |
-| **FluenciAIAuditor** | [`0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d`](https://mainnet.qie.digital/address/0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d) |
+| **FluenciRegistry** (v2) | [`0x13D948a6A3384a744cdB84B0236bbba7CC79cA41`](https://mainnet.qie.digital/address/0x13D948a6A3384a744cdB84B0236bbba7CC79cA41) |
+| **FluenciAIAuditor** (v2) | [`0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E`](https://mainnet.qie.digital/address/0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E) |
+| **FluenciRouter** | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
 | **AI Auditor Hot Wallet** | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
 
 ### QIE Ecosystem Integrations
 | Integration | Address |
 |---|---|
-| **QIE Pass (KYC)** | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
+| **QIE Pass (KYC)** | [`0x0165878A594ca255338adfa4d48449f69242Eb8F`](https://mainnet.qie.digital/address/0x0165878A594ca255338adfa4d48449f69242Eb8F) |
 | **QIE Stable Coin (qUSDC)** | [`0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5`](https://mainnet.qie.digital/address/0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5) |
 | **QIEDex Router** | [`0x08cd2e72e156D8563B4351eb4065C262A9f553Ef`](https://mainnet.qie.digital/address/0x08cd2e72e156D8563B4351eb4065C262A9f553Ef) |
 | **QIE Domain Registry** | [`0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed`](https://mainnet.qie.digital/address/0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed) |
@@ -175,8 +176,8 @@ The backend handles the AI Sentry loops, OpenAI assessments, QIE Pass integratio
    ```ini
    PORT=5001
    RPC_URL=https://rpc1mainnet.qie.digital
-   REGISTRY_ADDRESS=0x0d21623aF12FF88B8ad12d2831e1FA715A0A7675
-   AUDITOR_ADDRESS=0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d
+   REGISTRY_ADDRESS=0x13D948a6A3384a744cdB84B0236bbba7CC79cA41
+   AUDITOR_ADDRESS=0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E
    AI_PRIVATE_KEY=your_ai_private_key_here
    OPENAI_API_KEY=your_openai_api_key_here
    QIEPASS_API_URL=https://did-stapi.qie.digital
@@ -234,7 +235,7 @@ QieFlow/
 │   │   │   ├── AISecurityDesk.jsx     # Wallet-scoped telemetry + manual safety pause
 │   │   │   ├── TransactionModal.jsx   # Multi-step transaction progress modal
 │   │   │   ├── ConnectWallet.jsx      # Wallet connection + QIE domain display
-│   │   │   └── QieDoodleGame.jsx      # Easter egg game
+│   │   │   └── QieDoodleGame.jsx      # Fluenci Snake Arcade (pay-as-you-play)
 │   │   └── assets/                    # Logos (QIE Pass, Wallet, qUSDC, DEX, Domains)
 │   └── index.html
 │
@@ -293,6 +294,25 @@ To demonstrate the full autonomous security pipeline:
 | **Progressive KYC** | Merchants receive payments freely but must verify identity to withdraw |
 | **EIP-712 Signatures** | AI dispute resolutions are cryptographically signed and verified onchain |
 | **Pull-Based Custody** | Subscriber tokens never leave their wallet — only pulled on claim |
+
+---
+
+## 🐍 Fluenci Snake Arcade
+
+Fluenci includes a built-in **Snake game** as a pay-as-you-play demo. It demonstrates micro-payment streaming in action:
+
+- **Subscribe & Play**: Opens a QUSDC micro-stream at 0.0001 QUSDC/sec to `fluenci.qie`
+- **Live Telemetry**: Score, session time, and QUSDC streamed update in real-time
+- **Auto-Settle on Terminate**: When the player clicks "Stop Streaming", the contract auto-settles accumulated QUSDC to the merchant before deactivation
+- **Best Score Tracking**: Persisted in localStorage across sessions
+- **Touch Controls**: Supports swipe on mobile devices
+
+---
+
+## 🔗 Links
+
+- **X (Twitter)**: [x.com/fluenciAI](https://x.com/fluenciAI)
+- **GitHub**: [github.com/mrnetwork0001/FluenciAI](https://github.com/mrnetwork0001/FluenciAI)
 
 ---
 

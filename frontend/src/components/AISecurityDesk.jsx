@@ -136,18 +136,6 @@ export default function AISecurityDesk({
     return () => clearInterval(interval);
   }, [contracts, account]);
 
-  const logContainerRef = useRef(null);
-
-  // Auto scroll console to bottom ONLY if user is already near bottom
-  useEffect(() => {
-    const container = logContainerRef.current;
-    if (!container) return;
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
-    if (isNearBottom && consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [telemetryLogs]);
-
   // Filter active streams
   const allActiveStreams = [...subscriberStreams, ...merchantStreams].filter(
     (v, i, a) => a.findIndex(t => t.id === v.id) === i && v.active && !v.pausedByAI
@@ -389,7 +377,6 @@ export default function AISecurityDesk({
 
         {/* Terminal Screen */}
         <div 
-          ref={logContainerRef}
           style={{ 
             flexGrow: 1, 
             background: "rgba(0, 0, 0, 0.5)", 
@@ -414,7 +401,6 @@ export default function AISecurityDesk({
               )}
             </div>
           ))}
-          <div ref={consoleEndRef} />
         </div>
 
       </div>

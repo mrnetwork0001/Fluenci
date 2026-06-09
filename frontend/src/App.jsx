@@ -5,6 +5,7 @@ import SubscriberPanel from "./components/SubscriberPanel";
 import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
+import FluenciDocs from "./components/FluenciDocs";
 import TransactionModal from "./components/TransactionModal";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X } from "lucide-react";
 import LogoImage from "./assets/logo.png";
@@ -554,6 +555,10 @@ export default function App() {
             refreshData={fluenci.refreshData}
           />
         );
+      case "docs":
+        return (
+          <FluenciDocs />
+        );
       default:
         return null;
     }
@@ -660,6 +665,14 @@ export default function App() {
             >
               <Terminal size={16} />
               AI Security
+            </button>
+            <button 
+              className={`btn ${activeTab === "docs" ? "btn-primary" : "btn-secondary"}`}
+              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
+              onClick={() => setActiveTab("docs")}
+            >
+              <HelpCircle size={16} />
+              Docs & FAQ
             </button>
           </nav>
         )}

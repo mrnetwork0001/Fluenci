@@ -19,7 +19,7 @@ export default function FluenciDocs() {
     { id: "sentry", title: "AI Sentry & Protection", icon: <ShieldCheck size={16} /> },
     { id: "qiepass", title: "QIE Pass & Trust", icon: <KeyRound size={16} /> },
     { id: "router", title: "Router & DEX Swaps", icon: <Coins size={16} /> },
-    { id: "demo", title: "How to Demo & Test", icon: <Play size={16} /> }
+    { id: "guide", title: "Mainnet Interaction Guide", icon: <Play size={16} /> }
   ];
 
   const renderContent = () => {
@@ -159,7 +159,7 @@ export default function FluenciDocs() {
             </h3>
             <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.88rem", color: "#555555", display: "flex", flexDirection: "column", gap: "8px" }}>
               <li><strong>Identity Proofing:</strong> Subscribers and merchants are required to have a verified identity on the QIE Pass contract before they can create streaming agreements.</li>
-              <li><strong>KYC Integration:</strong> Our dashboard connects directly to the QIE Pass identity verifier. Users can register their wallet or perform verification steps on the fly.</li>
+              <li><strong>KYC Integration:</strong> Registering identity requires switching your wallet network to **QIE Testnet** to complete the verification step on the QIE Pass registry. Once completed, users switch back to **QIE Mainnet** to utilize their verified status for payment streams.</li>
               <li><strong>Domain Resolution:</strong> Fluenci decodes wallet domains (e.g. `mrnetwork.qie`) directly from the QIE Domain Registry history, displaying friendly names instead of hex addresses.</li>
             </ul>
 
@@ -219,107 +219,48 @@ export default function FluenciDocs() {
           </div>
         );
 
-      case "demo":
+      case "guide":
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
-              How to Demo & Test Fluenci
+              Mainnet Interaction Guide
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
-              Follow these simple steps to test all of Fluenci's onchain and AI sentry capabilities in real-time:
+              Follow this detailed guide to configure your identity, fund your wallet, and manage payment streams directly on QIE Mainnet.
             </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {/* Step 1 */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <span style={{ 
-                  background: "#111111", 
-                  color: "#ffffff", 
-                  width: "24px", 
-                  height: "24px", 
-                  borderRadius: "50%", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  flexShrink: 0
-                }}>1</span>
-                <div>
-                  <strong style={{ fontSize: "0.9rem", color: "#111111" }}>Mint QUSDC Mock Tokens</strong>
-                  <p style={{ fontSize: "0.82rem", color: "#666666", margin: "2px 0 0 0", lineHeight: "1.4" }}>
-                    In the <strong>Subscriber Panel</strong>, click the <strong>Mint Mock QUSDC</strong> button to add test stablecoins to your wallet.
-                  </p>
-                </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Part 1 */}
+              <div style={{ borderBottom: "1px solid #eeeeee", paddingBottom: "14px" }}>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#111111", margin: "0 0 8px 0" }}>
+                  1. Verifying Your Identity via QIE Pass (Testnet to Mainnet Flow)
+                </h3>
+                <p style={{ fontSize: "0.88rem", color: "#555555", lineHeight: "1.5", margin: "0 0 8px 0" }}>
+                  To establish decentralized trust and fulfill security requirements, users must verify their identity on the QIE Pass DID registry. Follow these steps to register:
+                </p>
+                <ol style={{ margin: 0, paddingLeft: "20px", fontSize: "0.82rem", color: "#666666", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <li>Click the <strong>Verify QIE Pass</strong> button in the Subscriber Panel.</li>
+                  <li>When prompted, <strong>switch your wallet network to QIE Testnet</strong> (RPC URL: <code>https://rpc4testnet.qie.digital/</code>). This network is used specifically for the signature KYC authorization registry steps.</li>
+                  <li>Complete the registration and sign the consent payload inside the redirect interface.</li>
+                  <li>Once completed, <strong>switch your wallet network back to QIE Mainnet</strong> (RPC URL: <code>https://rpc1mainnet.qie.digital</code>). Your verified status will automatically resolve on-chain.</li>
+                </ol>
               </div>
 
-              {/* Step 2 */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <span style={{ 
-                  background: "#111111", 
-                  color: "#ffffff", 
-                  width: "24px", 
-                  height: "24px", 
-                  borderRadius: "50%", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  flexShrink: 0
-                }}>2</span>
-                <div>
-                  <strong style={{ fontSize: "0.9rem", color: "#111111" }}>Verify QIE Pass DID</strong>
-                  <p style={{ fontSize: "0.82rem", color: "#666666", margin: "2px 0 0 0", lineHeight: "1.4" }}>
-                    Click <strong>Verify QIE Pass</strong>. This starts a simulated decentralized identity registration flow. Consent to KYC on the redirect page to verify your wallet onchain.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <span style={{ 
-                  background: "#111111", 
-                  color: "#ffffff", 
-                  width: "24px", 
-                  height: "24px", 
-                  borderRadius: "50%", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  flexShrink: 0
-                }}>3</span>
-                <div>
-                  <strong style={{ fontSize: "0.9rem", color: "#111111" }}>Create a Subscription Stream</strong>
-                  <p style={{ fontSize: "0.82rem", color: "#666666", margin: "2px 0 0 0", lineHeight: "1.4" }}>
-                    Choose a merchant (or use the preloaded test merchant address) and set a duration. Click <strong>Start Stream</strong> to approve the allowance and create the onchain agreement.
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <span style={{ 
-                  background: "#111111", 
-                  color: "#ffffff", 
-                  width: "24px", 
-                  height: "24px", 
-                  borderRadius: "50%", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  flexShrink: 0
-                }}>4</span>
-                <div>
-                  <strong style={{ fontSize: "0.9rem", color: "#111111" }}>Monitor Sentry Telemetry</strong>
-                  <p style={{ fontSize: "0.82rem", color: "#666666", margin: "2px 0 0 0", lineHeight: "1.4" }}>
-                    Head to the <strong>AI Security Desk</strong> tab. You will see real-time log outputs of the AI sentry auditing your active streams and securing transaction states.
-                  </p>
-                </div>
+              {/* Part 2 */}
+              <div>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#111111", margin: "0 0 8px 0" }}>
+                  2. Initiating and Managing Streams on QIE Mainnet
+                </h3>
+                <p style={{ fontSize: "0.88rem", color: "#555555", lineHeight: "1.5", margin: "0 0 8px 0" }}>
+                  Once your identity is verified, you can securely interact with recurring streaming agreements:
+                </p>
+                <ol style={{ margin: 0, paddingLeft: "20px", fontSize: "0.82rem", color: "#666666", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <li>Ensure your wallet has native QIE (for gas fees) and QUSDC stablecoins (the default stream token).</li>
+                  <li>Enter the target merchant's address (or reverse-resolved .qie domain name), streaming rate, and duration in the Subscriber Panel.</li>
+                  <li>Click <strong>Start Stream</strong>. The front-end automatically approves a safe spending allowance limit (10,000 QUSDC cap) and creates the subscription.</li>
+                  <li>Subscribers and merchants can manage active streams (pause, resume, claim, or terminate) directly with sub-second finality.</li>
+                  <li>To review active audits and sentry logs, open the <strong>AI Security</strong> dashboard to inspect the autonomous Sentry agent's block-by-block telemetry.</li>
+                </ol>
               </div>
             </div>
           </div>

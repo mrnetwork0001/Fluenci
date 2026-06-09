@@ -45,7 +45,7 @@ The protocol is deployed and active on QIE Mainnet. All contracts are fully veri
 ### QIE Ecosystem Integrations
 | Integration | Address |
 |---|---|
-| **QIE Pass (KYC)** | [`0x0165878A594ca255338adfa4d48449f69242Eb8F`](https://mainnet.qie.digital/address/0x0165878A594ca255338adfa4d48449f69242Eb8F) |
+| **QIE Pass (KYC)** | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
 | **QIE Stable Coin (qUSDC)** | [`0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5`](https://mainnet.qie.digital/address/0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5) |
 | **QIEDex Router** | [`0x08cd2e72e156D8563B4351eb4065C262A9f553Ef`](https://mainnet.qie.digital/address/0x08cd2e72e156D8563B4351eb4065C262A9f553Ef) |
 | **QIE Domain Registry** | [`0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed`](https://mainnet.qie.digital/address/0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed) |

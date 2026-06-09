@@ -206,7 +206,7 @@ export default function SubscriberPanel({
   // Formats address or returns domain name if pre-mapped
   const formatAddress = (addr) => {
     if (addr.toLowerCase() === "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".toLowerCase()) return "netflix.qie";
-    if (addr.toLowerCase() === "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC".toLowerCase()) return "qiedoodle.qie";
+    if (addr.toLowerCase() === "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC".toLowerCase()) return "fluenci-arcade.qie";
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
 

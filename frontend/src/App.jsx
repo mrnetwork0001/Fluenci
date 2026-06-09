@@ -332,8 +332,26 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("subscriber");
   const [viewMode, setViewMode] = useState("landing");
   const [activeFaqIndex, setActiveFaqIndex] = useState(null);
+  const [isWalletModalOpen, setWalletModalOpen] = useState(false);
   const prevAccountRef = useRef(fluenci.account);
   const cardRef = useRef(null);
+
+  const handleConnectClick = () => {
+    const qieProvider = fluenci.announcedProviders.find(
+      (p) => p.info.name.toLowerCase().includes("qie") || p.info.rdns.toLowerCase().includes("qie")
+    );
+    const hasQieInjected = window.ethereum && (
+      window.ethereum.isQieWallet || 
+      window.ethereum.isQIE || 
+      (window.ethereum.providers && window.ethereum.providers.some(p => p.isQieWallet || p.isQIE))
+    );
+
+    if (qieProvider || hasQieInjected) {
+      fluenci.connectWallet(qieProvider || null);
+    } else {
+      setWalletModalOpen(true);
+    }
+  };
 
   // Typewriter effect for hero title
   const heroWords = ["Blind", "Rogue", "Risky"];
@@ -658,6 +676,8 @@ export default function App() {
             showDashboard={viewMode === "dashboard"}
             onLaunchApp={() => setViewMode("dashboard")}
             announcedProviders={fluenci.announcedProviders}
+            isOpen={isWalletModalOpen}
+            setIsOpen={setWalletModalOpen}
           />
         )}
       </header>
@@ -771,7 +791,7 @@ export default function App() {
                 <strong style={{ color: "#111111" }}>Read-Only Preview:</strong> Connect your wallet to start payment streams, claim funds, or verify identity.
               </span>
             </div>
-            <button className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.80rem", whiteSpace: "nowrap" }} onClick={fluenci.connectWallet}>
+            <button className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.80rem", whiteSpace: "nowrap" }} onClick={handleConnectClick}>
               Connect Wallet
             </button>
           </div>

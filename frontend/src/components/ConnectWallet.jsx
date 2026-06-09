@@ -11,9 +11,10 @@ export default function ConnectWallet({
   switchToQieMainnet,
   showDashboard,
   onLaunchApp,
-  announcedProviders = []
+  announcedProviders = [],
+  isOpen,
+  setIsOpen
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [modalView, setModalView] = useState("primary"); // primary | other_evm
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -76,9 +77,19 @@ export default function ConnectWallet({
     setIsOpen(false);
   };
 
-  const handleOpenConnect = () => {
-    setModalView("primary");
-    setIsOpen(true);
+  const isQieWalletDetected = !!qieProvider || !!(window.ethereum && (
+    window.ethereum.isQieWallet || 
+    window.ethereum.isQIE || 
+    (window.ethereum.providers && window.ethereum.providers.some(p => p.isQieWallet || p.isQIE))
+  ));
+
+  const handleConnectClick = () => {
+    if (isQieWalletDetected) {
+      connectWallet(qieProvider || null);
+    } else {
+      setModalView("other_evm");
+      setIsOpen(true);
+    }
   };
 
   return (
@@ -235,7 +246,7 @@ export default function ConnectWallet({
       ) : (
         <button 
           className="btn btn-primary" 
-          onClick={showDashboard ? handleOpenConnect : onLaunchApp}
+          onClick={showDashboard ? handleConnectClick : onLaunchApp}
           disabled={loading}
         >
           <Wallet size={16} />
@@ -389,6 +400,26 @@ export default function ConnectWallet({
                     Other EVM Wallets
                   </h3>
                 </div>
+
+                {!isQieWalletDetected && (
+                  <div style={{
+                    background: "rgba(255, 171, 0, 0.08)",
+                    border: "1px solid rgba(255, 171, 0, 0.2)",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    fontSize: "0.8rem",
+                    color: "#ffab00",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    lineHeight: "1.3"
+                  }}>
+                    <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+                    <span>
+                      QIE Wallet was not detected. Connect another wallet or install QIE Wallet below.
+                    </span>
+                  </div>
+                )}
 
                 {/* Submenu Listing */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "250px", overflowY: "auto", paddingRight: "4px" }}>

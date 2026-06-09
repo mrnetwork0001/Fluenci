@@ -1389,3 +1389,17 @@
   font-size: 0.78rem !important;
   box-sizing: border-box;
 }
+
+/* AI Chat typing dots animation */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #888;
+  display: inline-block;
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}

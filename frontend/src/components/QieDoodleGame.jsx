@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { FluenciAIChat } from "./FluenciAIChat";
 
 // Grid config
 const COLS = 20;
@@ -10,6 +11,7 @@ const CANVAS_H = ROWS * CELL; // 400
 const DIR = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
 
 export function QieDoodleGame({ account, subscriberStreams, createSubscription, terminateStream, contracts }) {
+  const [activeTab, setActiveTab] = useState("snake"); // snake | chat
   const [gameState, setGameState] = useState("locked"); // locked | ready | playing | gameover
   const [hasActiveStream, setHasActiveStream] = useState(false);
   const [score, setScore] = useState(0);
@@ -318,26 +320,51 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
 
   return (
     <div className="glass-card" style={{ marginTop: "24px", padding: "24px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+      {/* Header + Toggle Tabs */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: "1.4rem", color: "#111111", fontWeight: "bold" }}>🐍 Fluenci Snake Arcade</h2>
+          <h2 style={{ margin: 0, fontSize: "1.4rem", color: "#111111", fontWeight: "bold" }}>Fluenci Arcade</h2>
           <p style={{ margin: "4px 0 0 0", color: "#666666", fontSize: "0.9rem" }}>
-            Pay-as-you-play gaming. Stream QUSDC while you play — stop anytime.
+            Pay-as-you-use apps. Stream QUSDC while you play or chat — stop anytime.
           </p>
         </div>
-        <span style={{
-          padding: "4px 10px",
-          borderRadius: "12px",
-          fontSize: "0.8rem",
-          fontWeight: "bold",
-          background: hasActiveStream ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
-          color: hasActiveStream ? "#16a34a" : "#999999",
-          border: `1px solid ${hasActiveStream ? "#16a34a" : "#d4d4d4"}`
-        }}>
-          {hasActiveStream ? "STREAM ACTIVE" : "STREAM REQUIRED"}
-        </span>
+        <div style={{ display: "flex", gap: "4px", background: "#f0f0f0", borderRadius: "10px", padding: "3px" }}>
+          <button
+            onClick={() => setActiveTab("snake")}
+            style={{
+              padding: "6px 16px", borderRadius: "8px", border: "none",
+              background: activeTab === "snake" ? "#111" : "transparent",
+              color: activeTab === "snake" ? "#fff" : "#666",
+              fontSize: "0.8rem", fontWeight: "bold", cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+          >
+            🐍 Snake
+          </button>
+          <button
+            onClick={() => setActiveTab("chat")}
+            style={{
+              padding: "6px 16px", borderRadius: "8px", border: "none",
+              background: activeTab === "chat" ? "#111" : "transparent",
+              color: activeTab === "chat" ? "#fff" : "#666",
+              fontSize: "0.8rem", fontWeight: "bold", cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+          >
+            🤖 AI Chat
+          </button>
+        </div>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "chat" ? (
+        <FluenciAIChat
+          subscriberStreams={subscriberStreams}
+          createSubscription={createSubscription}
+          terminateStream={terminateStream}
+        />
+      ) : (
+      <>
 
       {/* Game Area */}
       <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
@@ -506,6 +533,8 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

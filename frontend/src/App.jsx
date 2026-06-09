@@ -986,50 +986,41 @@ export default function App() {
               </div>
             </section>
 
-            {/* QIE Ecosystem Integrations — Infinite Marquee Carousel */}
+            {/* QIE Ecosystem Integrations — Static Grid */}
             <section className="landing-section marquee-section">
               <div className="section-header">
                 <h2>Native QIE Ecosystem Integrations</h2>
                 <p>Fluenci leverages the power of QIE blockchain's core components to build a seamless and secure billing protocol.</p>
               </div>
 
-              <div className="ecosystem-marquee-wrapper">
-                <div className="ecosystem-marquee-track">
-                  {[
-                    { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
-                    { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
-                    { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
-                    { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
-                    { logo: QieDomainsLogo, name: "QIE Domains", desc: "Onchain domain name service for human-readable wallet identities. Resolves .qie names to wallet addresses.", accent: "236, 72, 153" }
-                  ].concat([
-                    { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
-                    { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
-                    { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
-                    { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
-                    { logo: QieDomainsLogo, name: "QIE Domains", desc: "Onchain domain name service for human-readable wallet identities. Resolves .qie names to wallet addresses.", accent: "236, 72, 153" }
-                  ]).map((item, i) => (
-                    <div key={i} className="ecosystem-card" style={{
-                      borderColor: `rgba(${item.accent}, 0.2)`,
-                      background: `rgba(${item.accent}, 0.03)`
-                    }}>
-                      <div className="ecosystem-card-glow" style={{
-                        background: `radial-gradient(circle at top left, rgba(${item.accent}, 0.08), transparent 70%)`
-                      }} />
-                      <div className="ecosystem-card-header">
-                        <img src={item.logo} alt={item.name} className="ecosystem-card-logo" />
-                        <h3 className="ecosystem-card-title">{item.name}</h3>
-                      </div>
-                      <p className="ecosystem-card-desc">{item.desc}</p>
-                      <div className="ecosystem-card-tag" style={{
-                        color: `rgb(${item.accent})`,
-                        borderColor: `rgba(${item.accent}, 0.25)`,
-                        background: `rgba(${item.accent}, 0.06)`
-                      }}>
-                        Integrated
-                      </div>
+              <div className="ecosystem-grid">
+                {[
+                  { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
+                  { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
+                  { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
+                  { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
+                  { logo: QieDomainsLogo, name: "QIE Domains", desc: "Onchain domain name service for human-readable wallet identities. Resolves .qie names to wallet addresses.", accent: "236, 72, 153" }
+                ].map((item, i) => (
+                  <div key={i} className="ecosystem-card" style={{
+                    borderColor: `rgba(${item.accent}, 0.15)`
+                  }}>
+                    <div className="ecosystem-card-glow" style={{
+                      background: `radial-gradient(circle at top left, rgba(${item.accent}, 0.08), transparent 70%)`
+                    }} />
+                    <div className="ecosystem-card-header">
+                      <img src={item.logo} alt={item.name} className="ecosystem-card-logo" />
+                      <h3 className="ecosystem-card-title">{item.name}</h3>
                     </div>
-                  ))}
-                </div>
+                    <p className="ecosystem-card-desc">{item.desc}</p>
+                    <div className="ecosystem-card-tag" style={{
+                      color: `rgb(${item.accent})`,
+                      borderColor: `rgba(${item.accent}, 0.25)`,
+                      background: `rgba(${item.accent}, 0.06)`
+                    }}>
+                      ✓ Integrated
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
 

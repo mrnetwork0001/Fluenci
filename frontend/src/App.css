@@ -429,81 +429,143 @@
   }
 }
 
-/* 5. Black Ecosystem Marquee Section */
+/* 5. Black Ecosystem Integrations Section */
 .landing-section.marquee-section {
   width: 100%;
   background-color: #000000;
-  padding: 120px 60px;
+  padding: 100px 60px;
   position: relative;
   z-index: 1;
 }
 
+.landing-section.marquee-section .section-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 56px auto;
+}
+
 .landing-section.marquee-section .section-header h2 {
   color: #ffffff !important;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px 0;
+  line-height: 1.2;
 }
 
 .landing-section.marquee-section .section-header p {
-  color: #cacaca !important;
+  color: #888888 !important;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
-.ecosystem-marquee-wrapper {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-  padding: 10px 0;
+.ecosystem-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.ecosystem-marquee-track {
-  display: flex;
-  gap: 24px;
-  animation: marqueeScroll 30s linear infinite;
-  width: max-content;
+@media (max-width: 1100px) {
+  .ecosystem-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-.ecosystem-marquee-wrapper:hover .ecosystem-marquee-track {
-  animation-play-state: paused;
+@media (max-width: 700px) {
+  .ecosystem-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .landing-section.marquee-section {
+    padding: 60px 20px;
+  }
 }
 
-@keyframes marqueeScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+@media (max-width: 480px) {
+  .ecosystem-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ecosystem-card {
   position: relative;
-  flex-shrink: 0;
-  width: 290px;
-  padding: 30px 24px;
-  border: 1px solid #222222 !important;
-  border-radius: 20px;
+  padding: 28px 22px;
+  border: 1px solid #1e1e1e;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   cursor: default;
-  background: #111111 !important;
+  background: #0d0d0d;
 }
 
 .ecosystem-card:hover {
-  transform: translateY(-4px);
-  border-color: #333333 !important;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  transform: translateY(-6px);
+  border-color: #333333;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.ecosystem-card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.35s;
+}
+
+.ecosystem-card:hover .ecosystem-card-glow {
+  opacity: 1;
+}
+
+.ecosystem-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ecosystem-card-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .ecosystem-card-title {
   font-family: 'Montserrat', sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #ffffff !important;
+  color: #ffffff;
+  margin: 0;
 }
 
 .ecosystem-card-desc {
-  font-size: 0.85rem;
-  color: #cacaca !important;
-  line-height: 1.6;
+  font-size: 0.82rem;
+  color: #999999;
+  line-height: 1.55;
+  margin: 0;
+  flex: 1;
+}
+
+.ecosystem-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+  width: fit-content;
+  margin-top: auto;
 }
 
 /* 6. White Feature Comparison Matrix Section */

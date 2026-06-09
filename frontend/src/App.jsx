@@ -672,7 +672,7 @@ export default function App() {
               onClick={() => setActiveTab("docs")}
             >
               <HelpCircle size={16} />
-              Docs & FAQ
+              Docs
             </button>
           </nav>
         )}

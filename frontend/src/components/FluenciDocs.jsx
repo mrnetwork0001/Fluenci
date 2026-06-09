@@ -28,7 +28,7 @@ export default function FluenciDocs() {
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
-              🚀 Introduction & Overview
+              Introduction & Overview
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
               Fluenci is an <strong>AI-shielded real-time streaming payments protocol</strong> built natively on the <strong>QIE Blockchain</strong>. It is designed to solve the critical vulnerability in traditional Web3 recurring payments: <strong>"blind, unmonitored streams."</strong>
@@ -90,7 +90,7 @@ export default function FluenciDocs() {
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
-              🛡️ AI Sentry & Protection Desk
+              AI Sentry & Protection Desk
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
               Traditional streaming protocols continue draining your wallet even if a hack occurs, relying on manual user actions to cancel. Fluenci introduces an **autonomous AI Sentry agent** that continuously monitors stream behaviors.
@@ -148,7 +148,7 @@ export default function FluenciDocs() {
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
-              🔑 QIE Pass & Identity Trust
+              QIE Pass & Identity Trust
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
               To ensure compliance and prevent malicious Sybil attacks (where attackers create hundreds of fake addresses to bypass security), Fluenci integrates the official **QIE Pass Decentralized Identity (DID)** registry.
@@ -184,7 +184,7 @@ export default function FluenciDocs() {
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
-              🔄 Fluenci Router & DEX Swaps
+              Fluenci Router & DEX Swaps
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
               Subscription billing requires stablecoin payments (like **QUSDC**) to ensure merchants receive constant value regardless of token price movements. However, users often hold native QIE.
@@ -223,7 +223,7 @@ export default function FluenciDocs() {
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
-              🎮 How to Demo & Test Fluenci
+              How to Demo & Test Fluenci
             </h2>
             <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
               Follow these simple steps to test all of Fluenci's onchain and AI sentry capabilities in real-time:

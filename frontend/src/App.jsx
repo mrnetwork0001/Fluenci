@@ -90,7 +90,7 @@ function FAQItem({ question, answer, index, isOpen, onToggle }) {
     </div>
   );
 }
-// Typewriter effect component — cycles through words with type-in / delete animation
+// Typewriter effect component - cycles through words with type-in / delete animation
 const HERO_TYPEWRITER_WORDS = ["Blind", "Rogue", "Unaudited"];
 
 function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, deletingSpeed = 80, holdDuration = 2000 }) {
@@ -117,7 +117,7 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
           setDisplayText(currentWord.slice(0, displayText.length + 1));
         }, typingSpeed);
       } else {
-        // Word fully typed — hold, then start deleting
+        // Word fully typed - hold, then start deleting
         timeout = setTimeout(() => setIsDeleting(true), holdDuration);
       }
     } else {
@@ -127,7 +127,7 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
           setDisplayText(displayText.slice(0, -1));
         }, deletingSpeed);
       } else {
-        // Word fully deleted — move to next word and start typing
+        // Word fully deleted - move to next word and start typing
         setIsDeleting(false);
         setWordIndex((prev) => (prev + 1) % wordsRef.current.length);
       }
@@ -913,7 +913,7 @@ export default function App() {
             <section className="home-text-highlight-section">
               <div className="home-text-highlight-container">
                 <p className="split-lines home">
-                  At Fluenci, we believe real-time payment streams are the heartbeat of the modern Web3 economy. That's why we built an AI-shielded protocol to protect transactions at the optimal moment—guiding every subscription stream with clarity and confidence.
+                  At Fluenci, we believe real-time payment streams are the heartbeat of the modern Web3 economy. That's why we built an AI-shielded protocol to protect transactions at the optimal moment-guiding every subscription stream with clarity and confidence.
                 </p>
               </div>
             </section>
@@ -999,7 +999,7 @@ export default function App() {
               </div>
             </section>
 
-            {/* QIE Ecosystem Integrations — Static Grid */}
+            {/* QIE Ecosystem Integrations - Static Grid */}
             <section className="landing-section marquee-section">
               <div className="section-header">
                 <h2>Native QIE Ecosystem Integrations</h2>
@@ -1055,8 +1055,8 @@ export default function App() {
                   </thead>
                   <tbody>
                     {[
-                      ["Exploit / Rate Spike Protection", "None — streams drain completely", "Instant onchain AI Safety Pause"],
-                      ["KYC / Identity Gating", "Address only — anonymity issues", "QIE Pass DID Verification"],
+                      ["Exploit / Rate Spike Protection", "None - streams drain completely", "Instant onchain AI Safety Pause"],
+                      ["KYC / Identity Gating", "Address only - anonymity issues", "QIE Pass DID Verification"],
                       ["Dispute Resolution", "Manual arbitration or legal action", "AI-Arbitrated EIP-712 Signatures"],
                       ["Token Volatility Protection", "Exposed to market fluctuations", "Stablecoin (qUSDC) + DEX Swaps"],
                       ["Subscription Model", "Basic push transactions", "Transferable Subscription NFT Streams"]
@@ -1113,14 +1113,14 @@ export default function App() {
                   isOpen={activeFaqIndex === 5}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 5 ? null : 5)}
                   question="How does the built-in DEX swap integration work?"
-                  answer="Fluenci integrates directly with QieDex through a dedicated FluenciRouter contract. You can swap between QIE and qUSDC without leaving the app. Every swap routed through Fluenci emits an on-chain FluenciSwap event, providing transparent attribution and real-time volume tracking on the QIE blockchain explorer."
+                  answer="Fluenci integrates directly with QieDex through a dedicated FluenciRouter contract. You can swap between QIE and qUSDC without leaving the app. Every swap routed through Fluenci emits an onchain FluenciSwap event, providing transparent attribution and real-time volume tracking on the QIE blockchain explorer."
                 />
                 <FAQItem 
                   index={6}
                   isOpen={activeFaqIndex === 6}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 6 ? null : 6)}
                   question="What is QIE Pass and why is identity verification important?"
-                  answer="QIE Pass is QIE blockchain's native decentralized identity (DID) system. Fluenci gates merchant registrations through QIE Pass verification to prevent sybil attacks and anonymous fraud. This ensures that every merchant accepting payments through Fluenci has a verified on-chain identity, adding a layer of trust for subscribers."
+                  answer="QIE Pass is QIE blockchain's native decentralized identity (DID) system. Fluenci gates merchant registrations through QIE Pass verification to prevent sybil attacks and anonymous fraud. This ensures that every merchant accepting payments through Fluenci has a verified onchain identity, adding a layer of trust for subscribers."
                 />
                 <FAQItem 
                   index={7}
@@ -1136,7 +1136,7 @@ export default function App() {
             <section className="landing-section cta-section">
               <div className="section-header">
                 <h2>Explore the Platform</h2>
-                <p style={{ marginBottom: "28px" }}>See how Fluenci bridges gaps, aligns protocols, and protects stream transitions—without disrupting your flow.</p>
+                <p style={{ marginBottom: "28px" }}>See how Fluenci bridges gaps, aligns protocols, and protects stream transitions-without disrupting your flow.</p>
                 <button className="btn btn-primary btn-cta-pulse" onClick={() => setViewMode("dashboard")}>
                   Launch App
                 </button>

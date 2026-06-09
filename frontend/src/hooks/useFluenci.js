@@ -48,7 +48,7 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
     qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
     auditor: "0x80b33a1A6625c394Df501991d4Cee0eA780A6C3d",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
-    fluenciRouter: "0x75475647f52531D4086296415392E4AA94b92de7", // FluenciRouter (wraps QieDex with on-chain attribution)
+    fluenciRouter: "0x75475647f52531D4086296415392E4AA94b92de7", // FluenciRouter (wraps QieDex with onchain attribution)
     qiedomain: "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed" // Official QIE Domain Registry (mainnet)
   }
 };
@@ -153,7 +153,7 @@ export function useFluenci() {
             return resolve(receipt);
           }
         } catch (e) {
-          // RPC hiccup — keep polling
+          // RPC hiccup - keep polling
         }
 
         if (Date.now() - startTime > TIMEOUT_MS) {
@@ -499,7 +499,7 @@ export function useFluenci() {
       }
 
       if (data.status === "pending_kyc") {
-        // User needs to complete KYC — open redirect in new tab
+        // User needs to complete KYC - open redirect in new tab
         const redirectUrl = data.redirectUrl?.startsWith("http")
           ? data.redirectUrl
           : `https://qiepass.qie.digital${data.redirectUrl}`;

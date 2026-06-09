@@ -271,7 +271,7 @@ export default function ConnectWallet({
         }}>
           <div style={{
             background: "rgba(10, 16, 32, 0.95)",
-            border: "1px solid #e0e0e0",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             borderRadius: "24px",
             width: "400px",
             padding: "28px",
@@ -279,7 +279,7 @@ export default function ConnectWallet({
             display: "flex",
             flexDirection: "column",
             gap: "20px",
-            boxShadow: "0 0 50px rgba(255,255,255,0.08)"
+            boxShadow: "0 0 50px rgba(0,0,0,0.5)"
           }}>
             {/* Close Button */}
             <button 
@@ -288,13 +288,13 @@ export default function ConnectWallet({
                 position: "absolute",
                 top: "20px",
                 right: "20px",
-                background: "#f5f5f5",
-                border: "1px solid rgba(255,255,255,0.05)",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: "50%",
                 padding: "6px",
                 cursor: "pointer",
                 display: "flex",
-                color: "#111111"
+                color: "#ffffff"
               }}
             >
               <X size={16} />
@@ -304,10 +304,10 @@ export default function ConnectWallet({
               <>
                 {/* Header */}
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
-                  <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "800", color: "#111111" }}>
+                  <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "800", color: "#ffffff" }}>
                     Select Wallet
                   </h3>
-                  <p style={{ margin: "6px 0 0 0", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.85rem", color: "#a1a1aa" }}>
                     Choose your connection method
                   </p>
                 </div>
@@ -318,15 +318,15 @@ export default function ConnectWallet({
                   <button 
                     onClick={handleConnectQie}
                     style={{
-                      background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.06) 100%)",
-                      border: "1px solid #e0e0e0",
+                      background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%)",
+                      border: "1px solid rgba(255,255,255,0.15)",
                       borderRadius: "16px",
                       padding: "16px 20px",
                       cursor: "pointer",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      color: "#111111",
+                      color: "#ffffff",
                       transition: "all 0.2s"
                     }}
                     className="wallet-option-btn-qie"
@@ -335,17 +335,17 @@ export default function ConnectWallet({
                       <span style={{ fontSize: "1.8rem" }}>💎</span>
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>QIE Wallet</div>
-                        <div style={{ fontSize: "0.75rem", color: "#666666" }}>Native Ecosystem Extension</div>
+                        <div style={{ fontSize: "0.75rem", color: "#a1a1aa" }}>Native Ecosystem Extension</div>
                       </div>
                     </div>
                     <span style={{
                       fontSize: "0.65rem",
-                      background: "#e8e8e8",
-                      color: "#111111",
+                      background: "rgba(59, 130, 246, 0.15)",
+                      color: "#60a5fa",
                       padding: "3px 8px",
                       borderRadius: "8px",
                       fontWeight: "bold",
-                      border: "1px solid #e0e0e0",
+                      border: "1px solid rgba(59, 130, 246, 0.3)",
                       letterSpacing: "0.05em"
                     }}>RECOMMENDED</span>
                   </button>
@@ -354,15 +354,15 @@ export default function ConnectWallet({
                   <button 
                     onClick={() => setModalView("other_evm")}
                     style={{
-                      background: "#f8f8f8",
-                      border: "1px solid #e0e0e0",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.1)",
                       borderRadius: "16px",
                       padding: "16px 20px",
                       cursor: "pointer",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      color: "#111111",
+                      color: "#ffffff",
                       transition: "all 0.2s"
                     }}
                     className="wallet-option-btn"
@@ -371,7 +371,7 @@ export default function ConnectWallet({
                       <span style={{ fontSize: "1.8rem" }}>🔌</span>
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>Other EVM Wallets</div>
-                        <div style={{ fontSize: "0.75rem", color: "#666666" }}>MetaMask, Rabby, OKX, etc.</div>
+                        <div style={{ fontSize: "0.75rem", color: "#a1a1aa" }}>MetaMask, Rabby, OKX, etc.</div>
                       </div>
                     </div>
                     <span style={{ fontSize: "1rem", color: "rgba(255,255,255,0.3)" }}>→</span>
@@ -385,18 +385,18 @@ export default function ConnectWallet({
                   <button 
                     onClick={() => setModalView("primary")}
                     style={{
-                      background: "#f5f5f5",
-                      border: "1px solid rgba(255,255,255,0.05)",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255,255,255,0.1)",
                       borderRadius: "8px",
                       padding: "6px",
                       cursor: "pointer",
                       display: "flex",
-                      color: "#111111"
+                      color: "#ffffff"
                     }}
                   >
                     <ArrowLeft size={16} />
                   </button>
-                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "800", color: "#111111" }}>
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "800", color: "#ffffff" }}>
                     Other EVM Wallets
                   </h3>
                 </div>
@@ -486,7 +486,7 @@ export default function ConnectWallet({
             <div style={{
               textAlign: "center",
               fontSize: "0.75rem",
-              color: "var(--text-muted)",
+              color: "#9ca3af",
               borderTop: "1px solid rgba(255,255,255,0.05)",
               paddingTop: "16px",
               marginTop: "8px"
@@ -496,7 +496,7 @@ export default function ConnectWallet({
                 href="https://qiewallet.me" 
                 target="_blank" 
                 rel="noreferrer"
-                style={{ color: "#111111", textDecoration: "none", fontWeight: "bold" }}
+                style={{ color: "#60a5fa", textDecoration: "none", fontWeight: "bold" }}
               >
                 Download Extension
               </a>

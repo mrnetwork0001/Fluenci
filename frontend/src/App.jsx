@@ -770,7 +770,7 @@ export default function App() {
                     AI-Shielded Subscriptions
                   </div>
                   <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
-                    Stop Blind Streams.
+                    <span style={{ fontSize: "3.8rem" }}>Stop Blind Streams.</span>
                     <br />
                     <span style={{ color: "#000000" }}>AI-Shielded Payments.</span>
                   </h1>

@@ -261,7 +261,7 @@ export default function SubscriberPanel({
                     fontSize: "0.85rem", 
                     color: "#111111", 
                     background: "rgba(0,0,0,0.04)", 
-                    border: isInsufficientBalance ? "1px solid #999999" : "1px solid rgba(255,255,255,0.08)",
+                    border: isInsufficientBalance ? "1px solid #cc0000" : "1px solid #d0d0d0",
                     outline: "none",
                     boxSizing: "border-box"
                   }}
@@ -303,7 +303,7 @@ export default function SubscriberPanel({
                 <RefreshCw size={14} />
               </button>
               
-              <strong style={{ fontSize: "0.85rem", color: swapMode === "QIE_TO_QUSDC" ? "#ffffff" : "#fff" }}>
+              <strong style={{ fontSize: "0.85rem", color: "#111111" }}>
                 {swapMode === "QIE_TO_QUSDC" ? "QUSDC" : "QIE"}
               </strong>
             </div>
@@ -311,7 +311,7 @@ export default function SubscriberPanel({
             {parseFloat(swapAmount) > 0 && (
               <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", margin: "-2px 0 2px 0", padding: "0 4px" }}>
                 <span>Est. Received:</span>
-                <strong style={{ color: swapMode === "QIE_TO_QUSDC" ? "#ffffff" : "#fff" }}>
+                <strong style={{ color: "#111111" }}>
                   {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} ${swapMode === "QIE_TO_QUSDC" ? "QUSDC" : "QIE"}`}
                 </strong>
               </div>

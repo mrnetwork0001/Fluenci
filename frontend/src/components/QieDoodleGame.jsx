@@ -165,8 +165,8 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
             fontSize: "0.8rem",
             fontWeight: "bold",
             background: hasActiveStream ? "rgba(0, 230, 118, 0.15)" : "rgba(255, 23, 68, 0.15)",
-            color: hasActiveStream ? "#ffffff" : "#999999",
-            border: `1px solid ${hasActiveStream ? "#ffffff" : "#999999"}`
+            color: hasActiveStream ? "#111111" : "#999999",
+            border: `1px solid ${hasActiveStream ? "#111111" : "#999999"}`
           }}>
             {hasActiveStream ? "STREAM ACTIVE" : "STREAM REQUIRED"}
           </span>

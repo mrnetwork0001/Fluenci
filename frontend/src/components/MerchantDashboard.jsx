@@ -164,7 +164,7 @@ export default function MerchantDashboard({
                           padding: "12px 6px", 
                           fontFamily: "monospace", 
                           fontWeight: "bold",
-                          color: isDisputed ? "#999999" : isPaused ? "#999999" : "#ffffff"
+                          color: isDisputed ? "#999999" : isPaused ? "#999999" : "#111111"
                         }}
                       >
                         {stream.active ? (
@@ -205,7 +205,7 @@ export default function MerchantDashboard({
                               padding: "6px 12px", 
                               fontSize: "0.75rem",
                               borderColor: (isPaused || isDisputed) ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.08)",
-                              color: (isPaused || isDisputed) ? "var(--text-muted)" : "#ffffff",
+                              color: (isPaused || isDisputed) ? "var(--text-muted)" : "#111111",
                               background: (isPaused || isDisputed) ? "transparent" : "rgba(255,255,255,0.08)"
                             }}
                             onClick={() => claimStream(stream.id)}

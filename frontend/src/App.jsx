@@ -481,6 +481,7 @@ export default function App() {
               account={fluenci.account}
               subscriberStreams={fluenci.subscriberStreams}
               createSubscription={fluenci.createSubscription}
+              terminateStream={fluenci.terminateStream}
               contracts={fluenci.contracts}
             />
           </>

@@ -9,7 +9,7 @@ const CANVAS_H = ROWS * CELL; // 400
 
 const DIR = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
 
-export function QieDoodleGame({ account, subscriberStreams, createSubscription, contracts }) {
+export function QieDoodleGame({ account, subscriberStreams, createSubscription, terminateStream, contracts }) {
   const [gameState, setGameState] = useState("locked"); // locked | ready | playing | gameover
   const [hasActiveStream, setHasActiveStream] = useState(false);
   const [score, setScore] = useState(0);
@@ -42,6 +42,15 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
       await createSubscription(ARCADE_MERCHANT, "QUSDC", "100", 0, 0);
     } catch (err) {
       console.error("Failed to start Fluenci Snake stream", err);
+    }
+  };
+
+  const handleStopStream = async () => {
+    if (!doodleStream) return;
+    try {
+      await terminateStream(doodleStream.id);
+    } catch (err) {
+      console.error("Failed to stop stream", err);
     }
   };
 
@@ -379,13 +388,31 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
                       🏆 NEW BEST SCORE!
                     </div>
                   )}
-                  <button
-                    onClick={startGame}
-                    className="btn btn-primary"
-                    style={{ padding: "8px 24px", justifyContent: "center" }}
-                  >
-                    Play Again
-                  </button>
+                  <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+                    <button
+                      onClick={startGame}
+                      className="btn btn-primary"
+                      style={{ padding: "8px 24px", justifyContent: "center" }}
+                    >
+                      Play Again
+                    </button>
+                    <button
+                      onClick={handleStopStream}
+                      style={{
+                        padding: "8px 18px",
+                        background: "rgba(255,255,255,0.12)",
+                        border: "1px solid rgba(255,255,255,0.3)",
+                        borderRadius: "8px",
+                        color: "#ff6b6b",
+                        fontSize: "0.85rem",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      Stop Streaming
+                    </button>
+                  </div>
                 </div>
               )}
             </>

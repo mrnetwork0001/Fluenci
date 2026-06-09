@@ -11,7 +11,7 @@
   --border-color: rgba(255, 255, 255, 0.08);
   --border-glow: rgba(255, 255, 255, 0.12);
 
-  --color-cyan: #ffffff;
+  --color-cyan: #3b82f6;
   --color-purple: #9d4edd;
   --color-blue: #3b82f6;
   --color-emerald: #10b981;
@@ -19,8 +19,8 @@
   --color-rose: #f43f5e;
   
   --text-primary: #ffffff;
-  --text-secondary: #888888;
-  --text-muted: #555555;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
   
   --shadow-neon: 0 4px 16px rgba(0, 0, 0, 0.3);
   --shadow-neon-alert: 0 0 15px rgba(244, 63, 94, 0.15);
@@ -63,7 +63,7 @@ body {
   border-radius: 14px;
   padding: 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .glass-card:hover {
@@ -155,13 +155,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  background: transparent;
+  background: #111111;
   border: 1px solid #2a2a2a;
-  color: #cccccc;
+  color: #e0e0e0;
 }
 
 .btn-secondary:hover {
-  background: #111111;
+  background: #1a1a1a;
   border-color: #3a3a3a;
   color: #ffffff;
 }
@@ -177,7 +177,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn:disabled {
-  opacity: 0.3;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
@@ -303,12 +303,12 @@ h1, h2, h3, h4, h5, h6 {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: #111111;
-  border: 1px solid #2a2a2a;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #3b82f6;
 }
 
 .tx-icon-success {
@@ -411,10 +411,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-dot-active {
-  background: #111111;
-  border: 1.5px solid #444444;
-  color: #ffffff;
-  box-shadow: none;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1.5px solid rgba(59, 130, 246, 0.5);
+  color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
 }
 
 .tx-dot-completed {
@@ -462,7 +462,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-step-active .tx-step-label {
-  color: #ffffff;
+  color: #3b82f6;
 }
 
 .tx-step-completed .tx-step-label {
@@ -481,7 +481,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-step-active-pulse {
-  color: #ffffff !important;
+  color: #3b82f6 !important;
   animation: txDetailPulse 1.5s ease-in-out infinite;
 }
 
@@ -517,14 +517,13 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 6px;
   font-size: 0.78rem;
-  color: #ffffff;
+  color: #3b82f6;
   text-decoration: none;
   transition: all 0.2s;
 }
 
 .tx-hash-value:hover {
-  color: #4facfe;
-  text-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+  color: #60a5fa;
 }
 
 .tx-hash-value code {

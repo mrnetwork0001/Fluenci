@@ -1148,42 +1148,46 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer 
-        style={viewMode === "landing" ? { 
-          padding: "30px 40px", 
-          borderTop: "1px solid #111111", 
-          background: "#000000",
-          textAlign: "center",
-          fontSize: "0.85rem",
-          color: "#94a3b8",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          alignItems: "center"
-        } : { 
-          padding: "30px 40px", 
-          borderTop: "1px solid var(--border-color)", 
-          background: "rgba(7, 10, 19, 0.8)",
-          textAlign: "center",
-          fontSize: "0.85rem",
-          color: "var(--text-muted)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          alignItems: "center"
-        }}
-      >
-        <div style={{ fontSize: "0.75rem", color: viewMode === "landing" ? "#64748b" : "var(--text-muted)", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "16px" }}>
-          <span>Registry: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.registry}</strong></span>
-          <span>qUSDC: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qusdc}</strong></span>
-          <span>WETH: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.weth}</strong></span>
-          <span>QiePass KYC: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qiepass}</strong></span>
-          <span>AI Auditor: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.auditor}</strong></span>
-          <span>Qiedex: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qiedex}</strong></span>
-          {fluenci.contracts.fluenciRouter && <span>FluenciRouter: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.fluenciRouter}</strong></span>}
-          <span>Qiedomain: <strong style={{ color: viewMode === "landing" ? "#2563eb" : "var(--color-cyan)" }}>{fluenci.contracts.qiedomain}</strong></span>
+      <footer className="fluenci-footer">
+        <div className="footer-grid">
+          {/* Brand Column */}
+          <div className="footer-brand">
+            <div className="footer-logo">
+              <img src={LogoImage} alt="Fluenci" style={{ width: "32px", height: "32px", borderRadius: "8px" }} />
+              <span>Fluenci</span>
+            </div>
+            <p className="footer-tagline">AI-shielded subscription streams and real-time billing on QIE Blockchain.</p>
+          </div>
+
+          {/* Protocol Column */}
+          <div className="footer-col">
+            <h4>PROTOCOL</h4>
+            <a href="#features" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>Features</a>
+            <a href="#comparison" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>AI-Shield</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('dashboard'); }}>Launch App</a>
+          </div>
+
+          {/* Ecosystem Column */}
+          <div className="footer-col">
+            <h4>ECOSYSTEM</h4>
+            <a href="https://mainnet.qie.digital" target="_blank" rel="noopener noreferrer">QIE Explorer</a>
+            <a href="https://www.qie.digital" target="_blank" rel="noopener noreferrer">QIE Blockchain</a>
+            <a href="https://dex.qie.digital" target="_blank" rel="noopener noreferrer">QieDex</a>
+            <a href="https://qiepass.qie.digital" target="_blank" rel="noopener noreferrer">QIE Pass</a>
+          </div>
+
+          {/* Resources Column */}
+          <div className="footer-col">
+            <h4>RESOURCES</h4>
+            <a href="#faq" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>FAQ</a>
+            <a href={`https://mainnet.qie.digital/address/${fluenci.contracts.registry}`} target="_blank" rel="noopener noreferrer">Contracts</a>
+            <a href={`https://mainnet.qie.digital/address/${fluenci.contracts.fluenciRouter || '0x75475647f52531D4086296415392E4AA94b92de7'}`} target="_blank" rel="noopener noreferrer">FluenciRouter</a>
+          </div>
         </div>
-        <p>© 2026 Fluenci Protocol. Built for QIE Blockchain Hackathon. All rights reserved.</p>
+
+        <div className="footer-bottom">
+          <p>© 2026 Fluenci Protocol. Built for QIE Blockchain Hackathon.</p>
+        </div>
       </footer>
 
 

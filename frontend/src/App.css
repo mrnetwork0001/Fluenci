@@ -1151,3 +1151,104 @@
   }
 }
 
+/* ═══════════════════════════════════════════════
+   Footer - Cascala Health Inspired
+   ═══════════════════════════════════════════════ */
+.fluenci-footer {
+  background: #000000;
+  padding: 60px 80px 0 80px;
+  border-top: 1px solid #111111;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 48px;
+  padding-bottom: 48px;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-logo span {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.footer-tagline {
+  color: #666666;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  max-width: 280px;
+  margin: 0;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-col h4 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #999999;
+  letter-spacing: 0.1em;
+  margin: 0 0 4px 0;
+}
+
+.footer-col a {
+  color: #cccccc;
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: color 0.2s;
+}
+
+.footer-col a:hover {
+  color: #ffffff;
+}
+
+.footer-bottom {
+  border-top: 1px solid #151515;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.footer-bottom p {
+  color: #444444;
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .fluenci-footer {
+    padding: 48px 40px 0 40px;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+}
+
+@media (max-width: 500px) {
+  .fluenci-footer {
+    padding: 40px 24px 0 24px;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}

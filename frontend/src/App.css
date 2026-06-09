@@ -1257,20 +1257,7 @@
    Dashboard App Section Overrides
    ═══════════════════════════════════════════════ */
 
-/* Input fields inside dark cards */
-.dashboard-header .btn-secondary {
-  background: #f0f0f0;
-  border: 1px solid #d0d0d0;
-  color: #333333;
-}
-
-.dashboard-header .btn-secondary:hover {
-  background: #e5e5e5;
-  border-color: #b0b0b0;
-  color: #111111;
-}
-
-/* Tab pills in white header - active uses dark fill instead of white */
+/* Tab pills in white header - active uses dark fill */
 .dashboard-header .btn-primary {
   background: #111111;
   color: #ffffff;
@@ -1290,15 +1277,4 @@
 .dashboard-header .btn-secondary:hover {
   background: #e8e8e8;
   color: #111111;
-}
-
-/* Scanner line toned down */
-.scanner-line {
-  background: linear-gradient(90deg, transparent, #3b82f6, transparent) !important;
-  opacity: 0.3;
-}
-
-.tx-modal-scanline {
-  background: linear-gradient(90deg, transparent 0%, #3b82f6 50%, transparent 100%) !important;
-  opacity: 0.2;
 }

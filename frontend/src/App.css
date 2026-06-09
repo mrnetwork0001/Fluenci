@@ -572,7 +572,7 @@
 .landing-section.matrix-section {
   width: 100%;
   background-color: #ffffff;
-  padding: 120px 60px;
+  padding: 100px 60px;
   position: relative;
   z-index: 2;
   display: flex;
@@ -580,22 +580,37 @@
   align-items: center;
 }
 
+.landing-section.matrix-section .section-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px auto;
+}
+
 .landing-section.matrix-section .section-header h2 {
   color: #111111 !important;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px 0;
+  line-height: 1.2;
 }
 
 .landing-section.matrix-section .section-header p {
-  color: #5b5b5b !important;
+  color: #666666 !important;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .matrix-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   width: 100%;
-  max-width: 1000px;
+  max-width: 900px;
 }
 
 .matrix-table {
@@ -605,25 +620,35 @@
 }
 
 .matrix-table th {
-  padding: 24px 28px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 18px 28px;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
-  font-size: 1rem;
-  color: #1e293b;
+  font-size: 0.82rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.matrix-table th.matrix-fluenci-col {
+  color: #111111;
 }
 
 .matrix-table td {
-  padding: 22px 28px;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 0.92rem;
-  color: #475569;
+  padding: 18px 28px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+  color: #374151;
+  transition: background 0.2s;
+}
+
+.matrix-table tr:nth-child(even) td {
+  background: #fafbfc;
 }
 
 .matrix-table tr:hover td {
-  background: #f8fafc;
-  color: #0f172a;
+  background: #f0f4ff;
 }
 
 .matrix-table tr:last-child td {
@@ -632,24 +657,25 @@
 
 .matrix-feature-name {
   font-weight: 700;
-  color: #1e293b;
+  color: #111111 !important;
+  font-size: 0.9rem;
 }
 
 .matrix-standard-col {
-  color: #e11d48; /* Crimson / red */
+  color: #9ca3af !important;
+  font-style: italic;
 }
 
 .matrix-fluenci-col {
-  background: rgba(37, 99, 235, 0.01);
-  color: #16a34a; /* green */
-  font-weight: 700;
+  color: #111111 !important;
+  font-weight: 600;
 }
 
-/* 7. White FAQ Accordion Section */
+/* 7. Dark FAQ Accordion Section */
 .landing-section.faq-section {
   width: 100%;
-  background-color: #ffffff;
-  padding: 120px 60px;
+  background-color: #000000;
+  padding: 100px 60px;
   position: relative;
   z-index: 2;
   display: flex;
@@ -657,23 +683,35 @@
   align-items: center;
 }
 
+.landing-section.faq-section .section-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px auto;
+}
+
 .landing-section.faq-section .section-header h2 {
-  color: #111111 !important;
+  color: #ffffff !important;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px 0;
+  line-height: 1.2;
 }
 
 .landing-section.faq-section .section-header p {
-  color: #5b5b5b !important;
+  color: #888888 !important;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
-/* FAQ Accordion hover line */
-.glass-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+.landing-section.faq-section .faq-question-btn:hover {
+  opacity: 0.85;
 }
-.glass-card:hover {
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+
+.landing-section.faq-section .faq-item:first-child {
+  border-top: 1px solid #1a1a1a;
 }
 
 /* 8. Black Footer CTA Section */

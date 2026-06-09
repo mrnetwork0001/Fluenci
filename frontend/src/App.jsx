@@ -27,54 +27,67 @@ const DEFAULT_HARDHAT_CONTRACTS = {
 };
 
 // FAQ Accordion Item Component
-function FAQItem({ question, answer }) {
+function FAQItem({ question, answer, index }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="glass-card" style={{ 
-      marginBottom: "12px", 
-      textAlign: "left", 
-      border: isOpen ? "1px solid rgba(157, 78, 221, 0.4)" : "1px solid var(--border-color)",
-      background: isOpen ? "rgba(157, 78, 221, 0.02)" : "rgba(15, 20, 35, 0.5)",
-      transition: "all 0.3s ease",
-      borderRadius: "12px",
-      overflow: "hidden"
+    <div className="faq-item" style={{ 
+      borderBottom: "1px solid #1a1a1a",
+      transition: "all 0.3s ease"
     }}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
+        className="faq-question-btn"
         style={{
           width: "100%",
           background: "none",
           border: "none",
-          color: "#fff",
+          color: "#ffffff",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          padding: "16px 20px",
-          fontSize: "1rem",
-          fontWeight: "600",
+          gap: "16px",
+          padding: "22px 0",
+          fontSize: "0.95rem",
+          fontWeight: "500",
           cursor: "pointer",
-          textAlign: "left"
+          textAlign: "left",
+          fontFamily: "'Montserrat', sans-serif",
+          letterSpacing: "-0.01em"
         }}
       >
-        <span>{question}</span>
+        <span style={{
+          color: "#333333",
+          fontSize: "0.8rem",
+          fontWeight: "700",
+          fontFamily: "monospace",
+          minWidth: "28px"
+        }}>
+          {String(index).padStart(2, "0")}
+        </span>
+        <span style={{ flex: 1 }}>{question}</span>
         <span style={{ 
-          color: "var(--color-cyan)", 
-          transform: isOpen ? "rotate(45deg)" : "rotate(0deg)", 
-          transition: "transform 0.2s ease",
-          fontSize: "1.2rem",
-          fontWeight: "bold"
-        }}>+</span>
+          color: "#555555", 
+          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", 
+          transition: "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+          fontSize: "0.75rem",
+          flexShrink: 0
+        }}>▼</span>
       </button>
-      {isOpen && (
+      <div style={{ 
+        maxHeight: isOpen ? "300px" : "0px",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease",
+        opacity: isOpen ? 1 : 0
+      }}>
         <div style={{ 
-          padding: "0 20px 20px 20px", 
-          color: "var(--text-secondary)", 
-          fontSize: "0.85rem",
-          lineHeight: "1.6"
+          padding: "0 0 22px 44px", 
+          color: "#777777", 
+          fontSize: "0.88rem",
+          lineHeight: "1.75",
+          maxWidth: "620px"
         }}>
           {answer}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -1035,65 +1048,74 @@ export default function App() {
                 <table className="matrix-table">
                   <thead>
                     <tr>
-                      <th>Feature Capability</th>
-                      <th>Standard Web3 Streams</th>
+                      <th>Feature</th>
+                      <th>Standard Web3</th>
                       <th className="matrix-fluenci-col">Fluenci AI-Shield</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="matrix-feature-name">Exploit / Rate Spike Protection</td>
-                      <td className="matrix-standard-col">None (Streams drain completely)</td>
-                      <td className="matrix-fluenci-col">Instant onchain AI Safety Pause</td>
-                    </tr>
-                    <tr>
-                      <td className="matrix-feature-name">KYC/Identity Gating</td>
-                      <td className="matrix-standard-col">Address only (Anonymity issues)</td>
-                      <td className="matrix-fluenci-col">Gated via QIE Pass DID Verification</td>
-                    </tr>
-                    <tr>
-                      <td className="matrix-feature-name">Dispute Resolution</td>
-                      <td className="matrix-standard-col">Manual Arbitration / Legal recourse</td>
-                      <td className="matrix-fluenci-col">AI-Arbitrated EIP-712 Dispute Signatures</td>
-                    </tr>
-                    <tr>
-                      <td className="matrix-feature-name">Token Volatility Protection</td>
-                      <td className="matrix-standard-col">Exposed to market fluctuations</td>
-                      <td className="matrix-fluenci-col">Settled in Stablecoins (qUSD) & DEX Swaps</td>
-                    </tr>
-                    <tr>
-                      <td className="matrix-feature-name">Subscription Model</td>
-                      <td className="matrix-standard-col">Basic push transactions</td>
-                      <td className="matrix-fluenci-col">Transferable Subscription NFT Streams</td>
-                    </tr>
+                    {[
+                      ["Exploit / Rate Spike Protection", "None — streams drain completely", "Instant onchain AI Safety Pause"],
+                      ["KYC / Identity Gating", "Address only — anonymity issues", "QIE Pass DID Verification"],
+                      ["Dispute Resolution", "Manual arbitration or legal action", "AI-Arbitrated EIP-712 Signatures"],
+                      ["Token Volatility Protection", "Exposed to market fluctuations", "Stablecoin (qUSDC) + DEX Swaps"],
+                      ["Subscription Model", "Basic push transactions", "Transferable Subscription NFT Streams"]
+                    ].map(([feature, standard, fluenci], i) => (
+                      <tr key={i}>
+                        <td className="matrix-feature-name">{feature}</td>
+                        <td className="matrix-standard-col">✗ {standard}</td>
+                        <td className="matrix-fluenci-col">✓ {fluenci}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </section>
 
             {/* FAQ Accordion Section */}
-            <section id="faq" className="landing-section faq-section" style={{ maxWidth: "800px", margin: "0 auto" }}>
-              <div className="section-header" style={{ textAlign: "center" }}>
+            <section id="faq" className="landing-section faq-section">
+              <div className="section-header">
                 <h2>Frequently Asked Questions</h2>
                 <p>Everything you need to know about the Fluenci protocol and how the AI sentries protect your assets.</p>
               </div>
-              
-              <FAQItem 
-                question="How does the autonomous AI Sentry Node pause streaming exploits?"
-                answer="The offchain Sentry Agent continuously monitors the blockchain for new stream creations. When a stream is detected, the Analyst Agent uses reputation checkers and heuristics to determine if the rate is safe. If the velocity is dangerously high (e.g. attempting to drain the subscriber's balance), the Decision Agent signs a safety-pause transaction and broadcasts it to lock the stream onchain until it is verified."
-              />
-              <FAQItem 
-                question="Why are payment streams minted as transferable NFTs?"
-                answer="Fluenci represents each streaming payment agreement as an ERC-721 Subscription NFT. This allows users to trade, gift, or delegate their subscriptions. When the NFT is transferred, the smart contract automatically shifts the billing obligation to the new owner's wallet address, enabling tradeable recurring memberships."
-              />
-              <FAQItem 
-                question="How does AI-arbitrated dispute resolution work?"
-                answer="If a subscriber opens a dispute, the stream is paused. The offchain Arbitrator Agent evaluates the text evidence provided by both parties, determines a fair split of the accrued tokens, and signs an EIP-712 cryptographic message containing the resolution. The smart contract validates the AI's signature onchain to unlock and distribute the funds securely."
-              />
-              <FAQItem 
-                question="Do I need to deposit all my subscription funds upfront?"
-                answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of qUSDC in your wallet to cover the continuous claims."
-              />
+
+              <div style={{ width: "100%", maxWidth: "720px" }}>
+                <FAQItem 
+                  index={1}
+                  question="How does the autonomous AI Sentry Node pause streaming exploits?"
+                  answer="The offchain Sentry Agent continuously monitors the blockchain for new stream creations. When a stream is detected, the Analyst Agent uses reputation checkers and heuristics to determine if the rate is safe. If the velocity is dangerously high (e.g. attempting to drain the subscriber's balance), the Decision Agent signs a safety-pause transaction and broadcasts it to lock the stream onchain until it is verified."
+                />
+                <FAQItem 
+                  index={2}
+                  question="Why are payment streams minted as transferable NFTs?"
+                  answer="Fluenci represents each streaming payment agreement as an ERC-721 Subscription NFT. This allows users to trade, gift, or delegate their subscriptions. When the NFT is transferred, the smart contract automatically shifts the billing obligation to the new owner's wallet address, enabling tradeable recurring memberships."
+                />
+                <FAQItem 
+                  index={3}
+                  question="How does AI-arbitrated dispute resolution work?"
+                  answer="If a subscriber opens a dispute, the stream is paused. The offchain Arbitrator Agent evaluates the text evidence provided by both parties, determines a fair split of the accrued tokens, and signs an EIP-712 cryptographic message containing the resolution. The smart contract validates the AI's signature onchain to unlock and distribute the funds securely."
+                />
+                <FAQItem 
+                  index={4}
+                  question="Do I need to deposit all my subscription funds upfront?"
+                  answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of qUSDC in your wallet to cover the continuous claims."
+                />
+                <FAQItem 
+                  index={5}
+                  question="How does the built-in DEX swap integration work?"
+                  answer="Fluenci integrates directly with QieDex through a dedicated FluenciRouter contract. You can swap between QIE and qUSDC without leaving the app. Every swap routed through Fluenci emits an on-chain FluenciSwap event, providing transparent attribution and real-time volume tracking on the QIE blockchain explorer."
+                />
+                <FAQItem 
+                  index={6}
+                  question="What is QIE Pass and why is identity verification important?"
+                  answer="QIE Pass is QIE blockchain's native decentralized identity (DID) system. Fluenci gates merchant registrations through QIE Pass verification to prevent sybil attacks and anonymous fraud. This ensures that every merchant accepting payments through Fluenci has a verified on-chain identity, adding a layer of trust for subscribers."
+                />
+                <FAQItem 
+                  index={7}
+                  question="Are the Fluenci smart contracts auditable and open-source?"
+                  answer="Yes. All Fluenci smart contracts are deployed on QIE Mainnet with verified source code. The Subscription Registry, AI Auditor, and FluenciRouter contracts are fully transparent and can be inspected on the QIE block explorer. The contract addresses are listed in the app footer for easy reference and independent verification."
+                />
+              </div>
             </section>
 
             {/* Explore the Platform CTA */}

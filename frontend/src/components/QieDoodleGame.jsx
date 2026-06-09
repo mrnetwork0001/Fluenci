@@ -21,12 +21,12 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
   }, [subscriberStreams]);
 
   const handleStartStream = async () => {
-    // Start a cheap stream (e.g., 100 units of qUSDC per second, representing micro-cent gaming fee)
+    // Start a cheap stream (e.g., 100 units of QUSDC per second, representing micro-cent gaming fee)
     try {
       await createSubscription(
         DOODLE_MERCHANT,
-        "qUSDC",
-        "100", // 0.0001 qUSDC per second
+        "QUSDC",
+        "100", // 0.0001 QUSDC per second
         0, // no cliff
         0  // infinite
       );
@@ -222,7 +222,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
               <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
                 <div style={{ fontSize: "0.75rem", color: "#666666" }}>STREAM RATE</div>
                 <div style={{ fontSize: "0.85rem", color: "#111111", fontWeight: "bold" }}>
-                  0.0001 qUSDC / sec
+                  0.0001 QUSDC / sec
                 </div>
               </div>
               <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
@@ -234,7 +234,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
               <div style={{ background: "rgba(0,0,0,0.04)", padding: "8px 12px", borderRadius: "8px" }}>
                 <div style={{ fontSize: "0.75rem", color: "#666666" }}>ESTIMATED SPEND</div>
                 <div style={{ fontSize: "0.85rem", color: "#777777", fontWeight: "bold" }}>
-                  {doodleStream ? "ACTIVE" : "0.0000 qUSDC"}
+                  {doodleStream ? "ACTIVE" : "0.0000 QUSDC"}
                 </div>
               </div>
             </div>

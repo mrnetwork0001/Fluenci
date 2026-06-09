@@ -256,7 +256,7 @@ export function useFluenci() {
       const qieBalVal = await provider.getBalance(account);
       setQieBalance(ethers.formatEther(qieBalVal));
 
-      // Fetch qUSDC Balance & Allowance
+      // Fetch QUSDC Balance & Allowance
       if (contracts.qusdc) {
         const qusdcContract = new ethers.Contract(contracts.qusdc, ERC20_ABI, provider);
         const bal = await qusdcContract.balanceOf(account);
@@ -338,7 +338,7 @@ export function useFluenci() {
             subscriber: details[0],
             merchant: details[1],
             tokenAddress: details[2],
-            tokenSymbol: isUSDC ? "qUSDC" : "Unknown",
+            tokenSymbol: isUSDC ? "QUSDC" : "Unknown",
             ratePerSecond: Number(details[3]),
             lastClaimedTimestamp: Number(details[4]),
             startTime: Number(details[5]),
@@ -365,7 +365,7 @@ export function useFluenci() {
             subscriber: details[0],
             merchant: details[1],
             tokenAddress: details[2],
-            tokenSymbol: isUSDC ? "qUSDC" : "Unknown",
+            tokenSymbol: isUSDC ? "QUSDC" : "Unknown",
             ratePerSecond: Number(details[3]),
             lastClaimedTimestamp: Number(details[4]),
             startTime: Number(details[5]),
@@ -418,8 +418,8 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: `Minting ${amount} ${tokenSymbol}`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const tokenAddress = tokenSymbol === "qUSDC" ? contracts.qusdc : contracts.weth;
-      const decimals = tokenSymbol === "qUSDC" ? 6 : 18;
+      const tokenAddress = tokenSymbol === "QUSDC" ? contracts.qusdc : contracts.weth;
+      const decimals = tokenSymbol === "QUSDC" ? 6 : 18;
       
       const tx = await executeDirectTx(
         tokenAddress,
@@ -446,7 +446,7 @@ export function useFluenci() {
   const approveToken = async (tokenSymbol) => {
     setError("");
     setLoading(true);
-    setTxState({ status: "preparing", action: `Approving qUSDC`, hash: "", error: "" });
+    setTxState({ status: "preparing", action: `Approving QUSDC`, hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
       const tx = await executeDirectTx(
@@ -640,16 +640,16 @@ export function useFluenci() {
     }
   };
 
-  // Generalized Swap (QIE ⇄ qUSDC) via Qiedex
+  // Generalized Swap (QIE ⇄ QUSDC) via Qiedex
   const swapQieForTokens = async (fromToken, toToken, amount) => {
     setError("");
     setLoading(true);
     setTxState({ status: "preparing", action: `Swapping ${amount} ${fromToken} → ${toToken}`, hash: "", error: "" });
     try {
-      const isReverse = fromToken === "qUSDC";
+      const isReverse = fromToken === "QUSDC";
       
       const path = isReverse 
-        ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // qUSDC → WQIE
+        ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // QUSDC → WQIE
         : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc]; // WQIE → qUSDC
       
       const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 min deadline
@@ -679,15 +679,15 @@ export function useFluenci() {
       const injected = activeProviderRef.current || window.ethereum;
       if (!injected) throw new Error("No Web3 wallet detected");
 
-      // Auto-approve qUSDC if we are doing a reverse swap (qUSDC ➔ QIE)
+      // Auto-approve QUSDC if we are doing a reverse swap (QUSDC ➔ QIE)
       if (isReverse) {
-        setTxState({ status: "preparing", action: "Checking qUSDC Allowance...", hash: "", error: "" });
+        setTxState({ status: "preparing", action: "Checking QUSDC Allowance...", hash: "", error: "" });
         const readProvider = getReadProvider();
         const qusdcContract = new ethers.Contract(contracts.qusdc, ERC20_ABI, readProvider);
         const allowance = await qusdcContract.allowance(account, swapTarget);
         
         if (allowance < parsedAmount) {
-          setTxState({ status: "preparing", action: "Approving qUSDC for Swap", hash: "", error: "" });
+          setTxState({ status: "preparing", action: "Approving QUSDC for Swap", hash: "", error: "" });
           setTxStep("awaiting_signature");
           const approveTx = await executeDirectTx(
             contracts.qusdc,
@@ -708,7 +708,7 @@ export function useFluenci() {
 
       let tx;
       if (!isReverse) {
-        // QIE ➔ qUSDC
+        // QIE ➔ QUSDC
         const dexInterface = new ethers.Interface(DEX_ABI);
         const data = dexInterface.encodeFunctionData("swapExactETHForTokens", [
           amountOutMin,
@@ -732,7 +732,7 @@ export function useFluenci() {
         if (!txHash) throw new Error("No transaction hash returned from wallet");
         tx = { hash: txHash };
       } else {
-        // qUSDC ➔ QIE
+        // QUSDC ➔ QIE
         tx = await executeDirectTx(
           swapTarget,
           DEX_ABI,
@@ -1109,7 +1109,7 @@ export function useFluenci() {
 
       const allStreams = [...subscriberStreams, ...merchantStreams];
       allStreams.forEach((stream) => {
-        const isUSDC = stream.tokenSymbol === "qUSDC";
+        const isUSDC = stream.tokenSymbol === "QUSDC";
         const scalar = isUSDC ? 6 : 18;
         
         if (stream.active && !stream.pausedByAI && stream.disputeState === 0) {

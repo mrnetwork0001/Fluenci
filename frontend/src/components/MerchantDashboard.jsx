@@ -12,11 +12,11 @@ export default function MerchantDashboard({
 }) {
   // Calculate total active incoming rate for USDC
   const totalUSDCIncoming = merchantStreams
-    .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "qUSDC")
+    .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "QUSDC")
     .reduce((sum, s) => sum + (s.ratePerSecond * 3600 / 1e6), 0);
 
   const totalUSDCPending = merchantStreams
-    .filter(s => s.active && s.tokenSymbol === "qUSDC")
+    .filter(s => s.active && s.tokenSymbol === "QUSDC")
     .reduce((sum, s) => sum + (realtimeClaimables[s.id] || 0), 0);
 
   // Formats addresses to domain name overrides if matched
@@ -44,8 +44,8 @@ export default function MerchantDashboard({
               <strong style={{ color: "#111111" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>qUSDC:</span>
-              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
+              <span>QUSDC:</span>
+              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} QUSDC</strong>
             </div>
           </div>
         </div>
@@ -61,7 +61,7 @@ export default function MerchantDashboard({
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#111111" }}>
-              {totalUSDCIncoming.toFixed(2)} <span style={{ fontSize: "0.85rem" }}>qUSDC/hr</span>
+              {totalUSDCIncoming.toFixed(2)} <span style={{ fontSize: "0.85rem" }}>QUSDC/hr</span>
             </div>
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function MerchantDashboard({
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#111111" }} className="streaming-active-glow">
-              {totalUSDCPending.toFixed(4)} <span style={{ fontSize: "0.85rem" }}>qUSDC</span>
+              {totalUSDCPending.toFixed(4)} <span style={{ fontSize: "0.85rem" }}>QUSDC</span>
             </div>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function MerchantDashboard({
               <tbody>
                 {merchantStreams.map((stream) => {
                   const claimable = realtimeClaimables[stream.id] || 0;
-                  const decimals = stream.tokenSymbol === "qUSDC" ? 6 : 18;
+                  const decimals = stream.tokenSymbol === "QUSDC" ? 6 : 18;
                   const displayRate = ((stream.ratePerSecond * 3600) / (10 ** decimals)).toFixed(4);
                   const isPaused = stream.pausedByAI;
                   const isDisputed = stream.disputeState === 1;

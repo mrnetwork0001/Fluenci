@@ -26,7 +26,7 @@ export default function SubscriberPanel({
 }) {
   const [merchant, setMerchant] = useState("");
   const [rate, setRate] = useState(""); // rate per hour
-  const [tokenSymbol, setTokenSymbol] = useState("qUSDC");
+  const [tokenSymbol, setTokenSymbol] = useState("QUSDC");
   const [cliffSeconds, setCliffSeconds] = useState("");
   const [stopSeconds, setStopSeconds] = useState("");
 
@@ -36,7 +36,7 @@ export default function SubscriberPanel({
   const [durationUnit, setDurationUnit] = useState("hours"); // "seconds" | "hours" | "days"
 
   const [swapAmount, setSwapAmount] = useState("1");
-  const [swapToken, setSwapToken] = useState("qUSDC");
+  const [swapToken, setSwapToken] = useState("QUSDC");
   const [swapMode, setSwapMode] = useState("QIE_TO_QUSDC"); // QIE_TO_QUSDC | QUSDC_TO_QIE
 
   // Dispute and Transfer state
@@ -66,7 +66,7 @@ export default function SubscriberPanel({
         );
         const isReverse = swapMode === "QUSDC_TO_QIE";
         const path = isReverse
-          ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // qUSDC → WQIE
+          ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // QUSDC → WQIE
           : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc]; // WQIE → qUSDC
         
         const decimalsIn = isReverse ? 6 : 18;
@@ -101,7 +101,7 @@ export default function SubscriberPanel({
 
     let calculatedRatePerSecond = 0n;
     let finalStopSeconds = 0;
-    const decimals = tokenSymbol === "qUSDC" ? 6 : 18;
+    const decimals = tokenSymbol === "QUSDC" ? 6 : 18;
 
     if (inputMode === "rate") {
       if (!rate) return;
@@ -200,7 +200,7 @@ export default function SubscriberPanel({
 
   // SVG Line Chart coordinates calculations based on active streaming rates
   const totalUSDCActiveOutflow = subscriberStreams
-    .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "qUSDC")
+    .filter(s => s.active && !s.pausedByAI && s.disputeState === 0 && s.tokenSymbol === "QUSDC")
     .reduce((sum, s) => sum + (s.ratePerSecond * 3600 / 1e6), 0);
 
   // Formats address or returns domain name if pre-mapped
@@ -233,8 +233,8 @@ export default function SubscriberPanel({
               <strong style={{ color: "#111111" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>qUSDC stable:</span>
-              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} qUSDC</strong>
+              <span>QUSDC stable:</span>
+              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} QUSDC</strong>
             </div>
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function SubscriberPanel({
                   color: "var(--text-muted)",
                   pointerEvents: "none"
                 }}>
-                  {swapMode === "QIE_TO_QUSDC" ? "QIE" : "qUSDC"}
+                  {swapMode === "QIE_TO_QUSDC" ? "QIE" : "QUSDC"}
                 </span>
               </div>
               
@@ -304,7 +304,7 @@ export default function SubscriberPanel({
               </button>
               
               <strong style={{ fontSize: "0.85rem", color: swapMode === "QIE_TO_QUSDC" ? "#ffffff" : "#fff" }}>
-                {swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE"}
+                {swapMode === "QIE_TO_QUSDC" ? "QUSDC" : "QIE"}
               </strong>
             </div>
 
@@ -312,7 +312,7 @@ export default function SubscriberPanel({
               <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", margin: "-2px 0 2px 0", padding: "0 4px" }}>
                 <span>Est. Received:</span>
                 <strong style={{ color: swapMode === "QIE_TO_QUSDC" ? "#ffffff" : "#fff" }}>
-                  {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} ${swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE"}`}
+                  {calculatingSwap ? "Calculating..." : `${parseFloat(expectedOutput).toFixed(4)} ${swapMode === "QIE_TO_QUSDC" ? "QUSDC" : "QIE"}`}
                 </strong>
               </div>
             )}
@@ -320,8 +320,8 @@ export default function SubscriberPanel({
             <button 
               className="btn btn-primary" 
               onClick={() => swapQieForTokens(
-                swapMode === "QIE_TO_QUSDC" ? "QIE" : "qUSDC",
-                swapMode === "QIE_TO_QUSDC" ? "qUSDC" : "QIE",
+                swapMode === "QIE_TO_QUSDC" ? "QIE" : "QUSDC",
+                swapMode === "QIE_TO_QUSDC" ? "QUSDC" : "QIE",
                 swapAmount
               )}
               disabled={loading || isInsufficientBalance || parseFloat(swapAmount) <= 0}
@@ -334,8 +334,8 @@ export default function SubscriberPanel({
               }}
             >
               {isInsufficientBalance 
-                ? `Insufficient ${swapMode === "QIE_TO_QUSDC" ? "QIE" : "qUSDC"} Balance` 
-                : `Swap ${swapMode === "QIE_TO_QUSDC" ? "QIE ➔ qUSDC" : "qUSDC ➔ QIE"}`}
+                ? `Insufficient ${swapMode === "QIE_TO_QUSDC" ? "QIE" : "QUSDC"} Balance` 
+                : `Swap ${swapMode === "QIE_TO_QUSDC" ? "QIE ➔ QUSDC" : "QUSDC ➔ QIE"}`}
             </button>
           </div>
         </div>
@@ -439,9 +439,9 @@ export default function SubscriberPanel({
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "10px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
-              <span>qUSDC Registry:</span>
-              <strong style={{ color: isAllowanceApproved("qUSDC") ? "#111111" : "#999999" }}>
-                {isAllowanceApproved("qUSDC") ? "Approved" : "None"}
+              <span>QUSDC Registry:</span>
+              <strong style={{ color: isAllowanceApproved("QUSDC") ? "#111111" : "#999999" }}>
+                {isAllowanceApproved("QUSDC") ? "Approved" : "None"}
               </strong>
             </div>
           </div>
@@ -449,10 +449,10 @@ export default function SubscriberPanel({
             <button 
               className="btn btn-secondary" 
               style={{ width: "100%", justifyContent: "center" }}
-              onClick={() => approveToken("qUSDC")}
-              disabled={loading || isAllowanceApproved("qUSDC")}
+              onClick={() => approveToken("QUSDC")}
+              disabled={loading || isAllowanceApproved("QUSDC")}
             >
-              Approve qUSDC
+              Approve QUSDC
             </button>
           </div>
         </div>
@@ -462,7 +462,7 @@ export default function SubscriberPanel({
       <div className="glass-card" style={{ padding: "16px 20px" }}>
         <h3 style={{ margin: "0 0 8px 0", fontSize: "1rem", color: "#111111" }}>Real-Time Stream Velocity Matrix</h3>
         <p style={{ margin: "0 0 16px 0", color: "var(--text-muted)", fontSize: "0.8rem" }}>
-          Current hourly spend velocity: <strong style={{ color: "#111111" }}>{totalUSDCActiveOutflow.toFixed(2)} qUSDC/hr</strong>
+          Current hourly spend velocity: <strong style={{ color: "#111111" }}>{totalUSDCActiveOutflow.toFixed(2)} QUSDC/hr</strong>
         </p>
         <div style={{ height: "100px", position: "relative", background: "rgba(0,0,0,0.15)", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.02)" }}>
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
@@ -549,7 +549,7 @@ export default function SubscriberPanel({
               Streaming Token
             </label>
             <div style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid rgba(255,255,255,0.1)", color: "#111111", fontSize: "0.85rem", fontWeight: "bold" }}>
-              qUSDC (6 Decimals)
+              QUSDC (6 Decimals)
             </div>
           </div>
           
@@ -722,7 +722,7 @@ export default function SubscriberPanel({
               <tbody>
                 {subscriberStreams.map((stream) => {
                   const claimable = realtimeClaimables[stream.id] || 0;
-                  const decimals = stream.tokenSymbol === "qUSDC" ? 6 : 18;
+                  const decimals = stream.tokenSymbol === "QUSDC" ? 6 : 18;
                   const displayRate = ((stream.ratePerSecond * 3600) / (10 ** decimals)).toFixed(4);
                   const isPaused = stream.pausedByAI;
                   

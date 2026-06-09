@@ -1050,7 +1050,7 @@ export default function App() {
                       ["Exploit / Rate Spike Protection", "None - streams drain completely", "Instant onchain AI Safety Pause"],
                       ["KYC / Identity Gating", "Address only - anonymity issues", "QIE Pass DID Verification"],
                       ["Dispute Resolution", "Manual arbitration or legal action", "AI-Arbitrated EIP-712 Signatures"],
-                      ["Token Volatility Protection", "Exposed to market fluctuations", "Stablecoin (qUSDC) + DEX Swaps"],
+                      ["Token Volatility Protection", "Exposed to market fluctuations", "Stablecoin (QUSDC) + DEX Swaps"],
                       ["Subscription Model", "Basic push transactions", "Transferable Subscription NFT Streams"]
                     ].map(([feature, standard, fluenci], i) => (
                       <tr key={i}>
@@ -1098,7 +1098,7 @@ export default function App() {
                   isOpen={activeFaqIndex === 4}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 4 ? null : 4)}
                   question="Do I need to deposit all my subscription funds upfront?"
-                  answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of qUSDC in your wallet to cover the continuous claims."
+                  answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of QUSDC in your wallet to cover the continuous claims."
                 />
                 <FAQItem 
                   index={5}

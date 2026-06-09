@@ -770,8 +770,9 @@ export default function App() {
                     AI-Shielded Subscriptions
                   </div>
                   <h1 className="gradient-title" style={{ fontSize: "3.8rem", color: "#000000", fontWeight: "900" }}>
-                    Better Security for<br />
-                    <span style={{ color: "#000000" }}>Better Payments.</span>
+                    Stop Blind Streams.
+                    <br />
+                    <span style={{ color: "#000000" }}>AI-Shielded Payments.</span>
                   </h1>
                   <p className="hero-subtitle">
                     Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.

@@ -517,7 +517,7 @@ export default function App() {
   const isSupportedNetwork = fluenci.chainId === 1990;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "var(--bg-primary)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#000000" }}>
       {/* Navbar */}
       <header 
         className={viewMode === "landing" ? "landing-header" : "dashboard-header"}
@@ -533,9 +533,8 @@ export default function App() {
           zIndex: 100
         } : { 
           padding: "20px 40px", 
-          borderBottom: "1px solid var(--border-color)", 
-          background: "rgba(10, 15, 30, 0.5)",
-          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid #e5e5e5", 
+          background: "#ffffff",
           display: "flex", 
           justifyContent: "space-between", 
           alignItems: "center",
@@ -562,17 +561,17 @@ export default function App() {
               width: "42px", 
               height: "42px", 
               borderRadius: "10px",
-              boxShadow: "0 0 15px rgba(0, 242, 254, 0.3)",
-              border: "1px solid rgba(0, 242, 254, 0.2)"
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+              border: "1px solid #e2e8f0"
             }} 
           />
           <div>
-            <h1 style={{ fontSize: "1.4rem", fontWeight: "900", color: viewMode === "landing" ? "#000000" : "#fff", lineHeight: "1.2", fontFamily: "'Montserrat', sans-serif" }}>
+            <h1 style={{ fontSize: "1.4rem", fontWeight: "900", color: "#000000", lineHeight: "1.2", fontFamily: "'Montserrat', sans-serif" }}>
               Fluenci
             </h1>
             {viewMode !== "landing" && (
-              <span style={{ fontSize: "0.75rem", color: "var(--color-cyan)", fontWeight: "600", tracking: "0.05em" }}>
-                AI-SHIELDED PAYMENT STREAMS & DISPUTE NFT
+              <span style={{ fontSize: "0.72rem", color: "#888888", fontWeight: "600", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                AI-Shielded Payment Streams
               </span>
             )}
           </div>
@@ -592,30 +591,30 @@ export default function App() {
 
         {/* Tab Navigation (visible when dashboard view is active) */}
         {viewMode === "dashboard" && (!fluenci.account || isSupportedNetwork) && (
-          <nav style={{ display: "flex", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <nav style={{ display: "flex", gap: "4px", background: "#f5f5f5", padding: "4px", borderRadius: "10px" }}>
             <button 
               className={`btn ${activeTab === "subscriber" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: activeTab === "subscriber" ? "var(--shadow-neon)" : "none" }}
+              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
               onClick={() => setActiveTab("subscriber")}
             >
               <UserCircle size={16} />
-              Subscriber Panel
+              Subscriber
             </button>
             <button 
               className={`btn ${activeTab === "merchant" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: activeTab === "merchant" ? "var(--shadow-neon)" : "none" }}
+              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
               onClick={() => setActiveTab("merchant")}
             >
               <Building2 size={16} />
-              Merchant Dashboard
+              Merchant
             </button>
             <button 
               className={`btn ${activeTab === "security" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: activeTab === "security" ? "var(--shadow-neon)" : "none" }}
+              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
               onClick={() => setActiveTab("security")}
             >
               <Terminal size={16} />
-              AI Security Desk
+              AI Security
             </button>
           </nav>
         )}
@@ -657,9 +656,8 @@ export default function App() {
             className="glass-card" 
             style={{ 
               marginBottom: "24px", 
-              borderColor: "var(--color-amber)", 
-              background: "rgba(245, 158, 11, 0.05)",
-              color: "var(--color-amber)",
+              borderColor: "rgba(245, 158, 11, 0.3)", 
+              color: "#f59e0b",
               padding: "24px",
               display: "flex",
               flexDirection: "column",
@@ -668,21 +666,20 @@ export default function App() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <Shield size={22} color="var(--color-amber)" />
-              <strong style={{ fontSize: "1.1rem" }}>Wallet RPC Misconfiguration Detected</strong>
+              <Shield size={22} color="#f59e0b" />
+              <strong style={{ fontSize: "1.05rem" }}>Wallet RPC Misconfiguration Detected</strong>
             </div>
-            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", margin: 0, lineHeight: "1.4" }}>
+            <p style={{ fontSize: "0.88rem", color: "#888888", margin: 0, lineHeight: "1.5" }}>
               Your wallet is trying to reach the QIE Mainnet node but it appears to be down or unreachable.
-              Please check your wallet's <strong>Custom Network settings</strong> for QIE Mainnet (Chain ID 1990)
-              and ensure the RPC URL is set to <code>https://rpc1mainnet.qie.digital</code>, then try again.
-              You can also click the button below to attempt an automatic network sync.
+              Please check your wallet's <strong style={{ color: "#cccccc" }}>Custom Network settings</strong> for QIE Mainnet (Chain ID 1990)
+              and ensure the RPC URL is set to <code style={{ color: "#ffffff" }}>https://rpc1mainnet.qie.digital</code>, then try again.
             </p>
             <button 
               className="btn btn-primary" 
               style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: "0.85rem" }}
               onClick={fluenci.switchToQieMainnet}
             >
-              Auto-Repair Wallet RPC Configuration
+              Auto-Repair Wallet RPC
             </button>
           </div>
         ) : fluenci.error && (
@@ -690,9 +687,8 @@ export default function App() {
             className="glass-card" 
             style={{ 
               marginBottom: "24px", 
-              borderColor: "rgba(244, 63, 94, 0.4)", 
-              background: "rgba(244, 63, 94, 0.05)",
-              color: "var(--color-rose)",
+              borderColor: "rgba(244, 63, 94, 0.3)", 
+              color: "#f43f5e",
               padding: "16px",
               display: "flex",
               alignItems: "center",
@@ -710,17 +706,15 @@ export default function App() {
             className="glass-card" 
             style={{ 
               marginBottom: "30px", 
-              borderColor: "rgba(245, 158, 11, 0.4)", 
-              background: "rgba(245, 158, 11, 0.05)",
-              color: "var(--color-amber)",
+              borderColor: "rgba(245, 158, 11, 0.3)", 
+              color: "#f59e0b",
               padding: "24px",
               textAlign: "center"
             }}
           >
-            <h3 style={{ marginBottom: "10px" }}>Unsupported Blockchain Network Connected</h3>
-            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "16px" }}>
-              Fluenci operates exclusively on the **QIE Mainnet (Chain ID: 1990)**. 
-              Please switch your wallet network connection.
+            <h3 style={{ marginBottom: "10px" }}>Unsupported Network</h3>
+            <p style={{ fontSize: "0.9rem", color: "#888888", marginBottom: "16px" }}>
+              Fluenci operates exclusively on QIE Mainnet (Chain ID: 1990). Please switch your wallet.
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
               <button className="btn btn-primary" onClick={fluenci.switchToQieMainnet}>
@@ -736,9 +730,7 @@ export default function App() {
             className="glass-card" 
             style={{ 
               marginBottom: "24px", 
-              borderColor: "rgba(0, 242, 254, 0.3)", 
-              background: "rgba(0, 242, 254, 0.03)",
-              color: "var(--color-cyan)",
+              borderColor: "#2a2a2a", 
               padding: "16px",
               display: "flex",
               alignItems: "center",
@@ -746,13 +738,13 @@ export default function App() {
               gap: "12px"
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#888888" }}>
               <Shield size={20} />
               <span>
-                <strong>Read-Only Preview Mode:</strong> You are browsing the dashboard. Connect your Web3 wallet to start payment streams, claim funds, or verify identity.
+                <strong style={{ color: "#ffffff" }}>Read-Only Preview:</strong> Connect your wallet to start payment streams, claim funds, or verify identity.
               </span>
             </div>
-            <button className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.80rem" }} onClick={fluenci.connectWallet}>
+            <button className="btn btn-primary" style={{ padding: "6px 14px", fontSize: "0.80rem", whiteSpace: "nowrap" }} onClick={fluenci.connectWallet}>
               Connect Wallet
             </button>
           </div>

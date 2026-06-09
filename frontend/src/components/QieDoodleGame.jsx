@@ -68,7 +68,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
       nextDir: DIR.RIGHT,
       food: spawnFood(initialSnake),
       score: 0,
-      speed: 120,
+      speed: 220,
       eaten: 0,
       foodPulse: 0,
     };
@@ -188,8 +188,8 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
           setScore(s.score);
           s.food = spawnFood(s.snake);
           // Increase speed every 5 food
-          if (s.eaten % 5 === 0 && s.speed > 70) {
-            s.speed -= 10;
+          if (s.eaten % 5 === 0 && s.speed > 90) {
+            s.speed -= 8;
           }
         } else {
           s.snake.pop();

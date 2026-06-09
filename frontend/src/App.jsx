@@ -335,6 +335,32 @@ export default function App() {
   const prevAccountRef = useRef(fluenci.account);
   const cardRef = useRef(null);
 
+  // Typewriter effect for hero title
+  const heroWords = ["Blind", "Rogue", "Risky"];
+  const [heroWordIndex, setHeroWordIndex] = useState(0);
+  const [heroDisplay, setHeroDisplay] = useState("");
+  const [heroTyping, setHeroTyping] = useState(true); // true = typing, false = deleting
+
+  useEffect(() => {
+    const word = heroWords[heroWordIndex];
+    let timeout;
+    if (heroTyping) {
+      if (heroDisplay.length < word.length) {
+        timeout = setTimeout(() => setHeroDisplay(word.slice(0, heroDisplay.length + 1)), 120);
+      } else {
+        timeout = setTimeout(() => setHeroTyping(false), 2000); // pause before deleting
+      }
+    } else {
+      if (heroDisplay.length > 0) {
+        timeout = setTimeout(() => setHeroDisplay(heroDisplay.slice(0, -1)), 80);
+      } else {
+        setHeroWordIndex((heroWordIndex + 1) % heroWords.length);
+        setHeroTyping(true);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [heroDisplay, heroTyping, heroWordIndex]);
+
   const handleCardMouseMove = (e) => {
     const card = cardRef.current;
     if (!card) return;
@@ -770,7 +796,7 @@ export default function App() {
                     AI-Shielded Subscriptions
                   </div>
                   <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
-                    <span style={{ fontSize: "3.8rem" }}>Stop Blind Streams.</span>
+                    <span style={{ fontSize: "3.8rem" }}>Stop <span style={{ borderRight: "3px solid #000", paddingRight: "2px" }}>{heroDisplay}</span> Streams.</span>
                     <br />
                     <span style={{ color: "#555555" }}>AI-Shielded Payments.</span>
                   </h1>

@@ -224,8 +224,7 @@ export default function SubscriberPanel({
         
         {/* Token balances Card */}
         <div className="glass-card">
-          <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
-            <Coins size={16} color="#333333" />
+          <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>
             Self-Custody Balances
           </h3>
           <div style={{ display: "grid", gap: "8px" }}>
@@ -242,8 +241,7 @@ export default function SubscriberPanel({
 
         {/* Option C: Qiedex Swap Card */}
         <div className="glass-card">
-          <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: "0 0 12px 0" }}>
-            <Scale size={16} color="#333333" />
+          <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>
             Qiedex Instant Auto-Swap
           </h3>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px 0" }}>
@@ -328,13 +326,11 @@ export default function SubscriberPanel({
               )}
               disabled={loading || isInsufficientBalance || parseFloat(swapAmount) <= 0}
               style={{ 
-                fontSize: "0.8rem", 
-                padding: "8px 16px",
                 width: "100%",
+                justifyContent: "center",
                 background: isInsufficientBalance ? "#999999" : undefined,
                 borderColor: isInsufficientBalance ? "#999999" : undefined,
-                color: isInsufficientBalance ? "#fff" : undefined,
-                borderRadius: "6px"
+                color: isInsufficientBalance ? "#fff" : undefined
               }}
             >
               {isInsufficientBalance 
@@ -347,8 +343,7 @@ export default function SubscriberPanel({
         {/* QIE Pass KYC Gating */}
         <div className="glass-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-              <Sparkles size={16} color="#666666" />
+            <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: 0 }}>
               QIE Pass Identity
             </h3>
             <span className={`status-indicator ${qiePassVerified ? "status-online" : kycState?.status === "error" ? "status-offline" : kycState?.status !== "idle" ? "status-warning" : "status-offline"}`} />
@@ -427,7 +422,7 @@ export default function SubscriberPanel({
             ) : (
               <button 
                 className="btn btn-primary"
-                style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+                style={{ width: "100%", justifyContent: "center" }}
                 onClick={toggleQiePassStatus}
                 disabled={loading}
               >
@@ -445,7 +440,7 @@ export default function SubscriberPanel({
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "10px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
               <span>qUSDC Registry:</span>
-              <strong style={{ color: isAllowanceApproved("qUSDC") ? "#ffffff" : "#999999" }}>
+              <strong style={{ color: isAllowanceApproved("qUSDC") ? "#111111" : "#999999" }}>
                 {isAllowanceApproved("qUSDC") ? "Approved" : "None"}
               </strong>
             </div>
@@ -453,7 +448,7 @@ export default function SubscriberPanel({
           <div style={{ display: "flex", gap: "6px" }}>
             <button 
               className="btn btn-secondary" 
-              style={{ fontSize: "0.75rem", padding: "6px 10px", width: "100%" }}
+              style={{ width: "100%", justifyContent: "center" }}
               onClick={() => approveToken("qUSDC")}
               disabled={loading || isAllowanceApproved("qUSDC")}
             >

@@ -24,12 +24,12 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
   const timerRef = useRef(null);
   const stateRef = useRef(null); // mutable game state for the loop
 
-  const DOODLE_MERCHANT = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+  const ARCADE_MERCHANT = "0xfe5f1d13a31a5b86833adf4486720331d6e4a6bb";
 
   // Check stream status
   useEffect(() => {
     const stream = subscriberStreams.find(
-      (s) => s.merchant.toLowerCase() === DOODLE_MERCHANT.toLowerCase() && s.active && !s.pausedByAI
+      (s) => s.merchant.toLowerCase() === ARCADE_MERCHANT.toLowerCase() && s.active && !s.pausedByAI
     );
     setHasActiveStream(!!stream);
     setDoodleStream(stream || null);
@@ -39,7 +39,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
 
   const handleStartStream = async () => {
     try {
-      await createSubscription(DOODLE_MERCHANT, "QUSDC", "100", 0, 0);
+      await createSubscription(ARCADE_MERCHANT, "QUSDC", "100", 0, 0);
     } catch (err) {
       console.error("Failed to start Fluenci Snake stream", err);
     }

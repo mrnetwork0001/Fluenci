@@ -112,7 +112,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = inputValue.trim();
     if (!text || isTyping || chatState !== "active") return;
 
@@ -122,13 +122,29 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
     setInputValue("");
     setIsTyping(true);
 
-    // Simulate AI thinking (1-2 seconds)
-    const delay = 800 + Math.random() * 1200;
-    setTimeout(() => {
+    try {
+      // Build conversation history for the API
+      const history = [...messages, userMsg]
+        .filter(m => m.role === "user" || m.role === "ai")
+        .map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }));
+
+      const res = await fetch("http://localhost:5001/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history })
+      });
+
+      if (!res.ok) throw new Error("API unavailable");
+
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: "ai", text: data.reply, time: new Date() }]);
+    } catch (err) {
+      // Fallback to local keyword engine if server is down
+      console.warn("AI Chat API unavailable, using local fallback:", err.message);
       const response = getAIResponse(text);
       setMessages(prev => [...prev, { role: "ai", text: response, time: new Date() }]);
-      setIsTyping(false);
-    }, delay);
+    }
+    setIsTyping(false);
   };
 
   const handleKeyDown = (e) => {

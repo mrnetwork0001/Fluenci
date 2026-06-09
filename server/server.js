@@ -1275,6 +1275,54 @@ app.post("/qiepass/claim", async (req, res) => {
   }
 });
 
+// ===== FLUENCI AI CHAT ENDPOINT =====
+const FLUENCI_SYSTEM_PROMPT = `You are Fluenci AI, the official assistant for the Fluenci protocol — an AI-shielded real-time streaming payment platform built on QIE Blockchain.
+
+Key facts you know:
+- Fluenci enables pay-per-second streaming payments using QUSDC (QIE stablecoin)
+- Every subscription is minted as an ERC-721 NFT that can be traded
+- The AI Sentry Network uses multi-agent GPT-4o analysis to detect and pause suspicious streams
+- Fluenci integrates QIE Pass (KYC), QIEDex (swaps), QIE Domains (.qie names), QIE Wallet
+- FluenciRegistry contract handles stream creation, claiming, disputes, and termination
+- FluenciAIAuditor contract enables autonomous safety pauses with EIP-712 signatures
+- FluenciRouter wraps QIEDex swaps with on-chain Fluenci attribution
+- Stream rate example: 0.0001 QUSDC/sec = 0.36 QUSDC/hr
+- Protocol fee: 0.5% on claims (99.5% to merchant)
+- terminateStream auto-settles accumulated QUSDC to the merchant
+- QIE Blockchain: EVM-compatible, Chain ID 1990 (mainnet), Chain ID 1983 (testnet)
+- The Fluenci Arcade demonstrates streaming payments via a Snake game and this AI Chat
+
+You are helpful, concise, and enthusiastic about blockchain and DeFi. Keep responses under 3 sentences unless the user asks for detail. Use emoji sparingly.`;
+
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { messages } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: "messages array required" });
+    }
+
+    if (!openai) {
+      return res.status(503).json({ error: "OpenAI not configured" });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: FLUENCI_SYSTEM_PROMPT },
+        ...messages.slice(-20) // keep last 20 messages for context window
+      ],
+      max_tokens: 300,
+      temperature: 0.7
+    });
+
+    const reply = completion.choices[0]?.message?.content || "I'm having trouble thinking right now. Try again!";
+    res.json({ reply });
+  } catch (err) {
+    console.error("Chat error:", err.message);
+    res.status(500).json({ error: "AI service temporarily unavailable" });
+  }
+});
+
 // Start Express Server and Connect
 app.listen(PORT, async () => {
   console.log(`AI Auditor API Server running on port ${PORT}`);

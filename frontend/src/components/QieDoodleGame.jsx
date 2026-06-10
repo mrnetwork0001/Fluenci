@@ -351,7 +351,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
               transition: "all 0.2s"
             }}
           >
-            ğŸ¤– AI Chat
+            ğŸ¤- AI Chat
           </button>
         </div>
       </div>

@@ -95,7 +95,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
     const id = Date.now().toString();
     const welcomeMsg = {
       role: "ai",
-      text: "Welcome to Fluenci AI! ðŸ¤– Your QUSDC stream is active. Ask me anything about Fluenci, QIE blockchain, streaming payments, or our ecosystem.",
+      text: "Welcome to Fluenci AI! ðŸ¤- Your QUSDC stream is active. Ask me anything about Fluenci, QIE blockchain, streaming payments, or our ecosystem.",
       time: new Date().toISOString()
     };
     const newSession = {
@@ -408,7 +408,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
             flex: 1, display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center", padding: "20px", textAlign: "center"
           }}>
-            <div style={{ fontSize: "3.5rem", marginBottom: "12px" }}>ðŸ¤–</div>
+            <div style={{ fontSize: "3.5rem", marginBottom: "12px" }}>ðŸ¤-</div>
             {hasActiveStream ? (
               <>
                 <p style={{ color: "#aaa", fontWeight: "bold", margin: "0 0 16px 0", fontSize: "1.1rem" }}>

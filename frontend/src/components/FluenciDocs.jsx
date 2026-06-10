@@ -55,7 +55,7 @@ export default function FluenciDocs() {
       {prevSection && (
         <button
           onClick={() => handleNavigate(prevSection.id)}
-          className="docs-nav-btn"
+          className="docs-nav-btn docs-nav-btn-prev"
           style={{
             display: "flex",
             alignItems: "center",
@@ -82,7 +82,7 @@ export default function FluenciDocs() {
       {nextSection && (
         <button
           onClick={() => handleNavigate(nextSection.id)}
-          className="docs-nav-btn"
+          className="docs-nav-btn docs-nav-btn-next"
           style={{
             display: "flex",
             alignItems: "center",

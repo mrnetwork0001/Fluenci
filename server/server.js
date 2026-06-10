@@ -59,6 +59,8 @@ let uniqueUsers = new Set();
 let totalVolume = 0n;
 let totalSwapVolume = 0n;
 let activeStreamRisks = {};
+let processedTxHashes = new Set();
+let pollIntervalId = null;
 
 let monitoringActive = false;
 let registryContract = null;
@@ -676,7 +678,11 @@ async function syncHistoricalEvents() {
         });
       } else if (type === "Swap") {
         const [user, tokenAddress, qieAmount, tokenAmount] = args;
-        totalSwapVolume += BigInt(tokenAmount.toString());
+        const txHash = event.transactionHash.toLowerCase();
+        if (!processedTxHashes.has(txHash)) {
+          processedTxHashes.add(txHash);
+          totalSwapVolume += BigInt(tokenAmount.toString());
+        }
         uniqueUsers.add(user);
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
@@ -687,9 +693,13 @@ async function syncHistoricalEvents() {
         });
       } else if (type === "FluenciSwap") {
         const [user, direction, tokenIn, tokenOut, amountIn, amountOut] = args;
-        // Always track the qUSDC side: QIE_TO_TOKEN → amountOut is qUSDC; TOKEN_TO_QIE → amountIn is qUSDC
-        const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
-        totalSwapVolume += qusdcAmount;
+        const txHash = event.transactionHash.toLowerCase();
+        if (!processedTxHashes.has(txHash)) {
+          processedTxHashes.add(txHash);
+          // Always track the qUSDC side: QIE_TO_TOKEN → amountOut is qUSDC; TOKEN_TO_QIE → amountIn is qUSDC
+          const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
+          totalSwapVolume += qusdcAmount;
+        }
         uniqueUsers.add(user);
         telemetryLogs.push({
           id: telemetryLogs.length + 1,
@@ -747,6 +757,7 @@ async function connectBlockchain() {
       totalVolume = 0n;
       totalSwapVolume = 0n;
       activeStreamRisks = {};
+      processedTxHashes = new Set();
       telemetryLogs = [
         {
           id: 1,
@@ -794,6 +805,11 @@ let lastPolledBlock = 0;
 function setupEventListeners() {
   if (!registryContract) return;
 
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId);
+    pollIntervalId = null;
+  }
+
   logTelemetry("INFO", "Starting event polling (10s interval, immune to RPC filter drops)...");
 
   // Initialize lastPolledBlock from the latest block
@@ -803,7 +819,7 @@ function setupEventListeners() {
   });
 
   // Poll for new events every 10 seconds using queryFilter (no eth_newFilter needed)
-  setInterval(async () => {
+  pollIntervalId = setInterval(async () => {
     if (!registryContract || !provider || lastPolledBlock === 0) return;
 
     try {
@@ -872,13 +888,17 @@ function setupEventListeners() {
         );
         for (const ev of evFluenciSwap) {
           const [user, direction, tokenIn, tokenOut, amountIn, amountOut] = ev.args;
-          const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
-          totalSwapVolume += qusdcAmount;
-          uniqueUsers.add(user);
-          logTelemetry("SENTRY_AGENT", `FluenciSwap: ${user} swapped via Fluenci Router (${direction}). In: ${amountIn.toString()}, Out: ${amountOut.toString()}`, {
-            user, direction, tokenIn, tokenOut,
-            amountIn: amountIn.toString(), amountOut: amountOut.toString()
-          });
+          const txHash = ev.transactionHash.toLowerCase();
+          if (!processedTxHashes.has(txHash)) {
+            processedTxHashes.add(txHash);
+            const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
+            totalSwapVolume += qusdcAmount;
+            uniqueUsers.add(user);
+            logTelemetry("SENTRY_AGENT", `FluenciSwap: ${user} swapped via Fluenci Router (${direction}). In: ${amountIn.toString()}, Out: ${amountOut.toString()}`, {
+              user, direction, tokenIn, tokenOut,
+              amountIn: amountIn.toString(), amountOut: amountOut.toString()
+            });
+          }
         }
       } else if (dexContract) {
         // Legacy DEX Swap tracking fallback
@@ -887,11 +907,15 @@ function setupEventListeners() {
         );
         for (const ev of evSwap) {
           const [user, tokenAddress, qieAmount, tokenAmount] = ev.args;
-          totalSwapVolume += BigInt(tokenAmount.toString());
-          uniqueUsers.add(user);
-          logTelemetry("SENTRY_AGENT", `DEX Swap detected: ${user} swapped ${qieAmount.toString()} QIE for ${tokenAmount.toString()} tokens`, {
-            user, tokenAddress, qieAmount: qieAmount.toString(), tokenAmount: tokenAmount.toString()
-          });
+          const txHash = ev.transactionHash.toLowerCase();
+          if (!processedTxHashes.has(txHash)) {
+            processedTxHashes.add(txHash);
+            totalSwapVolume += BigInt(tokenAmount.toString());
+            uniqueUsers.add(user);
+            logTelemetry("SENTRY_AGENT", `DEX Swap detected: ${user} swapped ${qieAmount.toString()} QIE for ${tokenAmount.toString()} tokens`, {
+              user, tokenAddress, qieAmount: qieAmount.toString(), tokenAmount: tokenAmount.toString()
+            });
+          }
         }
       }
 
@@ -994,12 +1018,15 @@ app.post("/swap-telemetry", async (req, res) => {
     if (qUSDCAmount === 0n) {
       throw new Error("No qUSDC transfer found in transaction logs");
     }
-    // Only add volume from telemetry for legacy (pre-router) swaps.
-    // When FluenciRouter is active, volume is tracked via FluenciSwap events to avoid double-counting.
-    if (!fluenciRouterContract) {
-      totalSwapVolume += qUSDCAmount;
+    const txHashLower = txHash.toLowerCase();
+    if (processedTxHashes.has(txHashLower)) {
+      logTelemetry("INFO", `Swap telemetry for tx ${txHash} already processed. Ignoring.`);
+      return res.json({ success: true, amountSwapped: Number(qUSDCAmount) / 1e6, message: "Already processed" });
     }
-    logTelemetry("SUCCESS", `Verified swap of ${Number(qUSDCAmount) / 1e6} qUSDC.${!fluenciRouterContract ? ' Total Swap Volume updated.' : ' (Volume tracked via FluenciSwap event)'}`, {
+    
+    processedTxHashes.add(txHashLower);
+    totalSwapVolume += qUSDCAmount;
+    logTelemetry("SUCCESS", `Verified swap of ${Number(qUSDCAmount) / 1e6} qUSDC. Total Swap Volume updated.`, {
       txHash,
       amount: (Number(qUSDCAmount) / 1e6).toString()
     });

@@ -316,7 +316,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
                         fontSize: "0.9rem", padding: "0 2px", flexShrink: 0
                       }}
                       title="Delete"
-                    >Ã—</button>
+                    >Ã-</button>
                   </div>
                 ))}
               </div>

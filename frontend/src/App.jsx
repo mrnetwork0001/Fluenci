@@ -1229,7 +1229,7 @@ export default function App() {
                     ].map(([feature, standard, fluenci], i) => (
                       <tr key={i}>
                         <td className="matrix-feature-name">{feature}</td>
-                        <td className="matrix-standard-col">✗ {standard}</td>
+                        <td className="matrix-standard-col">�- {standard}</td>
                         <td className="matrix-fluenci-col">✓ {fluenci}</td>
                       </tr>
                     ))}

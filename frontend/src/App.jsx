@@ -335,6 +335,7 @@ export default function App() {
   const [activeFaqIndex, setActiveFaqIndex] = useState(null);
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDashMenuOpen, setDashMenuOpen] = useState(false);
   const prevAccountRef = useRef(fluenci.account);
   const cardRef = useRef(null);
 
@@ -662,40 +663,86 @@ export default function App() {
 
         {/* Tab Navigation (visible when dashboard view is active) */}
         {viewMode === "dashboard" && (!fluenci.account || isSupportedNetwork) && (
-          <nav className="dashboard-nav" style={{ display: "flex", gap: "4px", background: "#f5f5f5", padding: "4px", borderRadius: "10px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <>
+            {/* Desktop inline nav (hidden on mobile) */}
+            <nav className="dashboard-nav dashboard-nav-desktop" style={{ display: "flex", gap: "4px", background: "#f5f5f5", padding: "4px", borderRadius: "10px" }}>
+              <button 
+                className={`btn ${activeTab === "subscriber" ? "btn-primary" : "btn-secondary"}`}
+                style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
+                onClick={() => setActiveTab("subscriber")}
+              >
+                <UserCircle size={16} />
+                Subscriber
+              </button>
+              <button 
+                className={`btn ${activeTab === "merchant" ? "btn-primary" : "btn-secondary"}`}
+                style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
+                onClick={() => setActiveTab("merchant")}
+              >
+                <Building2 size={16} />
+                Merchant
+              </button>
+              <button 
+                className={`btn ${activeTab === "security" ? "btn-primary" : "btn-secondary"}`}
+                style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
+                onClick={() => setActiveTab("security")}
+              >
+                <Terminal size={16} />
+                AI Security
+              </button>
+              <button 
+                className={`btn ${activeTab === "docs" ? "btn-primary" : "btn-secondary"}`}
+                style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
+                onClick={() => setActiveTab("docs")}
+              >
+                <HelpCircle size={16} />
+                Docs
+              </button>
+            </nav>
+
+            {/* Mobile hamburger button (hidden on desktop) */}
             <button 
-              className={`btn ${activeTab === "subscriber" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
-              onClick={() => setActiveTab("subscriber")}
+              className={`dash-hamburger-btn ${isDashMenuOpen ? "open" : ""}`}
+              onClick={() => setDashMenuOpen(!isDashMenuOpen)}
+              aria-label="Toggle Dashboard Menu"
             >
-              <UserCircle size={16} />
-              Subscriber
+              <span></span>
+              <span></span>
+              <span></span>
             </button>
-            <button 
-              className={`btn ${activeTab === "merchant" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
-              onClick={() => setActiveTab("merchant")}
-            >
-              <Building2 size={16} />
-              Merchant
-            </button>
-            <button 
-              className={`btn ${activeTab === "security" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
-              onClick={() => setActiveTab("security")}
-            >
-              <Terminal size={16} />
-              AI Security
-            </button>
-            <button 
-              className={`btn ${activeTab === "docs" ? "btn-primary" : "btn-secondary"}`}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
-              onClick={() => setActiveTab("docs")}
-            >
-              <HelpCircle size={16} />
-              Docs
-            </button>
-          </nav>
+
+            {/* Mobile dashboard menu overlay */}
+            <div className={`dash-mobile-overlay ${isDashMenuOpen ? "open" : ""}`}>
+              <button 
+                className={`dash-overlay-item ${activeTab === "subscriber" ? "active" : ""}`}
+                onClick={() => { setActiveTab("subscriber"); setDashMenuOpen(false); }}
+              >
+                <UserCircle size={20} />
+                Subscriber
+              </button>
+              <button 
+                className={`dash-overlay-item ${activeTab === "merchant" ? "active" : ""}`}
+                onClick={() => { setActiveTab("merchant"); setDashMenuOpen(false); }}
+              >
+                <Building2 size={20} />
+                Merchant
+              </button>
+              <button 
+                className={`dash-overlay-item ${activeTab === "security" ? "active" : ""}`}
+                onClick={() => { setActiveTab("security"); setDashMenuOpen(false); }}
+              >
+                <Terminal size={20} />
+                AI Security
+              </button>
+              <button 
+                className={`dash-overlay-item ${activeTab === "docs" ? "active" : ""}`}
+                onClick={() => { setActiveTab("docs"); setDashMenuOpen(false); }}
+              >
+                <HelpCircle size={20} />
+                Docs
+              </button>
+            </div>
+          </>
         )}
 
         {viewMode === "dashboard" && (

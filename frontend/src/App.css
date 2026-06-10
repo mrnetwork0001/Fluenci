@@ -1493,6 +1493,97 @@
   padding: 40px;
 }
 
+/* Dashboard Hamburger Button (hidden on desktop) */
+.dash-hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  z-index: 201;
+  position: relative;
+}
+
+.dash-hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2.5px;
+  background: #111111;
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.dash-hamburger-btn.open span:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+.dash-hamburger-btn.open span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.dash-hamburger-btn.open span:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* Dashboard Mobile Overlay */
+.dash-mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.dash-mobile-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.dash-overlay-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #555555;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 14px 40px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  width: 260px;
+  justify-content: flex-start;
+}
+
+.dash-overlay-item:hover {
+  background: #f5f5f5;
+  color: #111111;
+}
+
+.dash-overlay-item.active {
+  background: #111111;
+  color: #ffffff;
+}
+
 @media (max-width: 768px) {
   .landing-nav {
     display: none !important;
@@ -1502,6 +1593,64 @@
   }
   .landing-header, .dashboard-header {
     padding: 15px 20px !important;
+  }
+
+  /* ── Dashboard Hamburger: show on mobile ── */
+  .dashboard-nav-desktop {
+    display: none !important;
+  }
+
+  .dash-hamburger-btn {
+    display: flex !important;
+  }
+
+  /* ── AI Security Desk: stack to single column ── */
+  .ai-security-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── AI Agents: keep 2 columns but smaller gap ── */
+  .ai-agents-grid {
+    gap: 8px !important;
+  }
+
+  /* ── Subscriber Credentials: single column ── */
+  .subscriber-credentials-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Tables: horizontal scroll wrapper ── */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  thead, tbody, tr {
+    display: table;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  /* ── Form inputs: full width ── */
+  .glass-card input[type="text"],
+  .glass-card input[type="number"],
+  .glass-card input[type="password"],
+  .glass-card select,
+  .glass-card textarea {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* ── Buttons: responsive sizing ── */
+  .btn {
+    font-size: 0.82rem !important;
+  }
+
+  .btn-primary, .btn-secondary {
+    padding: 10px 20px !important;
   }
 
   /* ── Hero Section ── */
@@ -1698,26 +1847,7 @@
     gap: 28px !important;
   }
 
-  /* ── Dashboard Header Tab Nav ── */
-  .dashboard-nav {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    flex-wrap: nowrap !important;
-    max-width: calc(100vw - 140px);
-  }
-
-  .dashboard-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .dashboard-nav .btn {
-    white-space: nowrap !important;
-    padding: 6px 10px !important;
-    font-size: 0.72rem !important;
-    flex-shrink: 0 !important;
-  }
+  /* Dashboard nav is hidden on mobile, replaced by hamburger overlay */
 
   /* ── Dashboard Main Content ── */
   .dashboard-content {
@@ -1836,15 +1966,9 @@
     font-size: 1.4rem !important;
   }
 
-  /* Dashboard tabs: even more compact */
-  .dashboard-nav .btn {
-    padding: 5px 8px !important;
-    font-size: 0.65rem !important;
-  }
-
-  .dashboard-nav .btn svg {
-    width: 12px !important;
-    height: 12px !important;
+  /* AI Agents: stack to single column on very small */
+  .ai-agents-grid {
+    grid-template-columns: 1fr !important;
   }
 
   /* Stats row: single column */

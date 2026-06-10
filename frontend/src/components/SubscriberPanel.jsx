@@ -220,7 +220,7 @@ export default function SubscriberPanel({
     <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
       
       {/* 1. Subscriber Credentials Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
+      <div className="subscriber-credentials-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
         
         {/* Token balances Card */}
         <div className="glass-card">

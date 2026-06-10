@@ -158,7 +158,7 @@ export default function AISecurityDesk({
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
+    <div className="ai-security-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
       
       {/* LEFT COLUMN: Operations and Settings */}
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -187,7 +187,7 @@ export default function AISecurityDesk({
         </div>
 
         {/* AI Agents Control Center Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+        <div className="ai-agents-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
           
           <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(59, 130, 246, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(59, 130, 246, 0.02)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

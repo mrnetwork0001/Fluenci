@@ -621,7 +621,7 @@ export default function App() {
               Fluenci
             </h1>
             {viewMode !== "landing" && (
-              <span style={{ fontSize: "0.72rem", color: "#888888", fontWeight: "600", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              <span className="dashboard-subtitle" style={{ fontSize: "0.72rem", color: "#888888", fontWeight: "600", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                 AI-Shielded Payment Streams
               </span>
             )}
@@ -662,7 +662,7 @@ export default function App() {
 
         {/* Tab Navigation (visible when dashboard view is active) */}
         {viewMode === "dashboard" && (!fluenci.account || isSupportedNetwork) && (
-          <nav style={{ display: "flex", gap: "4px", background: "#f5f5f5", padding: "4px", borderRadius: "10px" }}>
+          <nav className="dashboard-nav" style={{ display: "flex", gap: "4px", background: "#f5f5f5", padding: "4px", borderRadius: "10px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             <button 
               className={`btn ${activeTab === "subscriber" ? "btn-primary" : "btn-secondary"}`}
               style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
@@ -725,7 +725,6 @@ export default function App() {
         margin: 0
       } : {
         flexGrow: 1,
-        padding: "40px",
         maxWidth: "1200px",
         width: "100%",
         margin: "0 auto",
@@ -857,7 +856,7 @@ export default function App() {
                   <p className="hero-subtitle">
                     Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.
                   </p>
-                  <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                  <div className="hero-cta-buttons" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
                     <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
                       Launch App
                     </button>
@@ -867,7 +866,7 @@ export default function App() {
                   </div>
 
                   {/* Real-time Protocol Stats Row */}
-                  <div style={{ 
+                  <div className="hero-stats-row" style={{ 
                     display: "flex", 
                     gap: "0", 
                     marginTop: "40px", 
@@ -875,7 +874,8 @@ export default function App() {
                     background: "#f8fafc", 
                     border: "1px solid #e2e8f0",
                     borderRadius: "12px",
-                    maxWidth: "680px"
+                    maxWidth: "680px",
+                    flexWrap: "wrap"
                   }}>
                     <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
                       <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>

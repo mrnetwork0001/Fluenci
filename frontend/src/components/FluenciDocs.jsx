@@ -321,7 +321,7 @@ export default function FluenciDocs() {
   };
 
   return (
-    <div style={{ 
+    <div className="docs-container" style={{ 
       display: "flex", 
       gap: "24px", 
       maxWidth: "1100px", 
@@ -331,7 +331,7 @@ export default function FluenciDocs() {
       minHeight: "550px"
     }}>
       {/* Sidebar navigation */}
-      <div style={{ 
+      <div className="docs-sidebar" style={{ 
         width: "240px", 
         display: "flex", 
         flexDirection: "column", 

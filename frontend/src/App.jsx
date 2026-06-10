@@ -7,7 +7,7 @@ import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
 import FluenciDocs from "./components/FluenciDocs";
 import TransactionModal from "./components/TransactionModal";
-import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X } from "lucide-react";
+import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X, Wallet, CheckCircle, LogOut } from "lucide-react";
 import LogoImage from "./assets/logo.png";
 import QiePassLogo from "./assets/qiepass.png";
 import QieWalletLogo from "./assets/qiewallet.png";
@@ -741,25 +741,65 @@ export default function App() {
                 <HelpCircle size={20} />
                 Docs
               </button>
+
+              {/* Wallet info section inside overlay */}
+              <div className="dash-overlay-wallet">
+                {fluenci.account ? (
+                  <>
+                    <div className="dash-overlay-wallet-info">
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <CheckCircle size={16} color={fluenci.chainId === 1990 ? "#10b981" : "#cc3333"} />
+                        <span style={{ fontSize: "0.82rem", fontWeight: "700", color: fluenci.chainId === 1990 ? "#111111" : "#cc3333" }}>
+                          {fluenci.chainId === 1990 ? "QIE Mainnet" : `Wrong Network (${fluenci.chainId})`}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+                        <Wallet size={16} color="#555555" />
+                        <span style={{ fontFamily: "monospace", fontSize: "0.82rem", color: "#333333" }}>
+                          {fluenci.accountDomain || `${fluenci.account.substring(0, 8)}...${fluenci.account.substring(fluenci.account.length - 6)}`}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      className="dash-overlay-item" 
+                      style={{ color: "#cc3333", marginTop: "4px" }}
+                      onClick={() => { fluenci.disconnectWallet(); setDashMenuOpen(false); }}
+                    >
+                      <LogOut size={20} />
+                      Disconnect Wallet
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="dash-overlay-item active"
+                    onClick={() => { setWalletModalOpen(true); setDashMenuOpen(false); }}
+                  >
+                    <Wallet size={20} />
+                    Connect Wallet
+                  </button>
+                )}
+              </div>
             </div>
           </>
         )}
 
         {viewMode === "dashboard" && (
-          <ConnectWallet
-            account={fluenci.account}
-            accountDomain={fluenci.accountDomain}
-            chainId={fluenci.chainId}
-            connectWallet={fluenci.connectWallet}
-            disconnectWallet={fluenci.disconnectWallet}
-            loading={fluenci.loading}
-            switchToQieMainnet={fluenci.switchToQieMainnet}
-            showDashboard={viewMode === "dashboard"}
-            onLaunchApp={() => setViewMode("dashboard")}
-            announcedProviders={fluenci.announcedProviders}
-            isOpen={isWalletModalOpen}
-            setIsOpen={setWalletModalOpen}
-          />
+          <div className="connect-wallet-header">
+            <ConnectWallet
+              account={fluenci.account}
+              accountDomain={fluenci.accountDomain}
+              chainId={fluenci.chainId}
+              connectWallet={fluenci.connectWallet}
+              disconnectWallet={fluenci.disconnectWallet}
+              loading={fluenci.loading}
+              switchToQieMainnet={fluenci.switchToQieMainnet}
+              showDashboard={viewMode === "dashboard"}
+              onLaunchApp={() => setViewMode("dashboard")}
+              announcedProviders={fluenci.announcedProviders}
+              isOpen={isWalletModalOpen}
+              setIsOpen={setWalletModalOpen}
+            />
+          </div>
         )}
       </header>
 

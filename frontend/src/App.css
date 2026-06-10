@@ -1584,6 +1584,24 @@
   color: #ffffff;
 }
 
+/* Wallet info section inside dashboard overlay */
+.dash-overlay-wallet {
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e5e5;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dash-overlay-wallet-info {
+  background: #f8f8f8;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
 @media (max-width: 768px) {
   .landing-nav {
     display: none !important;
@@ -1602,6 +1620,11 @@
 
   .dash-hamburger-btn {
     display: flex !important;
+  }
+
+  /* ── Hide ConnectWallet header on mobile ── */
+  .connect-wallet-header {
+    display: none !important;
   }
 
   /* ── AI Security Desk: stack to single column ── */

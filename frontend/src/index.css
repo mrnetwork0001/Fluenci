@@ -310,7 +310,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #079AB7;
 }
 
 .tx-icon-success {
@@ -413,10 +413,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-dot-active {
-  background: #1a1a1a;
-  border: 1.5px solid #444444;
-  color: #ffffff;
-  box-shadow: none;
+  background: rgba(7, 154, 183, 0.08);
+  border: 1.5px solid #079AB7;
+  color: #079AB7;
+  box-shadow: 0 0 8px rgba(7, 154, 183, 0.25);
 }
 
 .tx-dot-completed {
@@ -464,7 +464,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-step-active .tx-step-label {
-  color: #ffffff;
+  color: #079AB7;
 }
 
 .tx-step-completed .tx-step-label {
@@ -525,7 +525,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tx-hash-value:hover {
-  color: #cccccc;
+  color: #079AB7;
 }
 
 .tx-hash-value code {
@@ -586,8 +586,8 @@ h1, h2, h3, h4, h5, h6 {
   left: 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
-  opacity: 0.4;
+  background: linear-gradient(90deg, transparent 0%, rgba(7, 154, 183, 0.25) 50%, transparent 100%);
+  opacity: 0.6;
   animation: txScanLine 2.5s ease-in-out infinite;
   pointer-events: none;
 }

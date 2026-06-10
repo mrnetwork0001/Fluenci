@@ -786,7 +786,7 @@
   right: 0;
   bottom: 0;
   border-radius: 12px;
-  border: 1px solid #2563eb;
+  border: 1px solid #079AB7;
   animation: ctaPulseEffect 2.5s infinite;
   pointer-events: none;
 }
@@ -860,9 +860,9 @@
 /* Wallet Options */
 .wallet-option-btn-qie:hover {
   background: #f1f5f9 !important;
-  border-color: #2563eb !important;
+  border-color: #079AB7 !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 4px 15px rgba(7, 154, 183, 0.15);
 }
 
 .wallet-option-btn:hover, .wallet-sub-btn:hover {
@@ -1257,26 +1257,30 @@
    Dashboard App Section - Light Mode
    ═══════════════════════════════════════════════ */
 
-/* Tab pills in white header - active uses dark fill */
+/* Tab pills in white header - active uses brand accent */
 .dashboard-header .btn-primary {
-  background: #111111;
-  color: #ffffff;
+  background: #ffffff !important;
+  color: #079AB7 !important;
+  border: 1px solid rgba(7, 154, 183, 0.25) !important;
+  box-shadow: 0 2px 8px rgba(7, 154, 183, 0.1) !important;
 }
 
 .dashboard-header .btn-primary:hover {
-  background: #222222;
+  background: #fdfdfd !important;
+  border-color: #079AB7 !important;
+  box-shadow: 0 4px 12px rgba(7, 154, 183, 0.15) !important;
 }
 
 /* Tab pills in white header - inactive */
 .dashboard-header .btn-secondary {
-  background: transparent;
-  border: none;
-  color: #666666;
+  background: transparent !important;
+  border: none !important;
+  color: #666666 !important;
 }
 
 .dashboard-header .btn-secondary:hover {
-  background: #e8e8e8;
-  color: #111111;
+  background: #f0f8fa !important;
+  color: #079AB7 !important;
 }
 
 /* Cards on white dashboard background */
@@ -1289,8 +1293,8 @@
 }
 
 .dashboard-content .glass-card:hover {
-  border-color: #cccccc;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: rgba(7, 154, 183, 0.3);
+  box-shadow: 0 6px 16px rgba(7, 154, 183, 0.05);
 }
 
 /* Text inside dashboard cards */
@@ -1315,7 +1319,9 @@
 }
 
 .dashboard-content .btn-primary:hover {
-  background: #222222;
+  background: #079AB7;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(7, 154, 183, 0.25);
 }
 
 .dashboard-content .btn-secondary {
@@ -1325,9 +1331,10 @@
 }
 
 .dashboard-content .btn-secondary:hover {
-  background: #e8e8e8;
-  border-color: #b0b0b0;
-  color: #111111;
+  background: #ffffff;
+  border-color: #079AB7;
+  color: #079AB7;
+  box-shadow: 0 4px 12px rgba(7, 154, 183, 0.15);
 }
 
 .dashboard-content .btn-danger {
@@ -1351,8 +1358,10 @@
 }
 
 .dashboard-content input:focus,
-.dashboard-content select:focus {
-  border-color: #888888;
+.dashboard-content select:focus,
+.dashboard-content textarea:focus {
+  border-color: #079AB7;
+  box-shadow: 0 0 0 2px rgba(7, 154, 183, 0.15);
   outline: none;
 }
 
@@ -1575,13 +1584,14 @@
 }
 
 .dash-overlay-item:hover {
-  background: #f5f5f5;
-  color: #111111;
+  background: #f0f8fa;
+  color: #079AB7;
 }
 
 .dash-overlay-item.active {
-  background: #111111;
-  color: #ffffff;
+  background: rgba(7, 154, 183, 0.08);
+  color: #079AB7;
+  border-left: 4px solid #079AB7;
 }
 
 /* Wallet info section inside dashboard overlay */
@@ -2190,10 +2200,11 @@
 }
 
 .hero-cta-buttons .btn-primary:hover {
-  background: #ffffff !important;
-  color: #079AB7 !important;
-  border-color: #079AB7 !important;
-  box-shadow: 0 6px 20px rgba(7, 154, 183, 0.3) !important;
+  background: #06869e !important;
+  color: #ffffff !important;
+  border-color: #06869e !important;
+  box-shadow: 0 6px 20px rgba(7, 154, 183, 0.4) !important;
+  transform: translateY(-2px) !important;
 }
 
 .hero-cta-buttons .btn-secondary {
@@ -2202,9 +2213,10 @@
 }
 
 .hero-cta-buttons .btn-secondary:hover {
-  background: #079AB7 !important;
+  background: #06869e !important;
   color: #ffffff !important;
-  border-color: #079AB7 !important;
-  box-shadow: 0 6px 20px rgba(7, 154, 183, 0.2) !important;
+  border-color: #06869e !important;
+  box-shadow: 0 6px 20px rgba(7, 154, 183, 0.3) !important;
+  transform: translateY(-2px) !important;
 }
 

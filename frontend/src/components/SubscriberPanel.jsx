@@ -468,14 +468,14 @@ export default function SubscriberPanel({
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
             <defs>
               <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#111111" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#111111" stopOpacity="0" />
+                <stop offset="0%" stopColor="#079AB7" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#079AB7" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path 
               d={`M 0 90 Q 100 ${totalUSDCActiveOutflow > 0 ? 30 : 90} 200 ${totalUSDCActiveOutflow > 0 ? 10 : 90} T 400 ${totalUSDCActiveOutflow > 0 ? 20 : 90}`} 
               fill="none" 
-              stroke="#ffffff" 
+              stroke="#079AB7" 
               strokeWidth="3" 
             />
             <path 
@@ -484,7 +484,7 @@ export default function SubscriberPanel({
             />
             <line x1="0" y1="90" x2="400" y2="90" stroke="rgba(255,255,255,0.05)" strokeDasharray="4" />
           </svg>
-          {totalUSDCActiveOutflow > 0 && <div className="streaming-active-glow" style={{ position: "absolute", top: "10px", right: "10px", width: "8px", height: "8px", borderRadius: "50%", background: "#ffffff" }} />}
+          {totalUSDCActiveOutflow > 0 && <div className="streaming-active-glow" style={{ position: "absolute", top: "10px", right: "10px", width: "8px", height: "8px", borderRadius: "50%", background: "#079AB7" }} />}
         </div>
       </div>
 

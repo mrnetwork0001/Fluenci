@@ -90,14 +90,14 @@ export default function MerchantDashboard({
           <svg viewBox="0 0 400 100" style={{ width: "100%", height: "100px" }} preserveAspectRatio="none">
             <defs>
               <linearGradient id="merchantGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#111111" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#111111" stopOpacity="0" />
+                <stop offset="0%" stopColor="#079AB7" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#079AB7" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path 
               d={`M 0 90 Q 100 ${totalUSDCIncoming > 0 ? 40 : 90} 200 ${totalUSDCIncoming > 0 ? 20 : 90} T 400 ${totalUSDCIncoming > 0 ? 10 : 90}`} 
               fill="none" 
-              stroke="#ffffff" 
+              stroke="#079AB7" 
               strokeWidth="3" 
             />
             <path 

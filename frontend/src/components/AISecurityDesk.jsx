@@ -189,10 +189,10 @@ export default function AISecurityDesk({
         {/* AI Agents Control Center Grid */}
         <div className="ai-agents-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
           
-          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(59, 130, 246, 0.2)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(59, 130, 246, 0.02)" }}>
+          <div className="glass-card" style={{ padding: "14px", border: "1px solid rgba(7, 154, 183, 0.25)", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(7, 154, 183, 0.03)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#111111" }}>Sentry Agent</span>
-              <span className="status-indicator status-online" style={{ background: "#ffffff", boxShadow: "0 0 8px #ffffff" }} />
+              <span style={{ fontSize: "0.8rem", fontWeight: "bold", color: "#079AB7" }}>Sentry Agent</span>
+              <span className="status-indicator status-online" style={{ background: "#079AB7", boxShadow: "0 0 8px #079AB7" }} />
             </div>
             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Blockchain ingestion & mempool filter</span>
           </div>

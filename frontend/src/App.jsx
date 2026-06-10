@@ -71,7 +71,7 @@ function FAQItem({ question, answer, index, isOpen, onToggle }) {
           transition: "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
           fontSize: "0.75rem",
           flexShrink: 0
-        }}>â-¼</span>
+        }}>â–¼</span>
       </button>
       <div style={{ 
         maxHeight: isOpen ? "300px" : "0px",
@@ -1229,7 +1229,7 @@ export default function App() {
                     ].map(([feature, standard, fluenci], i) => (
                       <tr key={i}>
                         <td className="matrix-feature-name">{feature}</td>
-                        <td className="matrix-standard-col">âœ- {standard}</td>
+                        <td className="matrix-standard-col">âœ— {standard}</td>
                         <td className="matrix-fluenci-col">âœ“ {fluenci}</td>
                       </tr>
                     ))}

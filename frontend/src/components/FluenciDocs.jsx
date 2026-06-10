@@ -12,7 +12,11 @@ import {
   Play,
   Gamepad2,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  FileCode,
+  ExternalLink,
+  Copy,
+  Check
 } from "lucide-react";
 
 export default function FluenciDocs() {
@@ -24,7 +28,8 @@ export default function FluenciDocs() {
     { id: "qiepass", title: "QIE Pass & Trust", shortTitle: "QIE Pass", icon: <KeyRound size={16} />, color: "#10b981" },
     { id: "router", title: "Router & DEX Swaps", shortTitle: "Router", icon: <Coins size={16} />, color: "#8b5cf6" },
     { id: "arcade", title: "Fluenci Arcade", shortTitle: "Arcade", icon: <Gamepad2 size={16} />, color: "#ec4899" },
-    { id: "guide", title: "Mainnet Interaction Guide", shortTitle: "Guide", icon: <Play size={16} />, color: "#111111" }
+    { id: "guide", title: "Mainnet Interaction Guide", shortTitle: "Guide", icon: <Play size={16} />, color: "#111111" },
+    { id: "contracts", title: "Deployed Contracts", shortTitle: "Contracts", icon: <FileCode size={16} />, color: "#06b6d4" }
   ];
 
   const currentIndex = sections.findIndex(s => s.id === activeSection);
@@ -402,6 +407,72 @@ export default function FluenciDocs() {
           </div>
         );
 
+      case "contracts":
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#111111", margin: 0 }}>
+              Deployed Contracts
+            </h2>
+            <p style={{ fontSize: "0.92rem", color: "#555555", lineHeight: "1.6", margin: 0 }}>
+              All smart contracts powering the Fluenci protocol are deployed on the QIE Mainnet (Chain ID: 1990). The source code is verified and fully auditable. Interact directly using the block explorer or view contract states.
+            </p>
+
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "16px",
+              marginTop: "8px"
+            }}>
+              <ContractCard 
+                name="FluenciRegistry" 
+                description="Core stream orchestration registry. Manages user subscriptions, cliff periods, stream rates, deposit balances, and withdrawal/termination events."
+                address="0x13D948a6A3384a744cdB84B0236bbba7CC79cA41"
+                isCore={true}
+                isVerified={true}
+              />
+              <ContractCard 
+                name="FluenciAIAuditor" 
+                description="Autonomous security auditor. Holds cryptographic signature verification and controls the safety pause states triggered by the AI Sentry."
+                address="0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E"
+                isCore={true}
+                isVerified={true}
+              />
+              <ContractCard 
+                name="FluenciRouter" 
+                description="Attributed DEX router. Enables native QIE payments by executing wraps and swaps through QIEDex with built-in onchain front-end volume attribution."
+                address="0x75475647f52531D4086296415392E4AA94b92de7"
+                isCore={true}
+                isVerified={true}
+              />
+              <ContractCard 
+                name="QUSDC (Stablecoin)" 
+                description="The default payment token. A stable ERC-20 coin pegged to the US Dollar, ensuring price stability for streaming subscriptions."
+                address="0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5"
+                isVerified={true}
+              />
+              <ContractCard 
+                name="QIE Pass DID Registry" 
+                description="Decentralized Identity registry. Verifies subscriber and merchant identity status to ensure compliance and prevent Sybil stream creation."
+                address="0x0766Ff824376CEf38CFa5C155A51E90578096e38"
+                isVerified={true}
+              />
+              <ContractCard 
+                name="QIE Domain Registry" 
+                description="Official name service. Resolves human-readable '.qie' domains to standard hex wallet addresses directly on-chain."
+                address="0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed"
+                isVerified={true}
+              />
+              <ContractCard 
+                name="QIEDex Router" 
+                description="Official Automated Market Maker (AMM) router. Facilitates token swapping and liquidity routing for the FluenciRouter."
+                address="0x08cd2e72e156D8563B4351eb4065C262A9f553Ef"
+                isVerified={true}
+              />
+            </div>
+            <PrevNextNav />
+          </div>
+        );
+
       default:
         return null;
     }
@@ -550,6 +621,147 @@ export default function FluenciDocs() {
         }}
       >
         {renderContent()}
+      </div>
+    </div>
+  );
+}
+
+function ContractCard({ name, description, address, isVerified, isCore }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="glass-card" style={{
+      padding: "20px",
+      borderRadius: "14px",
+      background: "#ffffff",
+      border: "1px solid #e2e8f0",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+      position: "relative",
+      transition: "transform 0.2s, border-color 0.2s"
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", flexWrap: "wrap" }}>
+        <h4 style={{ margin: "0 0 4px 0", fontSize: "0.95rem", color: "#111111", fontWeight: "700", display: "inline-flex" }}>
+          {name}
+        </h4>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+          {isCore && (
+            <span style={{
+              fontSize: "0.62rem",
+              fontWeight: "700",
+              color: "#2563eb",
+              background: "rgba(37, 99, 235, 0.08)",
+              border: "1px solid rgba(37, 99, 235, 0.15)",
+              padding: "2px 6px",
+              borderRadius: "100px",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em"
+            }}>
+              Core
+            </span>
+          )}
+          {isVerified && (
+            <span style={{
+              fontSize: "0.62rem",
+              fontWeight: "700",
+              color: "#16a34a",
+              background: "rgba(22, 163, 74, 0.08)",
+              border: "1px solid rgba(22, 163, 74, 0.15)",
+              padding: "2px 6px",
+              borderRadius: "100px",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+              display: "flex",
+              alignItems: "center",
+              gap: "3px"
+            }}>
+              <ShieldCheck size={10} />
+              Verified
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div>
+        <p style={{ fontSize: "0.8rem", color: "#555555", margin: 0, lineHeight: "1.45" }}>
+          {description}
+        </p>
+      </div>
+
+      <div style={{
+        marginTop: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px"
+      }}>
+        {/* Address Badge */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: "8px",
+          padding: "8px 12px",
+          fontFamily: "monospace",
+          fontSize: "0.78rem",
+          color: "#475569"
+        }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "80%" }}>
+            {address}
+          </span>
+          <button 
+            onClick={handleCopy}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: copied ? "#10b981" : "#94a3b8",
+              transition: "color 0.2s"
+            }}
+            title="Copy address"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+          </button>
+        </div>
+
+        {/* Explorer Link */}
+        <a 
+          href={`https://mainnet.qie.digital/address/${address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            padding: "10px",
+            background: "#111111",
+            color: "#ffffff",
+            borderRadius: "8px",
+            textDecoration: "none",
+            fontSize: "0.8rem",
+            fontWeight: "600",
+            textAlign: "center",
+            transition: "background 0.2s"
+          }}
+          className="explorer-link-btn"
+        >
+          <span>View on Explorer</span>
+          <ExternalLink size={12} />
+        </a>
       </div>
     </div>
   );

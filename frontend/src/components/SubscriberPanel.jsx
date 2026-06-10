@@ -372,7 +372,7 @@ export default function SubscriberPanel({
               </p>
             ) : kycState?.status === "error" ? (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
-                âœ- {kycState.error || "Verification failed"}
+                âœ— {kycState.error || "Verification failed"}
               </p>
             ) : (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>

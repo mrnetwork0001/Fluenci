@@ -334,6 +334,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState("landing");
   const [activeFaqIndex, setActiveFaqIndex] = useState(null);
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const prevAccountRef = useRef(fluenci.account);
   const cardRef = useRef(null);
 
@@ -629,13 +630,33 @@ export default function App() {
 
         {/* Center Links for Landing Page */}
         {viewMode === "landing" && (
-          <nav style={{ display: "flex", gap: "24px", alignItems: "center" }}>
-            <a href="#features" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Features</a>
-            <a href="#how-it-works" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>How it works</a>
-            <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>AI Arbitration</a>
-            <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
-            <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
-          </nav>
+          <>
+            <nav className="landing-nav">
+              <a href="#features" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Features</a>
+              <a href="#how-it-works" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>How it works</a>
+              <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>AI Arbitration</a>
+              <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
+              <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
+            </nav>
+
+            <button 
+              className={`hamburger-btn ${isMobileMenuOpen ? "open" : ""}`}
+              onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle Navigation Menu"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+
+            <div className={`mobile-nav-overlay ${isMobileMenuOpen ? "open" : ""}`}>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+              <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it works</a>
+              <a href="#arbitration" onClick={() => setMobileMenuOpen(false)}>AI Arbitration</a>
+              <a href="#comparison" onClick={() => setMobileMenuOpen(false)}>Comparison</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+            </div>
+          </>
         )}
 
 

@@ -454,7 +454,6 @@ export default function FluenciDocs() {
                 name="QIE Pass DID Registry" 
                 description="Decentralized Identity registry. Verifies subscriber and merchant identity status to ensure compliance and prevent Sybil stream creation."
                 address="0x0766Ff824376CEf38CFa5C155A51E90578096e38"
-                isVerified={true}
               />
               <ContractCard 
                 name="QIE Domain Registry" 
@@ -466,7 +465,6 @@ export default function FluenciDocs() {
                 name="QIEDex Router" 
                 description="Official Automated Market Maker (AMM) router. Facilitates token swapping and liquidity routing for the FluenciRouter."
                 address="0x08cd2e72e156D8563B4351eb4065C262A9f553Ef"
-                isVerified={true}
               />
             </div>
             <PrevNextNav />

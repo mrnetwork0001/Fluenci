@@ -6,8 +6,9 @@ import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
 import FluenciDocs from "./components/FluenciDocs";
+import BlogPage from "./components/BlogPage";
 import TransactionModal from "./components/TransactionModal";
-import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X, Wallet, CheckCircle, LogOut } from "lucide-react";
+import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X, Wallet, CheckCircle, LogOut, FileText } from "lucide-react";
 import LogoImage from "./assets/logo.png";
 import QiePassLogo from "./assets/qiepass.png";
 import QieWalletLogo from "./assets/qiewallet.png";
@@ -629,8 +630,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Center Links for Landing Page */}
-        {viewMode === "landing" && (
+        {/* Center Links for Landing Page & Blog */}
+        {(viewMode === "landing" || viewMode === "blog") && (
           <>
             <nav className="landing-nav">
               <a href="#features" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Features</a>
@@ -638,6 +639,7 @@ export default function App() {
               <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>AI Arbitration</a>
               <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
               <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); }} style={{ color: "#2563eb", textDecoration: "none", fontWeight: "700", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif", display: "flex", alignItems: "center", gap: "4px" }}><FileText size={14} />Blog</a>
             </nav>
 
             <button 
@@ -656,6 +658,7 @@ export default function App() {
               <a href="#arbitration" onClick={() => setMobileMenuOpen(false)}>AI Arbitration</a>
               <a href="#comparison" onClick={() => setMobileMenuOpen(false)}>Comparison</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); setMobileMenuOpen(false); }} style={{ color: "#2563eb" }}>Blog</a>
             </div>
           </>
         )}
@@ -804,12 +807,12 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className={viewMode === "dashboard" ? "dashboard-content" : ""} style={viewMode === "landing" ? {
+      <main className={viewMode === "dashboard" ? "dashboard-content" : ""} style={viewMode === "landing" || viewMode === "blog" ? {
         flexGrow: 1,
-        padding: 0,
-        maxWidth: "none",
+        padding: viewMode === "blog" ? "40px 20px" : 0,
+        maxWidth: viewMode === "blog" ? "820px" : "none",
         width: "100%",
-        margin: 0
+        margin: viewMode === "blog" ? "0 auto" : 0
       } : {
         flexGrow: 1,
         maxWidth: "1200px",
@@ -918,7 +921,9 @@ export default function App() {
         )}
 
         {/* tab Content display */}
-        {viewMode === "dashboard" ? (
+        {viewMode === "blog" ? (
+          <BlogPage onBack={() => setViewMode("landing")} />
+        ) : viewMode === "dashboard" ? (
           (!fluenci.account || isSupportedNetwork) ? (
             renderActiveTab()
           ) : null

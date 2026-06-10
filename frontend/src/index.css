@@ -620,3 +620,15 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Explorer Link Buttons in Deployed Contracts Docs */
+.explorer-link-btn {
+  color: #ffffff !important;
+  background-color: #111111 !important;
+  text-decoration: none !important;
+}
+
+.explorer-link-btn:hover {
+  background-color: #222222 !important;
+  color: #ffffff !important;
+}

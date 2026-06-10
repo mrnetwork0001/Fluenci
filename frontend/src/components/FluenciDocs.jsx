@@ -6,23 +6,104 @@ import {
   Coins, 
   HelpCircle, 
   ArrowRight, 
+  ArrowLeft,
   Terminal, 
   AlertCircle,
   Play,
-  Gamepad2
+  Gamepad2,
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react";
 
 export default function FluenciDocs() {
   const [activeSection, setActiveSection] = useState("intro");
 
   const sections = [
-    { id: "intro", title: "Introduction & Overview", icon: <BookOpen size={16} /> },
-    { id: "sentry", title: "AI Sentry & Protection", icon: <ShieldCheck size={16} /> },
-    { id: "qiepass", title: "QIE Pass & Trust", icon: <KeyRound size={16} /> },
-    { id: "router", title: "Router & DEX Swaps", icon: <Coins size={16} /> },
-    { id: "arcade", title: "Fluenci Arcade", icon: <Gamepad2 size={16} /> },
-    { id: "guide", title: "Mainnet Interaction Guide", icon: <Play size={16} /> }
+    { id: "intro", title: "Introduction & Overview", shortTitle: "Intro", icon: <BookOpen size={16} />, color: "#2563eb" },
+    { id: "sentry", title: "AI Sentry & Protection", shortTitle: "AI Sentry", icon: <ShieldCheck size={16} />, color: "#d97706" },
+    { id: "qiepass", title: "QIE Pass & Trust", shortTitle: "QIE Pass", icon: <KeyRound size={16} />, color: "#10b981" },
+    { id: "router", title: "Router & DEX Swaps", shortTitle: "Router", icon: <Coins size={16} />, color: "#8b5cf6" },
+    { id: "arcade", title: "Fluenci Arcade", shortTitle: "Arcade", icon: <Gamepad2 size={16} />, color: "#ec4899" },
+    { id: "guide", title: "Mainnet Interaction Guide", shortTitle: "Guide", icon: <Play size={16} />, color: "#111111" }
   ];
+
+  const currentIndex = sections.findIndex(s => s.id === activeSection);
+  const prevSection = currentIndex > 0 ? sections[currentIndex - 1] : null;
+  const nextSection = currentIndex < sections.length - 1 ? sections[currentIndex + 1] : null;
+
+  const handleNavigate = (sectionId) => {
+    setActiveSection(sectionId);
+    // Scroll to top of docs content on mobile
+    const el = document.querySelector('.docs-content-pane');
+    if (el) el.scrollTop = 0;
+  };
+
+  const PrevNextNav = () => (
+    <div className="docs-prevnext" style={{
+      display: "flex",
+      justifyContent: prevSection && nextSection ? "space-between" : prevSection ? "flex-start" : "flex-end",
+      gap: "12px",
+      marginTop: "28px",
+      paddingTop: "20px",
+      borderTop: "1px solid #eeeeee"
+    }}>
+      {prevSection && (
+        <button
+          onClick={() => handleNavigate(prevSection.id)}
+          className="docs-nav-btn"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "12px 20px",
+            background: "#f8f8f8",
+            border: "1px solid #e5e5e5",
+            borderRadius: "12px",
+            cursor: "pointer",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            color: "#555555",
+            transition: "all 0.2s ease",
+            maxWidth: "48%"
+          }}
+        >
+          <ChevronLeft size={16} />
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontSize: "0.7rem", color: "#999999", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous</div>
+            <div style={{ marginTop: "2px" }}>{prevSection.shortTitle}</div>
+          </div>
+        </button>
+      )}
+      {nextSection && (
+        <button
+          onClick={() => handleNavigate(nextSection.id)}
+          className="docs-nav-btn"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "12px 20px",
+            background: "#111111",
+            border: "1px solid #111111",
+            borderRadius: "12px",
+            cursor: "pointer",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+            color: "#ffffff",
+            transition: "all 0.2s ease",
+            marginLeft: "auto",
+            maxWidth: "48%"
+          }}
+        >
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Next</div>
+            <div style={{ marginTop: "2px" }}>{nextSection.shortTitle}</div>
+          </div>
+          <ChevronRight size={16} />
+        </button>
+      )}
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeSection) {
@@ -59,7 +140,7 @@ export default function FluenciDocs() {
             <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#111111", margin: "12px 0 4px 0" }}>
               Core Protocol Components
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div className="docs-components-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", background: "#fdfdfd" }}>
                 <strong style={{ fontSize: "0.88rem", color: "#111111" }}>FluenciRegistry</strong>
                 <p style={{ fontSize: "0.78rem", color: "#666666", margin: "4px 0 0 0", lineHeight: "1.4" }}>
@@ -85,6 +166,7 @@ export default function FluenciDocs() {
                 </p>
               </div>
             </div>
+            <PrevNextNav />
           </div>
         );
 
@@ -143,6 +225,7 @@ export default function FluenciDocs() {
               <span style={{ color: "#89b4fa" }}>[18:02:15 UTC]</span> ACTION: AI Auditor signed freeze transaction.<br />
               <span style={{ color: "#a6e3a1" }}>[18:02:16 UTC]</span> SUCCESS: Stream status set to pausedByAI=true on QIE Mainnet.
             </div>
+            <PrevNextNav />
           </div>
         );
 
@@ -179,6 +262,7 @@ export default function FluenciDocs() {
                 Creating a stream triggers the modifier <code>requiresQiePass(user)</code> in our smart contracts. If a subscriber's KYC is revoked or unverified, stream creation or claim actions will automatically revert.
               </p>
             </div>
+            <PrevNextNav />
           </div>
         );
 
@@ -198,7 +282,7 @@ export default function FluenciDocs() {
             <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#111111", margin: "8px 0 4px 0" }}>
               Attributed Swap routing
             </h3>
-            <div style={{ 
+            <div className="docs-swap-flow" style={{ 
               background: "#f9fafb", 
               border: "1px solid #e5e7eb", 
               borderRadius: "12px", 
@@ -207,7 +291,7 @@ export default function FluenciDocs() {
               flexDirection: "column",
               gap: "8px"
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "0.85rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "0.85rem", flexWrap: "wrap" }}>
                 <span style={{ background: "#e5e7eb", padding: "4px 8px", borderRadius: "6px", fontWeight: "bold" }}>User Swap</span>
                 <ArrowRight size={14} color="#666666" />
                 <span style={{ background: "#dbeafe", color: "#2563eb", padding: "4px 8px", borderRadius: "6px", fontWeight: "bold" }}>FluenciRouter</span>
@@ -218,6 +302,7 @@ export default function FluenciDocs() {
                 Swapping native QIE to QUSDC through FluenciRouter registers a <code>FluenciSwap</code> event onchain. This ensures full attribution for judges to verify swap volumes originating from our front-end!
               </p>
             </div>
+            <PrevNextNav />
           </div>
         );
 
@@ -265,6 +350,7 @@ export default function FluenciDocs() {
               <li>A micro-payment stream of <strong>0.0001 QUSDC/second</strong> starts flowing.</li>
               <li>When you end the session, the stream is automatically terminated onchain, ensuring you only pay for the exact duration of your activity.</li>
             </ul>
+            <PrevNextNav />
           </div>
         );
 
@@ -312,6 +398,7 @@ export default function FluenciDocs() {
                 </ol>
               </div>
             </div>
+            <PrevNextNav />
           </div>
         );
 
@@ -319,6 +406,8 @@ export default function FluenciDocs() {
         return null;
     }
   };
+
+  const currentSection = sections[currentIndex];
 
   return (
     <div className="docs-container" style={{ 
@@ -330,8 +419,8 @@ export default function FluenciDocs() {
       textAlign: "left",
       minHeight: "550px"
     }}>
-      {/* Sidebar navigation */}
-      <div className="docs-sidebar" style={{ 
+      {/* Desktop Sidebar navigation */}
+      <div className="docs-sidebar docs-sidebar-desktop" style={{ 
         width: "240px", 
         display: "flex", 
         flexDirection: "column", 
@@ -354,7 +443,7 @@ export default function FluenciDocs() {
           return (
             <button
               key={section.id}
-              onClick={() => setActiveSection(section.id)}
+              onClick={() => handleNavigate(section.id)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -379,9 +468,78 @@ export default function FluenciDocs() {
         })}
       </div>
 
+      {/* Mobile Section Navigation (visible only on mobile) */}
+      <div className="docs-mobile-nav">
+        {/* Step indicator */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "12px"
+        }}>
+          <span style={{ fontSize: "0.72rem", fontWeight: "700", color: "#999999", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Documentation
+          </span>
+          <span style={{ fontSize: "0.72rem", fontWeight: "700", color: "#999999" }}>
+            {currentIndex + 1} of {sections.length}
+          </span>
+        </div>
+
+        {/* Section cards grid */}
+        <div className="docs-mobile-grid">
+          {sections.map((section, idx) => {
+            const isActive = activeSection === section.id;
+            return (
+              <button
+                key={section.id}
+                onClick={() => handleNavigate(section.id)}
+                className={`docs-mobile-card ${isActive ? "active" : ""}`}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "12px 8px",
+                  background: isActive ? "#111111" : "#ffffff",
+                  border: isActive ? "1px solid #111111" : "1px solid #e5e5e5",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  textAlign: "center",
+                  minWidth: 0
+                }}
+              >
+                <div style={{ 
+                  color: isActive ? "#ffffff" : section.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "8px",
+                  background: isActive ? "rgba(255,255,255,0.15)" : `${section.color}10`,
+                  flexShrink: 0
+                }}>
+                  {section.icon}
+                </div>
+                <span style={{ 
+                  fontSize: "0.68rem", 
+                  fontWeight: "600", 
+                  color: isActive ? "#ffffff" : "#555555",
+                  lineHeight: "1.2",
+                  wordBreak: "break-word"
+                }}>
+                  {section.shortTitle}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Content pane */}
       <div 
-        className="glass-card" 
+        className="glass-card docs-content-pane" 
         style={{ 
           flex: 1, 
           background: "#ffffff", 

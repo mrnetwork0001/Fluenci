@@ -1602,6 +1602,23 @@
   padding: 14px 16px;
 }
 
+/* Docs Mobile Navigation (hidden on desktop) */
+.docs-mobile-nav {
+  display: none;
+}
+
+.docs-mobile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* Docs Prev/Next Navigation */
+.docs-nav-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
 @media (max-width: 768px) {
   .landing-nav {
     display: none !important;
@@ -1625,6 +1642,43 @@
   /* ── Hide ConnectWallet header on mobile ── */
   .connect-wallet-header {
     display: none !important;
+  }
+
+  /* ── Docs Page: stack layout ── */
+  .docs-container {
+    flex-direction: column !important;
+    gap: 16px !important;
+    min-height: auto !important;
+  }
+
+  .docs-sidebar-desktop {
+    display: none !important;
+  }
+
+  .docs-mobile-nav {
+    display: block !important;
+  }
+
+  .docs-content-pane {
+    padding: 20px !important;
+    border-radius: 16px !important;
+  }
+
+  .docs-components-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .docs-prevnext {
+    flex-direction: row !important;
+  }
+
+  .docs-nav-btn {
+    padding: 10px 14px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .docs-content-pane h2 {
+    font-size: 1.25rem !important;
   }
 
   /* ── AI Security Desk: stack to single column ── */

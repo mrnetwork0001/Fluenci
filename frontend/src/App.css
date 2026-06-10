@@ -2181,3 +2181,30 @@
   }
 }
 
+/* Custom Hero Section Button Styling Overrides with brand color #079AB7 */
+.hero-cta-buttons .btn-primary {
+  background: #079AB7 !important;
+  border-color: #079AB7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(7, 154, 183, 0.2) !important;
+}
+
+.hero-cta-buttons .btn-primary:hover {
+  background: #ffffff !important;
+  color: #079AB7 !important;
+  border-color: #079AB7 !important;
+  box-shadow: 0 6px 20px rgba(7, 154, 183, 0.3) !important;
+}
+
+.hero-cta-buttons .btn-secondary {
+  border-color: #079AB7 !important;
+  color: #079AB7 !important;
+}
+
+.hero-cta-buttons .btn-secondary:hover {
+  background: #079AB7 !important;
+  color: #ffffff !important;
+  border-color: #079AB7 !important;
+  box-shadow: 0 6px 20px rgba(7, 154, 183, 0.2) !important;
+}
+

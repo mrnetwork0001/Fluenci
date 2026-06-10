@@ -936,10 +936,7 @@ export default function App() {
             <section className="home-hero-section" id="features">
               <div className="hero-grid">
                 <div style={{ textAlign: "left", zIndex: 1 }}>
-                  <div className="hero-badge">
-                    <Sparkles size={12} />
-                    AI-Shielded Subscriptions
-                  </div>
+
                   <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
                     <span style={{ fontSize: "3.8rem", whiteSpace: "nowrap" }}>Stop <span style={{ color: "#079AB7", borderRight: "3px solid #079AB7", paddingRight: "2px" }}>{heroDisplay}</span> Streams</span>
                     <br />

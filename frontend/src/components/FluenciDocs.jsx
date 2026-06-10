@@ -757,7 +757,7 @@ function ContractCard({ name, description, address, isVerified, isCore }) {
           }}
           className="explorer-link-btn"
         >
-          <span>View on Explorer</span>
+          <span style={{ color: "#ffffff" }}>View on Explorer</span>
           <ExternalLink size={12} />
         </a>
       </div>

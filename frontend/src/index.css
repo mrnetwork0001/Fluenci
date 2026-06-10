@@ -628,7 +628,20 @@ input[type=number] {
   text-decoration: none !important;
 }
 
+.explorer-link-btn span {
+  color: #ffffff !important;
+}
+
+.explorer-link-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
 .explorer-link-btn:hover {
   background-color: #222222 !important;
+  color: #ffffff !important;
+}
+
+.explorer-link-btn:hover span {
   color: #ffffff !important;
 }

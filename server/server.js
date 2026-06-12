@@ -775,7 +775,8 @@ async function connectBlockchain() {
         "event FundsWithdrawn(bytes32 indexed subId, address indexed merchant, uint256 amount)",
         "event DisputeOpened(bytes32 indexed subId, address indexed subscriber)",
         "event DisputeResolved(bytes32 indexed subId, uint256 subscriberRefund, uint256 merchantShare)",
-        "function getSubscriptionDetails(bytes32 subId) view returns (address subscriber, address merchant, address tokenAddress, uint256 ratePerSecond, uint256 lastClaimedTimestamp, uint256 startTime, uint256 cliffTime, uint256 stopTime, bool active, bool pausedByAI, uint8 disputeState, uint256 claimableAmount)"
+        "function getSubscriptionDetails(bytes32 subId) view returns (address subscriber, address merchant, address tokenAddress, uint256 ratePerSecond, uint256 lastClaimedTimestamp, uint256 startTime, uint256 cliffTime, uint256 stopTime, bool active, bool pausedByAI, uint8 disputeState, uint256 claimableAmount)",
+        "function getSubscriberSubscriptions(address subscriber) view returns (bytes32[])"
       ];
 
       registryContract = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, provider);
@@ -828,6 +829,7 @@ async function connectBlockchain() {
       }
 
       await syncHistoricalEvents();
+      await reconcileActiveStreams();
       setupEventListeners();
       monitoringActive = true;
     } else {
@@ -839,11 +841,46 @@ async function connectBlockchain() {
   }
 }
 
+// Reconcile active streams after historical sync by querying the registry
+// for all known subscribers and re-adding any streams that are still active.
+async function reconcileActiveStreams() {
+  if (!registryContract || !provider) return;
+  logTelemetry("INFO", "Reconciling active streams from known subscribers...");
+
+  const subscriberAddresses = [...uniqueUsers];
+  let reconciled = 0;
+
+  for (const subscriberAddr of subscriberAddresses) {
+    try {
+      const subIds = await registryContract.getSubscriberSubscriptions(subscriberAddr);
+      for (const subId of subIds) {
+        try {
+          const details = await registryContract.getSubscriptionDetails(subId);
+          const [, , , , , , , , active, pausedByAI] = details;
+          if (active && !pausedByAI && !activeStreamRisks[subId]) {
+            activeStreamRisks[subId] = 12; // Default low risk, will be audited on next tick
+            reconciled++;
+          }
+        } catch (detailErr) {
+          // Skip individual subscription errors
+        }
+      }
+    } catch (err) {
+      // Skip subscribers whose subscriptions can't be queried
+    }
+  }
+
+  logTelemetry("INFO", `Reconciliation complete. ${reconciled} active streams re-added to monitoring.`);
+  console.log(`[RECONCILE] Found ${reconciled} active streams from ${subscriberAddresses.length} known subscribers`);
+}
+
 async function auditActiveStreams() {
   if (!registryContract || !provider) return;
 
   const activeSubIds = Object.keys(activeStreamRisks);
   if (activeSubIds.length === 0) return;
+
+  console.log(`[AUDIT] Auditing ${activeSubIds.length} active streams...`);
 
   for (const subId of activeSubIds) {
     try {
@@ -919,10 +956,14 @@ function setupEventListeners() {
 
   // Poll for new events every 10 seconds using queryFilter (no eth_newFilter needed)
   pollIntervalId = setInterval(async () => {
-    if (!registryContract || !provider || lastPolledBlock === 0) return;
+    if (!registryContract || !provider || lastPolledBlock === 0) {
+      console.log(`[POLLER] Skipping: registryContract=${!!registryContract} provider=${!!provider} lastPolledBlock=${lastPolledBlock}`);
+      return;
+    }
 
     try {
       const currentBlock = await provider.getBlockNumber();
+      console.log(`[POLLER] Poll tick: currentBlock=${currentBlock} lastPolledBlock=${lastPolledBlock} activeStreams=${Object.keys(activeStreamRisks).length}`);
       if (currentBlock <= lastPolledBlock) return; // No new blocks
 
       const fromBlock = lastPolledBlock + 1;
@@ -942,9 +983,15 @@ function setupEventListeners() {
         registryContract.queryFilter(registryContract.filters.DisputeResolved(), fromBlock, toBlock)
       ]);
 
+      const totalEvents = evCreated.length + evPaused.length + evResumed.length + evTerminated.length + evWithdrawn.length + evDisputeOpened.length + evDisputeResolved.length;
+      if (totalEvents > 0) {
+        console.log(`[POLLER] Blocks ${fromBlock}-${toBlock}: ${evCreated.length} Created, ${evPaused.length} Paused, ${evResumed.length} Resumed, ${evTerminated.length} Terminated, ${evWithdrawn.length} Withdrawn, ${evDisputeOpened.length} DisputeOpened, ${evDisputeResolved.length} DisputeResolved`);
+      }
+
       // Process Registry events
       for (const ev of evCreated) {
         const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = ev.args;
+        console.log(`[POLLER] New SubscriptionCreated detected: ${subId} subscriber=${subscriber} rate=${rate.toString()}`);
         uniqueUsers.add(subscriber);
         uniqueUsers.add(merchant);
         activeStreamRisks[subId] = 12;

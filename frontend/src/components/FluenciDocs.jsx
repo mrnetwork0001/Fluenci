@@ -433,7 +433,7 @@ export default function FluenciDocs() {
               <ContractCard 
                 name="FluenciAIAuditor" 
                 description="Autonomous security auditor. Holds cryptographic signature verification and controls the safety pause states triggered by the AI Sentry."
-                address="0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E"
+                address="0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02"
                 isCore={true}
                 isVerified={true}
               />

@@ -38,7 +38,7 @@ The protocol is deployed and active on QIE Mainnet. All contracts are fully veri
 | Contract | Address |
 |---|---|
 | **FluenciRegistry** (v2) | [`0x13D948a6A3384a744cdB84B0236bbba7CC79cA41`](https://mainnet.qie.digital/address/0x13D948a6A3384a744cdB84B0236bbba7CC79cA41) |
-| **FluenciAIAuditor** (v2) | [`0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E`](https://mainnet.qie.digital/address/0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E) |
+| **FluenciAIAuditor** (v3) | [`0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02`](https://mainnet.qie.digital/address/0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02) |
 | **FluenciRouter** | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
 | **AI Auditor Hot Wallet** | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
 
@@ -177,7 +177,7 @@ The backend handles the AI Sentry loops, OpenAI assessments, QIE Pass integratio
    PORT=5001
    RPC_URL=https://rpc1mainnet.qie.digital
    REGISTRY_ADDRESS=0x13D948a6A3384a744cdB84B0236bbba7CC79cA41
-   AUDITOR_ADDRESS=0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E
+   AUDITOR_ADDRESS=0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02
    AI_PRIVATE_KEY=your_ai_private_key_here
    OPENAI_API_KEY=your_openai_api_key_here
    QIEPASS_API_URL=https://did-stapi.qie.digital

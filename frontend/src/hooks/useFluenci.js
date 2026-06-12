@@ -46,7 +46,7 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
     registry: "0x13D948a6A3384a744cdB84B0236bbba7CC79cA41",
     qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official QUSDC
     qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
-    auditor: "0x3365551482aDbE7237A9c1DFDcD0087dfdFd705E",
+    auditor: "0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
     fluenciRouter: "0x75475647f52531D4086296415392E4AA94b92de7", // FluenciRouter (wraps QieDex with onchain attribution)
     qiedomain: "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed" // Official QIE Domain Registry (mainnet)

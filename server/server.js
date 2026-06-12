@@ -287,12 +287,13 @@ const AnalystAgent = {
       logTelemetry("ANALYST_AGENT", `Failed to fetch subscriber balance: ${err.message}`);
     }
 
-    if (balanceVal === 0n) {
+    const minRequired = BigInt(rate) * 10n; // Require at least 10 seconds of streaming buffer
+    if (balanceVal < minRequired) {
       return {
         compliant: false,
         riskScore: 99,
         anomalyClass: "INSUFFICIENT_BALANCE",
-        reason: "Subscriber has zero token balance. Cannot sustain payment stream."
+        reason: `Subscriber balance (${balanceVal.toString()} units) is less than required buffer (${minRequired.toString()} units). Cannot sustain payment stream.`
       };
     }
 
@@ -773,7 +774,8 @@ async function connectBlockchain() {
         "event StreamTerminated(bytes32 indexed subId)",
         "event FundsWithdrawn(bytes32 indexed subId, address indexed merchant, uint256 amount)",
         "event DisputeOpened(bytes32 indexed subId, address indexed subscriber)",
-        "event DisputeResolved(bytes32 indexed subId, uint256 subscriberRefund, uint256 merchantShare)"
+        "event DisputeResolved(bytes32 indexed subId, uint256 subscriberRefund, uint256 merchantShare)",
+        "function getSubscriptionDetails(bytes32 subId) view returns (address subscriber, address merchant, address tokenAddress, uint256 ratePerSecond, uint256 lastClaimedTimestamp, uint256 startTime, uint256 cliffTime, uint256 stopTime, bool active, bool pausedByAI, uint8 disputeState, uint256 claimableAmount)"
       ];
 
       registryContract = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, provider);
@@ -846,7 +848,7 @@ async function auditActiveStreams() {
   for (const subId of activeSubIds) {
     try {
       const details = await registryContract.getSubscriptionDetails(subId);
-      const [subscriber, merchant, tokenAddress, ratePerSecond, , , , , active, pausedByAI] = details;
+      const [subscriber, merchant, tokenAddress, ratePerSecond, , , , , active, pausedByAI, , claimableAmount] = details;
 
       if (!active || pausedByAI) {
         // Clean up from memory if no longer active or already paused by AI
@@ -858,8 +860,10 @@ async function auditActiveStreams() {
       const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOf(address) view returns (uint256)"], provider);
       const balanceVal = await tokenContract.balanceOf(subscriber);
 
-      if (balanceVal === 0n) {
-        logTelemetry("ANALYST_AGENT", `CRITICAL: Active stream ${subId} subscriber ${subscriber} has zero balance! Triggering safety pause...`);
+      const requiredBuffer = claimableAmount + (ratePerSecond * 10n);
+
+      if (balanceVal < requiredBuffer) {
+        logTelemetry("ANALYST_AGENT", `CRITICAL: Active stream ${subId} subscriber ${subscriber} has insufficient balance (${balanceVal.toString()} < required ${requiredBuffer.toString()})! Triggering safety pause...`);
         activeStreamRisks[subId] = 99;
 
         // Compile audit report
@@ -871,16 +875,16 @@ async function auditActiveStreams() {
             compliant: false,
             riskScore: 99,
             anomalyClass: "INSUFFICIENT_BALANCE",
-            reason: "Active stream subscriber has zero token balance. Autopausing stream."
+            reason: `Active stream subscriber has insufficient balance (${balanceVal.toString()} < required ${requiredBuffer.toString()}). Autopausing stream.`
           }
         };
 
         // Save report in local cache
-        const ipfsCID = `ipfs://bafybeihash-zero-balance-${subId.substring(2, 18)}`;
+        const ipfsCID = `ipfs://bafybeihash-low-balance-${subId.substring(2, 18)}`;
         auditReports[subId] = {
           subId,
           riskScore: 99,
-          reason: `Subscriber balance is zero. [IPFS CID: ${ipfsCID}]`,
+          reason: `Subscriber balance is insufficient (${balanceVal.toString()} < required ${requiredBuffer.toString()}). [IPFS CID: ${ipfsCID}]`,
           anomalyClass: "INSUFFICIENT_BALANCE",
           ipfsCID,
           timestamp: new Date().toISOString()

@@ -1,40 +1,44 @@
-# Fluenci — AI-Shielded Real-Time Streaming Payments on QIE Blockchain
+# Fluenci - AI-Shielded Real-Time Streaming Payments on QIE Blockchain
 
 > **Stop Blind Streams. AI-Shielded Payments.**
 
-Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second — for subscriptions, API usage, salaries, and more — using `QUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
+Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second - for subscriptions, API usage, salaries, and more — using `QUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
+
+<img width="1901" height="973" alt="12 06 2026_09 43 27_REC" src="https://github.com/user-attachments/assets/9641fa89-8624-4a17-a367-8703b9f5434d" />
+
+
 
 ---
 
-## ✨ Key Innovations
+## Key Innovations
 
 ### 1. Tradeable Subscription NFTs
 Each payment stream is minted as a unique **ERC-721 NFT**. Subscription ownership can be transferred, gifted, or traded on any NFT marketplace. When the NFT changes hands, the smart contract automatically shifts billing obligations to the new owner's wallet.
 
 ### 2. Autonomous AI Sentry Network
-An offchain **Multi-Agent AI node** (Sentry, Analyst, Decision, and Arbitrator agents) monitors every stream in real time. It uses **OpenAI GPT-4o** to analyze billing velocity anomalies, compiles IPFS audit reports, and can autonomously execute onchain safety pauses — no human intervention required.
+An offchain **Multi-Agent AI node** (Sentry, Analyst, Decision, and Arbitrator agents) monitors every stream in real time. It uses **OpenAI GPT-4o** to analyze billing velocity anomalies, compiles IPFS audit reports, and can autonomously execute onchain safety pauses - no human intervention required.
 
 ### 3. Progressive KYC via QIE Pass
 Merchants can receive payments without KYC for frictionless onboarding. However, **withdrawing/claiming** funds requires QIE Pass identity verification. This Progressive KYC model balances user experience with regulatory compliance.
 
 ### 4. Privacy-Preserving Telemetry
-The public-facing AI Telemetry Node on the landing page anonymizes all sensitive data — wallet addresses, transaction hashes, stream IDs, and KYC identifiers are masked (`0x07f3••••05a8`). The AI Security Desk shows only the connected wallet's own activity (wallet-scoped filtering).
+The public-facing AI Telemetry Node on the landing page anonymizes all sensitive data - wallet addresses, transaction hashes, stream IDs, and KYC identifiers are masked (`0x07f3••••05a8`). The AI Security Desk shows only the connected wallet's own activity (wallet-scoped filtering).
 
-### 5. Native QIE Ecosystem — 5 Deep Integrations
+### 5. Native QIE Ecosystem - 5 Deep Integrations
 Fluenci is built natively on the QIE ecosystem, integrating:
-- **QIE Pass** — Decentralized identity verification (DID)
-- **QIE Wallet** — Native browser wallet with gas overrides
-- **QIE Stable Coin (qUSDC)** — Stablecoin for volatility-free payments
-- **QIE Dex** — Decentralized exchange for QIE ⇄ qUSDC swaps
-- **QIE Domains** — Human-readable `.qie` domain names resolved to wallet addresses
+- **QIE Pass** - Decentralized identity verification (DID)
+- **QIE Wallet** - Native browser wallet with gas overrides
+- **QIE Stable Coin (QUSDC)** - Stablecoin for volatility-free payments
+- **QIE Dex** - Decentralized exchange for QIE ⇄ qUSDC swaps
+- **QIE Domains** - Human-readable `.qie` domain names resolved to wallet addresses
 
 ---
 
-## 🚀 QIE Mainnet Deployments (Chain ID 1990)
+## QIE Mainnet Deployments (Chain ID 1990)
 
 The protocol is deployed and active on QIE Mainnet. All contracts are fully verified and operational:
 
-### Fluenci Protocol Contracts (v3 — with 0.5% protocol fee + auto-settle on terminate)
+### Fluenci Protocol Contracts (v3 - with 0.5% protocol fee + auto-settle on terminate)
 | Contract | Address |
 |---|---|
 | **FluenciRegistry** (v3) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
@@ -52,28 +56,27 @@ The protocol is deployed and active on QIE Mainnet. All contracts are fully veri
 
 ---
 
-## 🆕 Latest Developments (June 2026)
+## Latest Developments (June 2026)
 
 ### WalletConnect v2 Mobile Support
 - **QIE Mobile Wallet** can now connect to Fluenci by scanning a QR code via WalletConnect v2
 - The connect modal shows an instant QR code for mobile scan, with no page reload required
 - Relay URL upgraded to `wss://relay.walletconnect.com` for broader network compatibility
 - Network-blocked users (restricted ISPs/hotspots) receive an immediate, actionable error message within 8 seconds instead of a silent 30-second timeout
-- A **Retry** button is shown on failure — users can reconnect without reopening the modal
+- A **Retry** button is shown on failure - users can reconnect without reopening the modal
 
 ### Multi-Wallet Support (EIP-6963)
 - The wallet selection modal now supports **three connection paths**:
-  1. **QIE Wallet (Browser Extension)** — detected via EIP-6963 provider announcements
-  2. **QIE Mobile Wallet** — WalletConnect v2 QR code scan
-  3. **Other EVM Wallets** — any injected EIP-6963 provider (MetaMask, Rabby, etc.)
+  1. **QIE Wallet (Browser Extension)** - detected via EIP-6963 provider announcements
+  2. **QIE Mobile Wallet** - WalletConnect v2 QR code scan
+  3. **Other EVM Wallets** - any injected EIP-6963 provider (MetaMask, Rabby, etc.)
 
 ### Live Protocol Dashboard
 - Powered by QIE Mainnet, the landing page now tracks **settled volume**, **DEX swaps**, and **protocol revenue** in real time directly from onchain events
-- Stats are redacted for privacy on the public page and revealed only to connected wallets
 
 ### Fluenci Blog
 - Full in-app blog (`/blog`) with articles on streaming payments, QIE ecosystem, AI sentry design, and tokenomics
-- No external CMS dependency — content is bundled in the frontend
+- No external CMS dependency - content is bundled in the frontend
 
 ### Fluenci Docs
 - Complete in-app protocol documentation (`/docs`) covering:
@@ -89,12 +92,12 @@ The protocol is deployed and active on QIE Mainnet. All contracts are fully veri
 
 ### UI/UX Refinements
 - Wallet option buttons redesigned with clearer hover contrast for improved text readability
-- Modal connection flow tightened — loading states, error states, and success states are all clearly differentiated
+- Modal connection flow tightened - loading states, error states, and success states are all clearly differentiated
 - Protocol revenue stats displayed with animated counters on the landing page
 
 ---
 
-## 🛠️ Architecture Overview
+## Architecture Overview
 
 ```mermaid
 graph TD
@@ -181,12 +184,12 @@ The anonymization engine masks any `0x`-prefixed hex string of 20+ characters, c
 
 ---
 
-## 🖥️ Landing Page Features
+## Landing Page Features
 
 The landing page is designed to showcase the protocol's capabilities at a glance:
 
-- **Typewriter Hero Title**: Dynamic cycling text — "Stop **Blind** / **Rogue** / **Unaudited** Streams" with a typewriter animation
-- **Live Protocol Stats**: Real-time counters for Active Users, Settled Volume, Swap Volume (DEX), and App Revenue (0.5% fee) — powered directly from QIE Mainnet
+- **Typewriter Hero Title**: Dynamic cycling text - "Stop **Blind** / **Rogue** / **Unaudited** Streams" with a typewriter animation
+- **Live Protocol Stats**: Real-time counters for Active Users, Settled Volume, Swap Volume (DEX), and App Revenue (0.5% fee) - powered directly from QIE Mainnet
 - **AI Telemetry Node**: Live terminal widget pulling real telemetry from the backend with anonymized logs
 - **Ecosystem Marquee Carousel**: Auto-scrolling infinite carousel showcasing all 5 QIE integrations with pause-on-hover
 - **Feature Comparison Matrix**: Side-by-side comparison of Standard Web3 Streams vs. Fluenci AI-Shield
@@ -194,7 +197,7 @@ The landing page is designed to showcase the protocol's capabilities at a glance
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18+)
@@ -253,7 +256,7 @@ The React Vite frontend handles the subscriber panel, merchant dashboard, DEX sw
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 QieFlow/
@@ -293,7 +296,7 @@ QieFlow/
 
 ---
 
-## 💎 Economic Sustainability & Revenue Model
+## Economic Sustainability & Revenue Model
 
 For a decentralized subscription protocol merging AI Agents and Web3 payments to be viable, it must demonstrate a clear path to self-sustainability. Fluenci achieves this through a multi-tiered model:
 
@@ -302,7 +305,7 @@ For a decentralized subscription protocol merging AI Agents and Web3 payments to
 - **Execution**: The `FluenciRegistry` splits every payment:
   - **99.5%** goes to the merchant
   - **0.5%** is redirected to the **Fluenci Treasury**
-- **Sustainability**: Scales linearly with TVL and transaction volume — displayed live on the landing page
+- **Sustainability**: Scales linearly with TVL and transaction volume - displayed live on the landing page
 
 ### 2. Premium AI Sentry Subscription (SaaS)
 - **Mechanism**: Basic security telemetry is free. Merchants can subscribe to **AI Sentry Premium Defense** for faster queues, deeper reputation checks, and custom alert thresholds
@@ -316,7 +319,7 @@ For a decentralized subscription protocol merging AI Agents and Web3 payments to
 
 ---
 
-## 🔬 Testing the AI Sentry Pipeline
+## Testing the AI Sentry Pipeline
 
 To demonstrate the full autonomous security pipeline:
 
@@ -334,7 +337,7 @@ To demonstrate the full autonomous security pipeline:
 
 ---
 
-## 🔐 Security & Privacy
+## Security & Privacy
 
 | Feature | Implementation |
 |---|---|
@@ -342,12 +345,12 @@ To demonstrate the full autonomous security pipeline:
 | **Public Data Anonymization** | Landing page masks all 0x hex identifiers (addresses, tx hashes, stream IDs) |
 | **Progressive KYC** | Merchants receive payments freely but must verify identity to withdraw |
 | **EIP-712 Signatures** | AI dispute resolutions are cryptographically signed and verified onchain |
-| **Pull-Based Custody** | Subscriber tokens never leave their wallet — only pulled on claim |
+| **Pull-Based Custody** | Subscriber tokens never leave their wallet - only pulled on claim |
 | **WalletConnect v2** | Mobile connections use encrypted WalletConnect v2 relay protocol |
 
 ---
 
-## 🐍 Fluenci Snake Arcade
+## Fluenci Snake Arcade
 
 Fluenci includes a built-in **Snake game** as a pay-as-you-play demo. It demonstrates micro-payment streaming in action:
 
@@ -359,13 +362,13 @@ Fluenci includes a built-in **Snake game** as a pay-as-you-play demo. It demonst
 
 ---
 
-## 🔗 Links
+## Links
 
 - **X (Twitter)**: [x.com/fluenciAI](https://x.com/fluenciAI)
 - **GitHub**: [github.com/mrnetwork0001/Fluenci](https://github.com/mrnetwork0001/Fluenci)
 
 ---
 
-## 📄 License
+## License
 
 © 2026 Fluenci Protocol. Built for QIE Blockchain Hackathon. All rights reserved.

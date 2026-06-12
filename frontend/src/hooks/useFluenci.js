@@ -1089,25 +1089,41 @@ export function useFluenci() {
     setError("");
     setLoading(true);
     try {
-      // Omit required chains since QIE Mobile Wallet only supports QIE (1990)
-      // Listing Chain 1 as required causes wallets that do not support Ethereum to fail pairing
-      const wcProvider = await EthereumProvider.init({
-        projectId: "8801909e023fe9d1391c107d4f7f0443",
-        optionalChains: [1990, 1],
-        showQrModal: false,
-        metadata: {
-          name: "Fluenci",
-          description: "AI-Shielded Real-Time Streaming Payments",
-          url: window.location.origin,
-          icons: []
-        },
-        rpcMap: {
-          1: "https://eth.llamarpc.com",
-          1990: "https://rpc1mainnet.qie.digital"
-        }
-      });
+      let wcProvider = wcProviderRef.current;
 
-      wcProviderRef.current = wcProvider;
+      if (!wcProvider) {
+        // Omit required chains since QIE Mobile Wallet only supports QIE (1990)
+        // Listing Chain 1 as required causes wallets that do not support Ethereum to fail pairing
+        wcProvider = await EthereumProvider.init({
+          projectId: "8801909e023fe9d1391c107d4f7f0443",
+          optionalChains: [1990, 1],
+          showQrModal: false,
+          metadata: {
+            name: "Fluenci",
+            description: "AI-Shielded Real-Time Streaming Payments",
+            url: window.location.origin,
+            icons: []
+          },
+          rpcMap: {
+            1: "https://eth.llamarpc.com",
+            1990: "https://rpc1mainnet.qie.digital"
+          }
+        });
+        wcProviderRef.current = wcProvider;
+      }
+
+      // If session already exists, finalize connection immediately
+      if (wcProvider.session) {
+        finalizeWalletConnect(wcProvider);
+        return;
+      }
+
+      // Remove any existing display_uri listeners to avoid duplicate callbacks
+      try {
+        wcProvider.removeAllListeners("display_uri");
+      } catch (e) {
+        // Safe fallback
+      }
 
       // Attach URI listener BEFORE calling connect
       wcProvider.on("display_uri", (uri) => {
@@ -1115,12 +1131,15 @@ export function useFluenci() {
         if (onUri) onUri(uri);
       });
 
-      // Timeout fallback: if no URI in 15s, show error
-      const uriTimeout = setTimeout(() => {
+      // Timeout fallback: if no URI in 35s, show error (hotspots/slow networks can take time)
+      const uriTimeout = setTimeout(async () => {
         if (onUri) onUri(null); // signal failure
-        setError("WalletConnect timed out. Please try again.");
+        setError("WalletConnect timed out (slow network). Please try again.");
         setLoading(false);
-      }, 15000);
+        try {
+          await wcProvider.disconnect();
+        } catch (e) {}
+      }, 35000);
 
       // Start connection (this triggers display_uri)
       wcProvider.connect()
@@ -1128,12 +1147,15 @@ export function useFluenci() {
           clearTimeout(uriTimeout);
           finalizeWalletConnect(wcProvider);
         })
-        .catch((err) => {
+        .catch(async (err) => {
           clearTimeout(uriTimeout);
           console.warn("WalletConnect connect error:", err.message);
           setError("WalletConnect connect failed: " + err.message);
           setLoading(false);
           if (onUri) onUri(null);
+          try {
+            await wcProvider.disconnect();
+          } catch (e) {}
         });
 
     } catch (err) {

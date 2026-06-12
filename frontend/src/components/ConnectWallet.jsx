@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown } from "lucide-react";
+import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown, Smartphone } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function ConnectWallet({ 
   account, 
   accountDomain,
   chainId, 
-  connectWallet, 
+  connectWallet,
+  connectWalletConnect,
+  finalizeWalletConnect,
   disconnectWallet, 
   loading,
   switchToQieMainnet,
@@ -15,9 +18,11 @@ export default function ConnectWallet({
   isOpen,
   setIsOpen
 }) {
-  const [modalView, setModalView] = useState("primary"); // primary | other_evm
+  const [modalView, setModalView] = useState("primary"); // primary | other_evm | mobile_qr
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [wcUri, setWcUri] = useState("");
+  const [wcConnecting, setWcConnecting] = useState(false);
   const dropdownRef = useRef(null);
 
   const handleCopyAddress = () => {
@@ -84,12 +89,8 @@ export default function ConnectWallet({
   ));
 
   const handleConnectClick = () => {
-    if (isQieWalletDetected) {
-      connectWallet(qieProvider || null);
-    } else {
-      setModalView("other_evm");
-      setIsOpen(true);
-    }
+    setModalView("primary");
+    setIsOpen(true);
   };
 
   return (
@@ -350,6 +351,65 @@ export default function ConnectWallet({
                     }}>RECOMMENDED</span>
                   </button>
 
+                  {/* QIE Mobile Wallet (WalletConnect QR) */}
+                  <button 
+                    onClick={async () => {
+                      setWcConnecting(true);
+                      setWcUri("");
+                      const wcProvider = await connectWalletConnect();
+                      if (wcProvider) {
+                        wcProvider.on("display_uri", (uri) => {
+                          setWcUri(uri);
+                          setWcConnecting(false);
+                        });
+                        wcProvider.connect().then(() => {
+                          finalizeWalletConnect(wcProvider);
+                          setIsOpen(false);
+                          setWcUri("");
+                          setModalView("primary");
+                        }).catch((err) => {
+                          console.warn("WalletConnect cancelled:", err.message);
+                          setWcConnecting(false);
+                          setWcUri("");
+                        });
+                        setModalView("mobile_qr");
+                      } else {
+                        setWcConnecting(false);
+                      }
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%)",
+                      border: "1px solid rgba(16, 185, 129, 0.2)",
+                      borderRadius: "16px",
+                      padding: "16px 20px",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      color: "#ffffff",
+                      transition: "all 0.2s"
+                    }}
+                    className="wallet-option-btn"
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ fontSize: "1.8rem" }}>📱</span>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>QIE Mobile Wallet</div>
+                        <div style={{ fontSize: "0.75rem", color: "#a1a1aa" }}>Scan QR code to connect</div>
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: "0.65rem",
+                      background: "rgba(16, 185, 129, 0.15)",
+                      color: "#34d399",
+                      padding: "3px 8px",
+                      borderRadius: "8px",
+                      fontWeight: "bold",
+                      border: "1px solid rgba(16, 185, 129, 0.3)",
+                      letterSpacing: "0.05em"
+                    }}>MOBILE</span>
+                  </button>
+
                   {/* Other EVM Wallets */}
                   <button 
                     onClick={() => setModalView("other_evm")}
@@ -378,7 +438,7 @@ export default function ConnectWallet({
                   </button>
                 </div>
               </>
-            ) : (
+            ) : modalView === "other_evm" ? (
               <>
                 {/* Header with Back button */}
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "10px" }}>
@@ -480,7 +540,86 @@ export default function ConnectWallet({
                   )}
                 </div>
               </>
-            )}
+            ) : modalView === "mobile_qr" ? (
+              <>
+                {/* Header with Back button */}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "10px" }}>
+                  <button 
+                    onClick={() => { setModalView("primary"); setWcUri(""); }}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "8px",
+                      padding: "6px",
+                      cursor: "pointer",
+                      display: "flex",
+                      color: "#ffffff"
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "800", color: "#ffffff" }}>
+                    QIE Mobile Wallet
+                  </h3>
+                </div>
+
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "20px",
+                  padding: "10px 0"
+                }}>
+                  {wcUri ? (
+                    <>
+                      <div style={{
+                        background: "#ffffff",
+                        borderRadius: "16px",
+                        padding: "16px",
+                        display: "inline-flex"
+                      }}>
+                        <QRCodeSVG 
+                          value={wcUri} 
+                          size={220}
+                          level="M"
+                          bgColor="#ffffff"
+                          fgColor="#111111"
+                        />
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <p style={{ margin: 0, fontSize: "0.9rem", color: "#ffffff", fontWeight: "600" }}>
+                          Scan with QIE Mobile Wallet
+                        </p>
+                        <p style={{ margin: "6px 0 0 0", fontSize: "0.78rem", color: "#a1a1aa", lineHeight: "1.4" }}>
+                          Open your QIE Mobile Wallet app and scan this QR code to connect
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "30px 0"
+                    }}>
+                      <div style={{
+                        width: "40px",
+                        height: "40px",
+                        border: "3px solid rgba(255,255,255,0.1)",
+                        borderTopColor: "#60a5fa",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite"
+                      }} />
+                      <p style={{ margin: 0, fontSize: "0.85rem", color: "#a1a1aa" }}>
+                        Initializing WalletConnect...
+                      </p>
+                      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
 
             {/* Install Footer */}
             <div style={{

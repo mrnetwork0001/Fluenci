@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
+import EthereumProvider from "@walletconnect/ethereum-provider";
 
 // ABI definitions
 const REGISTRY_ABI = [
@@ -1082,12 +1083,82 @@ export function useFluenci() {
     }
   };
 
+  const wcProviderRef = useRef(null);
+
+  const connectWalletConnect = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const wcProvider = await EthereumProvider.init({
+        projectId: "8801909e023fe9d1391c107d4f7f0443",
+        chains: [1990],
+        optionalChains: [1990],
+        showQrModal: false,
+        metadata: {
+          name: "Fluenci",
+          description: "AI-Shielded Real-Time Streaming Payments",
+          url: "https://fluenci.app",
+          icons: []
+        },
+        rpcMap: {
+          1990: "https://rpc1mainnet.qie.digital"
+        }
+      });
+
+      // Return the provider and a connect function
+      // The caller (ConnectWallet) will handle displaying the QR code
+      wcProviderRef.current = wcProvider;
+      return wcProvider;
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const finalizeWalletConnect = async (wcProvider) => {
+    try {
+      const accounts = wcProvider.accounts;
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts returned from WalletConnect");
+      }
+
+      const address = accounts[0];
+      setAccount(address);
+      activeProviderRef.current = wcProvider;
+
+      const provider = new ethers.BrowserProvider(wcProvider);
+      const network = await provider.getNetwork();
+      setChainId(Number(network.chainId));
+
+      // Listen for disconnect
+      wcProvider.on("disconnect", () => {
+        disconnectWallet();
+      });
+
+      wcProvider.on("accountsChanged", (accs) => {
+        if (accs.length > 0) setAccount(accs[0]);
+        else disconnectWallet();
+      });
+
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   const disconnectWallet = () => {
     setAccount("");
     setAccountDomain("");
     setChainId(0);
     activeProviderRef.current = null;
     setError("");
+    // Disconnect WalletConnect session if active
+    if (wcProviderRef.current) {
+      try { wcProviderRef.current.disconnect(); } catch (e) {}
+      wcProviderRef.current = null;
+    }
   };
 
   const registerQieDomain = async (domainName) => {
@@ -1270,6 +1341,8 @@ export function useFluenci() {
     resetTx,
     contracts,
     connectWallet,
+    connectWalletConnect,
+    finalizeWalletConnect,
     disconnectWallet,
     registerQieDomain,
     approveToken,

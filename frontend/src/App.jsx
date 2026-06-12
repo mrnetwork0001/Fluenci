@@ -793,6 +793,8 @@ export default function App() {
               accountDomain={fluenci.accountDomain}
               chainId={fluenci.chainId}
               connectWallet={fluenci.connectWallet}
+              connectWalletConnect={fluenci.connectWalletConnect}
+              finalizeWalletConnect={fluenci.finalizeWalletConnect}
               disconnectWallet={fluenci.disconnectWallet}
               loading={fluenci.loading}
               switchToQieMainnet={fluenci.switchToQieMainnet}

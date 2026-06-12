@@ -26,7 +26,7 @@ let telemetryLogs = [
 
 // Background simulation log generator (runs when blockchain connection is offline)
 setInterval(() => {
-  if (!monitoringActive) {
+  if (!monitoringActive && !isSyncing) {
     const mockLogTemplates = [
       { type: "INFO", message: "AI Sentry scanning active payment streams for anomalies..." },
       { type: "SUCCESS", message: "Stream 0x8a92••••3d4f (Netflix Premium) verified as safe. Rate: 0.005 qUSD/sec." },
@@ -441,276 +441,294 @@ async function syncHistoricalEvents() {
     const latestBlock = await provider.getBlockNumber();
     logTelemetry("INFO", `Querying history from block ${startBlock} to ${latestBlock}...`);
 
-    const filterCreated = registryContract.filters.SubscriptionCreated();
-    const filterPaused = registryContract.filters.StreamPaused();
-    const filterResumed = registryContract.filters.StreamResumed();
-    const filterTerminated = registryContract.filters.StreamTerminated();
-    const filterWithdrawn = registryContract.filters.FundsWithdrawn();
-    const filterDisputeOpened = registryContract.filters.DisputeOpened();
-    const filterDisputeResolved = registryContract.filters.DisputeResolved();
-    const filterSwap = (dexContract && !fluenciRouterContract) ? dexContract.filters.Swap() : null;
-    const filterFluenciSwap = fluenciRouterContract ? fluenciRouterContract.filters.FluenciSwap() : null;
-
-    let eventsCreated = [];
-    let eventsPaused = [];
-    let eventsResumed = [];
-    let eventsTerminated = [];
-    let eventsWithdrawn = [];
-    let eventsDisputeOpened = [];
-    let eventsDisputeResolved = [];
-    let eventsSwap = [];
-    let eventsFluenciSwap = [];
-
     const CHUNK_SIZE = 9900;
     for (let from = startBlock; from <= latestBlock; from += CHUNK_SIZE) {
       const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
       logTelemetry("INFO", `Querying history block chunk ${from} to ${to}...`);
 
-      const queryPromises = [
-        registryContract.queryFilter(filterCreated, from, to),
-        registryContract.queryFilter(filterPaused, from, to),
-        registryContract.queryFilter(filterResumed, from, to),
-        registryContract.queryFilter(filterTerminated, from, to),
-        registryContract.queryFilter(filterWithdrawn, from, to),
-        registryContract.queryFilter(filterDisputeOpened, from, to),
-        registryContract.queryFilter(filterDisputeResolved, from, to)
-      ];
-      if (filterSwap) {
-        queryPromises.push(dexContract.queryFilter(filterSwap, from, to));
+      const queryPromises = [];
+
+      // Query 1: Registry Logs
+      queryPromises.push(
+        provider.getLogs({
+          address: REGISTRY_ADDRESS,
+          fromBlock: from,
+          toBlock: to
+        })
+      );
+
+      // Query 2: DEX Logs (if applicable)
+      const shouldQueryDex = dexContract && !fluenciRouterContract;
+      if (shouldQueryDex) {
+        queryPromises.push(
+          provider.getLogs({
+            address: QIEDEX_ADDRESS,
+            fromBlock: from,
+            toBlock: to
+          })
+        );
+      } else {
+        queryPromises.push(Promise.resolve([]));
       }
-      if (filterFluenciSwap) {
-        queryPromises.push(fluenciRouterContract.queryFilter(filterFluenciSwap, from, to));
+
+      // Query 3: Router Logs (if applicable)
+      if (fluenciRouterContract) {
+        queryPromises.push(
+          provider.getLogs({
+            address: FLUENCI_ROUTER_ADDRESS,
+            fromBlock: from,
+            toBlock: to
+          })
+        );
+      } else {
+        queryPromises.push(Promise.resolve([]));
       }
 
-      const results = await Promise.all(queryPromises);
+      const [registryLogs, dexLogs, routerLogs] = await Promise.all(queryPromises);
 
-      const [
-        chunkCreated,
-        chunkPaused,
-        chunkResumed,
-        chunkTerminated,
-        chunkWithdrawn,
-        chunkDisputeOpened,
-        chunkDisputeResolved
-      ] = results;
+      const chunkEvents = [];
 
-      const chunkSwap = filterSwap ? (results[7] || []) : [];
-
-      eventsCreated.push(...chunkCreated);
-      eventsPaused.push(...chunkPaused);
-      eventsResumed.push(...chunkResumed);
-      eventsTerminated.push(...chunkTerminated);
-      eventsWithdrawn.push(...chunkWithdrawn);
-      eventsDisputeOpened.push(...chunkDisputeOpened);
-      eventsDisputeResolved.push(...chunkDisputeResolved);
-      eventsSwap.push(...chunkSwap);
-
-      // FluenciSwap results index depends on whether Swap filter was also added
-      const fluenciSwapIdx = filterSwap ? 8 : 7;
-      const chunkFluenciSwap = results[fluenciSwapIdx] || [];
-      eventsFluenciSwap.push(...chunkFluenciSwap);
-    }
-
-    const allEvents = [
-      ...eventsCreated.map(e => ({ type: "SubscriptionCreated", event: e })),
-      ...eventsPaused.map(e => ({ type: "StreamPaused", event: e })),
-      ...eventsResumed.map(e => ({ type: "StreamResumed", event: e })),
-      ...eventsTerminated.map(e => ({ type: "StreamTerminated", event: e })),
-      ...eventsWithdrawn.map(e => ({ type: "FundsWithdrawn", event: e })),
-      ...eventsDisputeOpened.map(e => ({ type: "DisputeOpened", event: e })),
-      ...eventsDisputeResolved.map(e => ({ type: "DisputeResolved", event: e })),
-      ...eventsSwap.map(e => ({ type: "Swap", event: e })),
-      ...eventsFluenciSwap.map(e => ({ type: "FluenciSwap", event: e }))
-    ];
-
-    allEvents.sort((a, b) => {
-      if (a.event.blockNumber !== b.event.blockNumber) {
-        return a.event.blockNumber - b.event.blockNumber;
-      }
-      return a.event.logIndex - b.event.logIndex;
-    });
-
-    logTelemetry("INFO", `Found ${allEvents.length} historical events. Processing...`);
-
-    for (const item of allEvents) {
-      const { type, event } = item;
-      const args = event.args;
-      
-      const diffBlocks = latestBlock - event.blockNumber;
-      const eventTimestamp = new Date(Date.now() - diffBlocks * 3000).toISOString();
-
-      if (type === "SubscriptionCreated") {
-        const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = args;
-        uniqueUsers.add(subscriber);
-        uniqueUsers.add(merchant);
-        
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `Captured new subscription stream: ${subId}. Forwarding to Analyst Agent...`,
-          details: { subscriber, merchant, rate: rate.toString() }
-        });
-
-        const rateVal = Number(rate);
-        let riskScore = 12;
-        let reason = "Rate falls within safe baseline parameters.";
-        let anomalyClass = "NONE";
-
-        if (rateVal >= 1000) {
-          riskScore = 95;
-          reason = "Extremely high payment velocity detected. Immediate drain risk identified.";
-          anomalyClass = "VELOCITY_EXPLOIT";
+      // Parse Registry logs
+      for (const log of registryLogs) {
+        try {
+          const parsed = registryContract.interface.parseLog(log);
+          if (parsed) {
+            chunkEvents.push({
+              type: parsed.name,
+              args: parsed.args,
+              blockNumber: log.blockNumber,
+              logIndex: log.logIndex,
+              transactionHash: log.transactionHash
+            });
+          }
+        } catch (e) {
+          // Ignored if event is not in registry ABI
         }
+      }
 
-        const ipfsCID = `ipfs://bafybeihash-sync-${subId.substring(2, 18)}`;
-        auditReports[subId] = {
-          subId,
-          riskScore,
-          reason: `${reason} [IPFS CID: ${ipfsCID}]`,
-          anomalyClass,
-          ipfsCID,
-          timestamp: eventTimestamp
-        };
+      // Parse DEX logs
+      for (const log of dexLogs) {
+        try {
+          const parsed = dexContract.interface.parseLog(log);
+          if (parsed && parsed.name === "Swap") {
+            chunkEvents.push({
+              type: "Swap",
+              args: parsed.args,
+              blockNumber: log.blockNumber,
+              logIndex: log.logIndex,
+              transactionHash: log.transactionHash
+            });
+          }
+        } catch (e) {
+          // Ignored if not Swap event
+        }
+      }
 
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "ANALYST_AGENT",
-          message: `Starting deep compliance audit for stream: ${subId}`,
-          details: {}
-        });
+      // Parse Router logs
+      for (const log of routerLogs) {
+        try {
+          const parsed = fluenciRouterContract.interface.parseLog(log);
+          if (parsed && parsed.name === "FluenciSwap") {
+            chunkEvents.push({
+              type: "FluenciSwap",
+              args: parsed.args,
+              blockNumber: log.blockNumber,
+              logIndex: log.logIndex,
+              transactionHash: log.transactionHash
+            });
+          }
+        } catch (e) {
+          // Ignored if not FluenciSwap event
+        }
+      }
 
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "ANALYST_AGENT",
-          message: `Audit Intelligence Report compiled and pinned to IPFS. CID: ${ipfsCID}`,
-          details: { riskScore, anomalyClass, compliant: riskScore < 75 }
-        });
+      // Sort chunk events chronologically
+      chunkEvents.sort((a, b) => {
+        if (a.blockNumber !== b.blockNumber) {
+          return a.blockNumber - b.blockNumber;
+        }
+        return a.logIndex - b.logIndex;
+      });
 
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "DECISION_AGENT",
-          message: `Evaluating Audit Report for stream ${subId}. Risk: ${riskScore}% (Threshold: 75%)`,
-          details: {}
-        });
+      // Process chunk events immediately to update stats and telemetry in real time
+      for (const item of chunkEvents) {
+        const { type, args, blockNumber, transactionHash } = item;
+        const diffBlocks = latestBlock - blockNumber;
+        const eventTimestamp = new Date(Date.now() - diffBlocks * 3000).toISOString();
 
-        if (riskScore >= 75) {
+        if (type === "SubscriptionCreated") {
+          const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = args;
+          uniqueUsers.add(subscriber);
+          uniqueUsers.add(merchant);
+          
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `Captured new subscription stream: ${subId}. Forwarding to Analyst Agent...`,
+            details: { subscriber, merchant, rate: rate.toString() }
+          });
+
+          const rateVal = Number(rate);
+          let riskScore = 12;
+          let reason = "Rate falls within safe baseline parameters.";
+          let anomalyClass = "NONE";
+
+          if (rateVal >= 1000) {
+            riskScore = 95;
+            reason = "Extremely high payment velocity detected. Immediate drain risk identified.";
+            anomalyClass = "VELOCITY_EXPLOIT";
+          }
+
+          const ipfsCID = `ipfs://bafybeihash-sync-${subId.substring(2, 18)}`;
+          auditReports[subId] = {
+            subId,
+            riskScore,
+            reason: `${reason} [IPFS CID: ${ipfsCID}]`,
+            anomalyClass,
+            ipfsCID,
+            timestamp: eventTimestamp
+          };
+
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "ANALYST_AGENT",
+            message: `Starting deep compliance audit for stream: ${subId}`,
+            details: {}
+          });
+
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "ANALYST_AGENT",
+            message: `Audit Intelligence Report compiled and pinned to IPFS. CID: ${ipfsCID}`,
+            details: { riskScore, anomalyClass, compliant: riskScore < 75 }
+          });
+
           telemetryLogs.push({
             id: telemetryLogs.length + 1,
             timestamp: eventTimestamp,
             type: "DECISION_AGENT",
-            message: `CRITICAL: Risk score ${riskScore}% exceeds threshold! Stream pause registered in onchain history.`,
+            message: `Evaluating Audit Report for stream ${subId}. Risk: ${riskScore}% (Threshold: 75%)`,
             details: {}
           });
-        }
-        activeStreamRisks[subId] = riskScore;
-      } else if (type === "StreamPaused") {
-        const [subId, reason] = args;
-        delete activeStreamRisks[subId];
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `Registered StreamPaused event for ${subId}`,
-          details: { reason }
-        });
-      } else if (type === "StreamResumed") {
-        const [subId] = args;
-        activeStreamRisks[subId] = 12;
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `Registered StreamResumed event for ${subId}`,
-          details: {}
-        });
-      } else if (type === "StreamTerminated") {
-        const [subId] = args;
-        delete activeStreamRisks[subId];
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `Registered StreamTerminated event for ${subId}`,
-          details: {}
-        });
-      } else if (type === "FundsWithdrawn") {
-        const [subId, merchant, amount] = args;
-        totalVolume += BigInt(amount.toString());
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `Registered FundsWithdrawn event from stream ${subId}`,
-          details: { merchant, amount: amount.toString() }
-        });
-      } else if (type === "DisputeOpened") {
-        const [subId, subscriber] = args;
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `CRITICAL: DisputeOpened event captured for stream ${subId} by subscriber ${subscriber}`,
-          details: {}
-        });
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "ARBITRATOR_AGENT",
-          message: `Dispute arbitration initialized for stream: ${subId}`,
-          details: {}
-        });
-      } else if (type === "DisputeResolved") {
-        const [subId, subscriberRefund, merchantShare] = args;
-        totalVolume += BigInt(merchantShare.toString());
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `DisputeResolved event captured for stream ${subId}`,
-          details: {
-            subscriberRefund: subscriberRefund.toString(),
-            merchantShare: merchantShare.toString()
+
+          if (riskScore >= 75) {
+            telemetryLogs.push({
+              id: telemetryLogs.length + 1,
+              timestamp: eventTimestamp,
+              type: "DECISION_AGENT",
+              message: `CRITICAL: Risk score ${riskScore}% exceeds threshold! Stream pause registered in onchain history.`,
+              details: {}
+            });
           }
-        });
-      } else if (type === "Swap") {
-        const [user, tokenAddress, qieAmount, tokenAmount] = args;
-        const txHash = event.transactionHash.toLowerCase();
-        if (!processedTxHashes.has(txHash)) {
-          processedTxHashes.add(txHash);
-          totalSwapVolume += BigInt(tokenAmount.toString());
+          activeStreamRisks[subId] = riskScore;
+        } else if (type === "StreamPaused") {
+          const [subId, reason] = args;
+          delete activeStreamRisks[subId];
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `Registered StreamPaused event for ${subId}`,
+            details: { reason }
+          });
+        } else if (type === "StreamResumed") {
+          const [subId] = args;
+          activeStreamRisks[subId] = 12;
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `Registered StreamResumed event for ${subId}`,
+            details: {}
+          });
+        } else if (type === "StreamTerminated") {
+          const [subId] = args;
+          delete activeStreamRisks[subId];
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `Registered StreamTerminated event for ${subId}`,
+            details: {}
+          });
+        } else if (type === "FundsWithdrawn") {
+          const [subId, merchant, amount] = args;
+          totalVolume += BigInt(amount.toString());
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `Registered FundsWithdrawn event from stream ${subId}`,
+            details: { merchant, amount: amount.toString() }
+          });
+        } else if (type === "DisputeOpened") {
+          const [subId, subscriber] = args;
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `CRITICAL: DisputeOpened event captured for stream ${subId} by subscriber ${subscriber}`,
+            details: {}
+          });
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "ARBITRATOR_AGENT",
+            message: `Dispute arbitration initialized for stream: ${subId}`,
+            details: {}
+          });
+        } else if (type === "DisputeResolved") {
+          const [subId, subscriberRefund, merchantShare] = args;
+          totalVolume += BigInt(merchantShare.toString());
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `DisputeResolved event captured for stream ${subId}`,
+            details: {
+              subscriberRefund: subscriberRefund.toString(),
+              merchantShare: merchantShare.toString()
+            }
+          });
+        } else if (type === "Swap") {
+          const [user, tokenAddress, qieAmount, tokenAmount] = args;
+          const txHash = transactionHash.toLowerCase();
+          if (!processedTxHashes.has(txHash)) {
+            processedTxHashes.add(txHash);
+            totalSwapVolume += BigInt(tokenAmount.toString());
+          }
+          uniqueUsers.add(user);
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `DEX Swap: ${user} swapped ${qieAmount.toString()} QIE for ${tokenAmount.toString()} tokens`,
+            details: { user, tokenAddress, qieAmount: qieAmount.toString(), tokenAmount: tokenAmount.toString() }
+          });
+        } else if (type === "FluenciSwap") {
+          const [user, direction, tokenIn, tokenOut, amountIn, amountOut] = args;
+          const txHash = transactionHash.toLowerCase();
+          if (!processedTxHashes.has(txHash)) {
+            processedTxHashes.add(txHash);
+            // Always track the qUSDC side: QIE_TO_TOKEN → amountOut is qUSDC; TOKEN_TO_QIE → amountIn is qUSDC
+            const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
+            totalSwapVolume += qusdcAmount;
+          }
+          uniqueUsers.add(user);
+          telemetryLogs.push({
+            id: telemetryLogs.length + 1,
+            timestamp: eventTimestamp,
+            type: "SENTRY_AGENT",
+            message: `FluenciSwap: ${user} swapped via Fluenci Router (${direction}). In: ${amountIn.toString()}, Out: ${amountOut.toString()}`,
+            details: { user, direction, tokenIn, tokenOut, amountIn: amountIn.toString(), amountOut: amountOut.toString() }
+          });
         }
-        uniqueUsers.add(user);
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `DEX Swap: ${user} swapped ${qieAmount.toString()} QIE for ${tokenAmount.toString()} tokens`,
-          details: { user, tokenAddress, qieAmount: qieAmount.toString(), tokenAmount: tokenAmount.toString() }
-        });
-      } else if (type === "FluenciSwap") {
-        const [user, direction, tokenIn, tokenOut, amountIn, amountOut] = args;
-        const txHash = event.transactionHash.toLowerCase();
-        if (!processedTxHashes.has(txHash)) {
-          processedTxHashes.add(txHash);
-          // Always track the qUSDC side: QIE_TO_TOKEN → amountOut is qUSDC; TOKEN_TO_QIE → amountIn is qUSDC
-          const qusdcAmount = direction === "TOKEN_TO_QIE" ? BigInt(amountIn.toString()) : BigInt(amountOut.toString());
-          totalSwapVolume += qusdcAmount;
-        }
-        uniqueUsers.add(user);
-        telemetryLogs.push({
-          id: telemetryLogs.length + 1,
-          timestamp: eventTimestamp,
-          type: "SENTRY_AGENT",
-          message: `FluenciSwap: ${user} swapped via Fluenci Router (${direction}). In: ${amountIn.toString()}, Out: ${amountOut.toString()}`,
-          details: { user, direction, tokenIn, tokenOut, amountIn: amountIn.toString(), amountOut: amountOut.toString() }
-        });
       }
     }
-    logTelemetry("INFO", `Historical event synchronization completed. Processed ${allEvents.length} events.`);
+    logTelemetry("INFO", `Historical event synchronization completed successfully.`);
   } catch (err) {
     logTelemetry("ERROR", `Historical event synchronization failed: ${err.message}`);
   } finally {

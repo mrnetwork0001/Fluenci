@@ -639,7 +639,7 @@ export default function App() {
               <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>AI Arbitration</a>
               <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
               <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); }} style={{ color: "#2563eb", textDecoration: "none", fontWeight: "700", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif", display: "flex", alignItems: "center", gap: "4px" }}><FileText size={14} />Blog</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); }} style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Blog</a>
             </nav>
 
             <button 
@@ -658,7 +658,7 @@ export default function App() {
               <a href="#arbitration" onClick={() => setMobileMenuOpen(false)}>AI Arbitration</a>
               <a href="#comparison" onClick={() => setMobileMenuOpen(false)}>Comparison</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); setMobileMenuOpen(false); }} style={{ color: "#2563eb" }}>Blog</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); setMobileMenuOpen(false); }}>Blog</a>
             </div>
           </>
         )}

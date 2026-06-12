@@ -52,14 +52,58 @@ The protocol is deployed and active on QIE Mainnet. All contracts are fully veri
 
 ---
 
+## 🆕 Latest Developments (June 2026)
+
+### WalletConnect v2 Mobile Support
+- **QIE Mobile Wallet** can now connect to Fluenci by scanning a QR code via WalletConnect v2
+- The connect modal shows an instant QR code for mobile scan, with no page reload required
+- Relay URL upgraded to `wss://relay.walletconnect.com` for broader network compatibility
+- Network-blocked users (restricted ISPs/hotspots) receive an immediate, actionable error message within 8 seconds instead of a silent 30-second timeout
+- A **Retry** button is shown on failure — users can reconnect without reopening the modal
+
+### Multi-Wallet Support (EIP-6963)
+- The wallet selection modal now supports **three connection paths**:
+  1. **QIE Wallet (Browser Extension)** — detected via EIP-6963 provider announcements
+  2. **QIE Mobile Wallet** — WalletConnect v2 QR code scan
+  3. **Other EVM Wallets** — any injected EIP-6963 provider (MetaMask, Rabby, etc.)
+
+### Live Protocol Dashboard
+- Powered by QIE Mainnet, the landing page now tracks **settled volume**, **DEX swaps**, and **protocol revenue** in real time directly from onchain events
+- Stats are redacted for privacy on the public page and revealed only to connected wallets
+
+### Fluenci Blog
+- Full in-app blog (`/blog`) with articles on streaming payments, QIE ecosystem, AI sentry design, and tokenomics
+- No external CMS dependency — content is bundled in the frontend
+
+### Fluenci Docs
+- Complete in-app protocol documentation (`/docs`) covering:
+  - Smart contract ABI references
+  - API endpoints
+  - Integration guides for merchants and subscribers
+  - QIE Pass KYC flow
+
+### Fluenci AI Chat
+- Interactive AI assistant embedded in the dashboard
+- Answers questions about the protocol, streams, DEX swaps, and QIE ecosystem using context-aware responses
+- Powered by OpenAI GPT-4o via the backend node
+
+### UI/UX Refinements
+- Wallet option buttons redesigned with clearer hover contrast for improved text readability
+- Modal connection flow tightened — loading states, error states, and success states are all clearly differentiated
+- Protocol revenue stats displayed with animated counters on the landing page
+
+---
+
 ## 🛠️ Architecture Overview
 
 ```mermaid
 graph TD
     User([Subscriber/Merchant]) -->|Interacts| UI[Vite Frontend Dashboard]
-    UI -->|Web3 Wallet Transaction| Wallet[QIE Wallet Extension]
+    UI -->|Browser Extension| Wallet[QIE Wallet Extension]
+    UI -->|WalletConnect v2 QR| MobileWallet[QIE Mobile Wallet]
     Wallet -->|Sends TX| BC[QIE Blockchain]
-    
+    MobileWallet -->|Sends TX| BC
+
     subgraph Onchain Contracts
         BC --> Registry[FluenciRegistry.sol]
         BC --> Auditor[FluenciAIAuditor.sol]
@@ -67,14 +111,14 @@ graph TD
         BC --> QDex[QIEDex Router]
         BC --> QDom[QIE Domain Registry]
     end
-    
+
     subgraph Offchain AI Sentry Node
         Sentry[Sentry Agent] -->|Listen Events| Registry
         Sentry -->|Ingests data| Analyst[Analyst Agent]
         Analyst -->|GPT-4o Evaluation| Decision[Decision Agent]
         Analyst -->|Generate Audit Report| IPFS[Simulated IPFS]
         Decision -->|Trigger safety pause| Auditor
-        
+
         Arbitrator[Arbitrator Agent] -->|GPT-4o Dispute Splits| Dispute[AI Dispute Arbitration]
         Dispute -->|Return EIP-712 Signature| UI
     end
@@ -142,7 +186,7 @@ The anonymization engine masks any `0x`-prefixed hex string of 20+ characters, c
 The landing page is designed to showcase the protocol's capabilities at a glance:
 
 - **Typewriter Hero Title**: Dynamic cycling text — "Stop **Blind** / **Rogue** / **Unaudited** Streams" with a typewriter animation
-- **Live Protocol Stats**: Real-time counters for Active Users, Settled Volume, Swap Volume (DEX), and App Revenue (0.5% fee)
+- **Live Protocol Stats**: Real-time counters for Active Users, Settled Volume, Swap Volume (DEX), and App Revenue (0.5% fee) — powered directly from QIE Mainnet
 - **AI Telemetry Node**: Live terminal widget pulling real telemetry from the backend with anonymized logs
 - **Ecosystem Marquee Carousel**: Auto-scrolling infinite carousel showcasing all 5 QIE integrations with pause-on-hover
 - **Feature Comparison Matrix**: Side-by-side comparison of Standard Web3 Streams vs. Fluenci AI-Shield
@@ -205,6 +249,8 @@ The React Vite frontend handles the subscriber panel, merchant dashboard, DEX sw
    ```
 3. Open `http://localhost:5173` in your browser.
 
+> **Mobile Connection Note**: To connect via QIE Mobile Wallet (WalletConnect QR), ensure your network allows outbound WebSocket connections (`wss://`). If you are on a restricted network or mobile hotspot, enable a VPN before connecting.
+
 ---
 
 ## 📂 Project Structure
@@ -228,13 +274,16 @@ QieFlow/
 │   │   ├── App.jsx             # Main app + landing page + dashboard routing
 │   │   ├── App.css             # Landing page styles (marquee, cards, etc.)
 │   │   ├── hooks/
-│   │   │   └── useFluenci.js   # Core Web3 hook (wallet, contracts, domain resolution)
+│   │   │   └── useFluenci.js   # Core Web3 hook (wallet, WalletConnect v2, contracts)
 │   │   ├── components/
 │   │   │   ├── SubscriberPanel.jsx    # Subscribe, pause, resume, terminate streams
 │   │   │   ├── MerchantDashboard.jsx  # Claim funds, view merchant streams
 │   │   │   ├── AISecurityDesk.jsx     # Wallet-scoped telemetry + manual safety pause
 │   │   │   ├── TransactionModal.jsx   # Multi-step transaction progress modal
-│   │   │   ├── ConnectWallet.jsx      # Wallet connection + QIE domain display
+│   │   │   ├── ConnectWallet.jsx      # Multi-wallet modal (Extension + WalletConnect + EVM)
+│   │   │   ├── FluenciAIChat.jsx      # In-app AI assistant powered by GPT-4o
+│   │   │   ├── BlogPage.jsx           # In-app blog (streaming payments, QIE ecosystem)
+│   │   │   ├── FluenciDocs.jsx        # In-app protocol documentation
 │   │   │   └── QieDoodleGame.jsx      # Fluenci Snake Arcade (pay-as-you-play)
 │   │   └── assets/                    # Logos (QIE Pass, Wallet, qUSDC, DEX, Domains)
 │   └── index.html
@@ -294,6 +343,7 @@ To demonstrate the full autonomous security pipeline:
 | **Progressive KYC** | Merchants receive payments freely but must verify identity to withdraw |
 | **EIP-712 Signatures** | AI dispute resolutions are cryptographically signed and verified onchain |
 | **Pull-Based Custody** | Subscriber tokens never leave their wallet — only pulled on claim |
+| **WalletConnect v2** | Mobile connections use encrypted WalletConnect v2 relay protocol |
 
 ---
 
@@ -312,7 +362,7 @@ Fluenci includes a built-in **Snake game** as a pay-as-you-play demo. It demonst
 ## 🔗 Links
 
 - **X (Twitter)**: [x.com/fluenciAI](https://x.com/fluenciAI)
-- **GitHub**: [github.com/mrnetwork0001/FluenciAI](https://github.com/mrnetwork0001/FluenciAI)
+- **GitHub**: [github.com/mrnetwork0001/QieFlow](https://github.com/mrnetwork0001/QieFlow)
 
 ---
 

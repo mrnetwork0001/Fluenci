@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown, Smartphone } from "lucide-react";
+import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown, Smartphone, Shield, Globe, QrCode, ChevronRight, Puzzle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function ConnectWallet({ 
@@ -305,50 +305,68 @@ export default function ConnectWallet({
               <>
                 {/* Header */}
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
-                  <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "800", color: "#ffffff" }}>
-                    Select Wallet
+                  <div style={{ 
+                    width: "48px", height: "48px", margin: "0 auto 14px auto",
+                    background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                    borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 4px 20px rgba(99, 102, 241, 0.3)"
+                  }}>
+                    <Wallet size={24} color="#ffffff" />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.02em" }}>
+                    Connect Wallet
                   </h3>
-                  <p style={{ margin: "6px 0 0 0", fontSize: "0.85rem", color: "#a1a1aa" }}>
-                    Choose your connection method
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.82rem", color: "#71717a" }}>
+                    Choose how you'd like to connect
                   </p>
                 </div>
 
                 {/* Primary Options */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "10px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "6px" }}>
                   {/* QIE Wallet (Recommended) */}
                   <button 
                     onClick={handleConnectQie}
                     style={{
-                      background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: "16px",
-                      padding: "16px 20px",
+                      background: "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.03) 100%)",
+                      border: "1px solid rgba(59, 130, 246, 0.25)",
+                      borderRadius: "14px",
+                      padding: "14px 16px",
                       cursor: "pointer",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                       color: "#ffffff",
-                      transition: "all 0.2s"
+                      transition: "all 0.25s ease"
                     }}
                     className="wallet-option-btn-qie"
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={{ fontSize: "1.8rem" }}>💎</span>
+                      <div style={{
+                        width: "40px", height: "40px",
+                        background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                        borderRadius: "10px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: "0 2px 12px rgba(59, 130, 246, 0.35)",
+                        flexShrink: 0
+                      }}>
+                        <Shield size={20} color="#ffffff" strokeWidth={2.5} />
+                      </div>
                       <div style={{ textAlign: "left" }}>
-                        <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>QIE Wallet</div>
-                        <div style={{ fontSize: "0.75rem", color: "#a1a1aa" }}>Native Ecosystem Extension</div>
+                        <div style={{ fontWeight: "700", fontSize: "0.92rem", letterSpacing: "-0.01em" }}>QIE Wallet</div>
+                        <div style={{ fontSize: "0.72rem", color: "#71717a", marginTop: "2px" }}>Browser Extension</div>
                       </div>
                     </div>
                     <span style={{
-                      fontSize: "0.65rem",
+                      fontSize: "0.6rem",
                       background: "rgba(59, 130, 246, 0.15)",
                       color: "#60a5fa",
-                      padding: "3px 8px",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      border: "1px solid rgba(59, 130, 246, 0.3)",
-                      letterSpacing: "0.05em"
-                    }}>RECOMMENDED</span>
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      fontWeight: "700",
+                      border: "1px solid rgba(59, 130, 246, 0.25)",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase"
+                    }}>Recommended</span>
                   </button>
 
                   {/* QIE Mobile Wallet (WalletConnect QR) */}
@@ -378,63 +396,82 @@ export default function ConnectWallet({
                       }
                     }}
                     style={{
-                      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%)",
+                      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)",
                       border: "1px solid rgba(16, 185, 129, 0.2)",
-                      borderRadius: "16px",
-                      padding: "16px 20px",
+                      borderRadius: "14px",
+                      padding: "14px 16px",
                       cursor: "pointer",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                       color: "#ffffff",
-                      transition: "all 0.2s"
+                      transition: "all 0.25s ease"
                     }}
                     className="wallet-option-btn"
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={{ fontSize: "1.8rem" }}>📱</span>
+                      <div style={{
+                        width: "40px", height: "40px",
+                        background: "linear-gradient(135deg, #10b981, #059669)",
+                        borderRadius: "10px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: "0 2px 12px rgba(16, 185, 129, 0.3)",
+                        flexShrink: 0
+                      }}>
+                        <QrCode size={20} color="#ffffff" strokeWidth={2.5} />
+                      </div>
                       <div style={{ textAlign: "left" }}>
-                        <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>QIE Mobile Wallet</div>
-                        <div style={{ fontSize: "0.75rem", color: "#a1a1aa" }}>Scan QR code to connect</div>
+                        <div style={{ fontWeight: "700", fontSize: "0.92rem", letterSpacing: "-0.01em" }}>QIE Mobile</div>
+                        <div style={{ fontSize: "0.72rem", color: "#71717a", marginTop: "2px" }}>Scan QR to connect</div>
                       </div>
                     </div>
                     <span style={{
-                      fontSize: "0.65rem",
-                      background: "rgba(16, 185, 129, 0.15)",
+                      fontSize: "0.6rem",
+                      background: "rgba(16, 185, 129, 0.12)",
                       color: "#34d399",
-                      padding: "3px 8px",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      border: "1px solid rgba(16, 185, 129, 0.3)",
-                      letterSpacing: "0.05em"
-                    }}>MOBILE</span>
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      fontWeight: "700",
+                      border: "1px solid rgba(16, 185, 129, 0.25)",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase"
+                    }}>Mobile</span>
                   </button>
 
                   {/* Other EVM Wallets */}
                   <button 
                     onClick={() => setModalView("other_evm")}
                     style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "16px",
-                      padding: "16px 20px",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: "14px",
+                      padding: "14px 16px",
                       cursor: "pointer",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                       color: "#ffffff",
-                      transition: "all 0.2s"
+                      transition: "all 0.25s ease"
                     }}
                     className="wallet-option-btn"
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={{ fontSize: "1.8rem" }}>🔌</span>
+                      <div style={{
+                        width: "40px", height: "40px",
+                        background: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))",
+                        borderRadius: "10px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        flexShrink: 0
+                      }}>
+                        <Puzzle size={20} color="#a1a1aa" strokeWidth={2} />
+                      </div>
                       <div style={{ textAlign: "left" }}>
-                        <div style={{ fontWeight: "bold", fontSize: "0.95rem" }}>Other EVM Wallets</div>
-                        <div style={{ fontSize: "0.75rem", color: "#a1a1aa" }}>MetaMask, Rabby, OKX, etc.</div>
+                        <div style={{ fontWeight: "700", fontSize: "0.92rem", letterSpacing: "-0.01em" }}>Other Wallets</div>
+                        <div style={{ fontSize: "0.72rem", color: "#71717a", marginTop: "2px" }}>MetaMask, Rabby, OKX & more</div>
                       </div>
                     </div>
-                    <span style={{ fontSize: "1rem", color: "rgba(255,255,255,0.3)" }}>→</span>
+                    <ChevronRight size={16} color="rgba(255,255,255,0.3)" />
                   </button>
                 </div>
               </>
@@ -506,7 +543,9 @@ export default function ConnectWallet({
                           {prov.info.icon ? (
                             <img src={prov.info.icon} alt={prov.info.name} style={{ width: "24px", height: "24px", borderRadius: "6px" }} />
                           ) : (
-                            <span style={{ fontSize: "1.2rem" }}>🦊</span>
+                            <span style={{ fontSize: "1.2rem" }}>
+                              <Globe size={18} color="#a1a1aa" />
+                            </span>
                           )}
                           <span style={{ fontWeight: "600", fontSize: "0.9rem" }}>{prov.info.name}</span>
                         </div>
@@ -532,7 +571,7 @@ export default function ConnectWallet({
                       className="wallet-sub-btn"
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "1.5rem" }}>🦊</span>
+                        <span style={{ display: "flex", alignItems: "center" }}><Globe size={20} color="#a1a1aa" /></span>
                         <span style={{ fontWeight: "600", fontSize: "0.9rem" }}>Standard MetaMask / Injected</span>
                       </div>
                       <span style={{ fontSize: "0.8rem", color: "#111111", fontWeight: "bold" }}>Connect</span>

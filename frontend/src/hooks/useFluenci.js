@@ -1089,41 +1089,44 @@ export function useFluenci() {
     setError("");
     setLoading(true);
     try {
-      let wcProvider = wcProviderRef.current;
+      // Disconnect and clean up any existing provider first to ensure a clean state
+      if (wcProviderRef.current) {
+        try {
+          await wcProviderRef.current.disconnect();
+        } catch (e) {}
+        wcProviderRef.current = null;
+      }
 
-      if (!wcProvider) {
-        // Omit required chains since QIE Mobile Wallet only supports QIE (1990)
-        // Listing Chain 1 as required causes wallets that do not support Ethereum to fail pairing
-        wcProvider = await EthereumProvider.init({
-          projectId: "3fcc6b16d1b2050f2747cd28568d1354",
-          optionalChains: [1990, 1],
-          showQrModal: false,
-          metadata: {
-            name: "Fluenci",
-            description: "AI-Shielded Real-Time Streaming Payments",
-            url: window.location.origin,
-            icons: []
-          },
-          rpcMap: {
-            1: "https://eth.llamarpc.com",
-            1990: "https://rpc1mainnet.qie.digital"
+      // Clear WalletConnect localStorage keys to force a fresh pairing URI
+      try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith("wc@2:") || key.startsWith("walletconnect")) {
+            localStorage.removeItem(key);
           }
         });
-        wcProviderRef.current = wcProvider;
-      }
-
-      // If session already exists, finalize connection immediately
-      if (wcProvider.session) {
-        finalizeWalletConnect(wcProvider);
-        return;
-      }
-
-      // Remove any existing display_uri listeners to avoid duplicate callbacks
-      try {
-        wcProvider.removeAllListeners("display_uri");
+        console.log("Cleared WalletConnect pairing cache");
       } catch (e) {
-        // Safe fallback
+        console.warn("Failed to clear localStorage:", e);
       }
+
+      // Initialize a fresh provider
+      const wcProvider = await EthereumProvider.init({
+        projectId: "3fcc6b16d1b2050f2747cd28568d1354",
+        optionalChains: [1990, 1],
+        showQrModal: false,
+        metadata: {
+          name: "Fluenci",
+          description: "AI-Shielded Real-Time Streaming Payments",
+          url: window.location.origin,
+          icons: []
+        },
+        rpcMap: {
+          1: "https://eth.llamarpc.com",
+          1990: "https://rpc1mainnet.qie.digital"
+        }
+      });
+      wcProviderRef.current = wcProvider;
 
       // Attach URI listener BEFORE calling connect
       wcProvider.on("display_uri", (uri) => {

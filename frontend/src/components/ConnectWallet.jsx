@@ -371,29 +371,20 @@ export default function ConnectWallet({
 
                   {/* QIE Mobile Wallet (WalletConnect QR) */}
                   <button 
-                    onClick={async () => {
+                    onClick={() => {
                       setWcConnecting(true);
                       setWcUri("");
-                      const wcProvider = await connectWalletConnect();
-                      if (wcProvider) {
-                        wcProvider.on("display_uri", (uri) => {
+                      setModalView("mobile_qr");
+                      connectWalletConnect((uri) => {
+                        if (uri) {
                           setWcUri(uri);
                           setWcConnecting(false);
-                        });
-                        wcProvider.connect().then(() => {
-                          finalizeWalletConnect(wcProvider);
-                          setIsOpen(false);
-                          setWcUri("");
-                          setModalView("primary");
-                        }).catch((err) => {
-                          console.warn("WalletConnect cancelled:", err.message);
+                        } else {
+                          // Timeout or error
                           setWcConnecting(false);
-                          setWcUri("");
-                        });
-                        setModalView("mobile_qr");
-                      } else {
-                        setWcConnecting(false);
-                      }
+                          setModalView("primary");
+                        }
+                      });
                     }}
                     style={{
                       background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)",

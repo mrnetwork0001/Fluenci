@@ -1085,34 +1085,61 @@ export function useFluenci() {
 
   const wcProviderRef = useRef(null);
 
-  const connectWalletConnect = async () => {
+  const connectWalletConnect = async (onUri) => {
     setError("");
     setLoading(true);
     try {
+      // Omit required chains since QIE Mobile Wallet only supports QIE (1990)
+      // Listing Chain 1 as required causes wallets that do not support Ethereum to fail pairing
       const wcProvider = await EthereumProvider.init({
         projectId: "8801909e023fe9d1391c107d4f7f0443",
-        chains: [1990],
-        optionalChains: [1990],
+        optionalChains: [1990, 1],
         showQrModal: false,
         metadata: {
           name: "Fluenci",
           description: "AI-Shielded Real-Time Streaming Payments",
-          url: "https://fluenci.app",
+          url: window.location.origin,
           icons: []
         },
         rpcMap: {
+          1: "https://eth.llamarpc.com",
           1990: "https://rpc1mainnet.qie.digital"
         }
       });
 
-      // Return the provider and a connect function
-      // The caller (ConnectWallet) will handle displaying the QR code
       wcProviderRef.current = wcProvider;
-      return wcProvider;
+
+      // Attach URI listener BEFORE calling connect
+      wcProvider.on("display_uri", (uri) => {
+        console.log("WalletConnect URI received:", uri?.substring(0, 50));
+        if (onUri) onUri(uri);
+      });
+
+      // Timeout fallback: if no URI in 15s, show error
+      const uriTimeout = setTimeout(() => {
+        if (onUri) onUri(null); // signal failure
+        setError("WalletConnect timed out. Please try again.");
+        setLoading(false);
+      }, 15000);
+
+      // Start connection (this triggers display_uri)
+      wcProvider.connect()
+        .then(() => {
+          clearTimeout(uriTimeout);
+          finalizeWalletConnect(wcProvider);
+        })
+        .catch((err) => {
+          clearTimeout(uriTimeout);
+          console.warn("WalletConnect connect error:", err.message);
+          setError("WalletConnect connect failed: " + err.message);
+          setLoading(false);
+          if (onUri) onUri(null);
+        });
+
     } catch (err) {
-      setError(err.message);
+      console.error("WalletConnect init error:", err);
+      setError("Failed to initialize WalletConnect: " + err.message);
       setLoading(false);
-      return null;
     }
   };
 

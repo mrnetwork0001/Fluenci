@@ -23,6 +23,7 @@ export default function ConnectWallet({
   const [copied, setCopied] = useState(false);
   const [wcUri, setWcUri] = useState("");
   const [wcConnecting, setWcConnecting] = useState(false);
+  const [wcError, setWcError] = useState("");
   const dropdownRef = useRef(null);
 
   const handleCopyAddress = () => {
@@ -374,15 +375,17 @@ export default function ConnectWallet({
                     onClick={() => {
                       setWcConnecting(true);
                       setWcUri("");
+                      setWcError("");
                       setModalView("mobile_qr");
                       connectWalletConnect((uri) => {
                         if (uri) {
                           setWcUri(uri);
                           setWcConnecting(false);
+                          setWcError("");
                         } else {
-                          // Timeout or error
+                          // Relay blocked or timed out — show error inside the QR view
                           setWcConnecting(false);
-                          setModalView("primary");
+                          setWcError("Network is blocking WalletConnect relay.\n\nFix: Enable a VPN on your device, or switch to a different Wi-Fi / mobile data network, then tap Retry.");
                         }
                       });
                     }}
@@ -575,7 +578,7 @@ export default function ConnectWallet({
                 {/* Header with Back button */}
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "10px" }}>
                   <button 
-                    onClick={() => { setModalView("primary"); setWcUri(""); }}
+                    onClick={() => { setModalView("primary"); setWcUri(""); setWcError(""); }}
                     style={{
                       background: "rgba(255, 255, 255, 0.08)",
                       border: "1px solid rgba(255,255,255,0.1)",
@@ -625,6 +628,63 @@ export default function ConnectWallet({
                         </p>
                       </div>
                     </>
+                  ) : wcError ? (
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "16px",
+                      padding: "20px 0"
+                    }}>
+                      <div style={{
+                        width: "52px", height: "52px",
+                        background: "rgba(239, 68, 68, 0.12)",
+                        border: "1px solid rgba(239, 68, 68, 0.35)",
+                        borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center"
+                      }}>
+                        <ShieldAlert size={24} color="#f87171" />
+                      </div>
+                      <div style={{ textAlign: "center", maxWidth: "260px" }}>
+                        <p style={{ margin: "0 0 6px 0", fontSize: "0.9rem", fontWeight: "700", color: "#f87171" }}>
+                          Relay Connection Failed
+                        </p>
+                        {wcError.split("\n\n").map((line, i) => (
+                          <p key={i} style={{ margin: "4px 0", fontSize: "0.78rem", color: "#a1a1aa", lineHeight: "1.5" }}>
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setWcConnecting(true);
+                          setWcUri("");
+                          setWcError("");
+                          connectWalletConnect((uri) => {
+                            if (uri) {
+                              setWcUri(uri);
+                              setWcConnecting(false);
+                              setWcError("");
+                            } else {
+                              setWcConnecting(false);
+                              setWcError("Network is blocking WalletConnect relay.\n\nFix: Enable a VPN on your device, or switch to a different Wi-Fi / mobile data network, then tap Retry.");
+                            }
+                          });
+                        }}
+                        style={{
+                          background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                          border: "none",
+                          borderRadius: "10px",
+                          padding: "10px 24px",
+                          color: "#ffffff",
+                          fontWeight: "700",
+                          fontSize: "0.85rem",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </div>
                   ) : (
                     <div style={{
                       display: "flex",

@@ -1110,11 +1110,12 @@ export function useFluenci() {
         console.warn("Failed to clear localStorage:", e);
       }
 
-      // Initialize a fresh provider
+      // Initialize a fresh provider, using .com relay (different routing than .org)
       const wcProvider = await EthereumProvider.init({
-        projectId: "3fcc6b16d1b2050f2747cd28568d1354",
+        projectId: "8801909e023fe9d1391c107d4f7f0443",
         optionalChains: [1990, 1],
         showQrModal: false,
+        relayUrl: "wss://relay.walletconnect.com",
         metadata: {
           name: "Fluenci",
           description: "AI-Shielded Real-Time Streaming Payments",
@@ -1128,37 +1129,42 @@ export function useFluenci() {
       });
       wcProviderRef.current = wcProvider;
 
+      let uriReceived = false;
+
       // Attach URI listener BEFORE calling connect
       wcProvider.on("display_uri", (uri) => {
         console.log("WalletConnect URI received:", uri?.substring(0, 50));
+        uriReceived = true;
+        clearTimeout(uriTimeout);
         if (onUri) onUri(uri);
       });
 
-      // Timeout fallback: if no URI in 35s, show error (hotspots/slow networks can take time)
+      // Timeout fallback: if no URI in 8s, network is blocking the relay
       const uriTimeout = setTimeout(async () => {
-        if (onUri) onUri(null); // signal failure
-        setError("WalletConnect timed out (slow network). Please try again.");
-        setLoading(false);
-        try {
-          await wcProvider.disconnect();
-        } catch (e) {}
-      }, 35000);
+        if (!uriReceived) {
+          console.warn("WalletConnect URI timeout — relay likely blocked by network");
+          if (onUri) onUri(null);
+          setError("Network is blocking WalletConnect relay. Please use a VPN or try on a different Wi-Fi network.");
+          setLoading(false);
+          try { await wcProvider.disconnect(); } catch (e) {}
+        }
+      }, 8000);
 
       // Start connection (this triggers display_uri)
       wcProvider.connect()
         .then(() => {
           clearTimeout(uriTimeout);
-          finalizeWalletConnect(wcProvider);
+          if (uriReceived) finalizeWalletConnect(wcProvider);
         })
         .catch(async (err) => {
           clearTimeout(uriTimeout);
           console.warn("WalletConnect connect error:", err.message);
-          setError("WalletConnect connect failed: " + err.message);
+          if (!uriReceived) {
+            setError("WalletConnect relay blocked. Try a VPN or different network.");
+            if (onUri) onUri(null);
+          }
           setLoading(false);
-          if (onUri) onUri(null);
-          try {
-            await wcProvider.disconnect();
-          } catch (e) {}
+          try { await wcProvider.disconnect(); } catch (e) {}
         });
 
     } catch (err) {

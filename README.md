@@ -2,11 +2,11 @@
 
 > **Stop Blind Streams. AI-Shielded Payments.**
 
-Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second - for subscriptions, API usage, salaries, and more — using `QUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
+Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second - for subscriptions, API usage, salaries, and more - using `QUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
 
 <img width="1901" height="973" alt="12 06 2026_09 43 27_REC" src="https://github.com/user-attachments/assets/9641fa89-8624-4a17-a367-8703b9f5434d" />
 
-
+**dApp link:** https://fluenci.xyz
 
 ---
 

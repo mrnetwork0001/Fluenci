@@ -1095,7 +1095,7 @@ export function useFluenci() {
         // Omit required chains since QIE Mobile Wallet only supports QIE (1990)
         // Listing Chain 1 as required causes wallets that do not support Ethereum to fail pairing
         wcProvider = await EthereumProvider.init({
-          projectId: "8801909e023fe9d1391c107d4f7f0443",
+          projectId: "3fcc6b16d1b2050f2747cd28568d1354",
           optionalChains: [1990, 1],
           showQrModal: false,
           metadata: {

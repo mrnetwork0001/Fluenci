@@ -223,7 +223,7 @@ const AnalystAgent = {
 
     // Determine pricing baseline & check rules
     const rateVal = Number(rate);
-    const { compliant, riskScore, anomalyClass, reason } = await this.runComplianceAlgorithm(subId, merchant, domainName, tokenAddress, rateVal);
+    const { compliant, riskScore, anomalyClass, reason } = await this.runComplianceAlgorithm(subId, subscriber, merchant, domainName, tokenAddress, rateVal);
 
     // Compile Audit Intelligence Report
     const auditReport = {
@@ -272,10 +272,29 @@ const AnalystAgent = {
     await DecisionAgent.evaluateReport(subId, auditReport, ipfsCID);
   },
 
-  async runComplianceAlgorithm(subId, merchant, domainName, tokenAddress, rate) {
+  async runComplianceAlgorithm(subId, subscriber, merchant, domainName, tokenAddress, rate) {
     let riskScore = 15;
     let reason = "Rate falls within safe baseline parameters.";
     let anomalyClass = "NONE";
+
+    // Check subscriber balance
+    let balanceVal = 0n;
+    try {
+      const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOf(address) view returns (uint256)"], provider);
+      balanceVal = await tokenContract.balanceOf(subscriber);
+      logTelemetry("ANALYST_AGENT", `Audited subscriber ${subscriber} balance: ${Number(balanceVal) / 1e6} tokens`);
+    } catch (err) {
+      logTelemetry("ANALYST_AGENT", `Failed to fetch subscriber balance: ${err.message}`);
+    }
+
+    if (balanceVal === 0n) {
+      return {
+        compliant: false,
+        riskScore: 99,
+        anomalyClass: "INSUFFICIENT_BALANCE",
+        reason: "Subscriber has zero token balance. Cannot sustain payment stream."
+      };
+    }
 
     // Auto-flag if rate is unusually high (e.g. rate >= 1000 tokens/sec)
     if (rate >= 1000) {
@@ -818,6 +837,64 @@ async function connectBlockchain() {
   }
 }
 
+async function auditActiveStreams() {
+  if (!registryContract || !provider) return;
+
+  const activeSubIds = Object.keys(activeStreamRisks);
+  if (activeSubIds.length === 0) return;
+
+  for (const subId of activeSubIds) {
+    try {
+      const details = await registryContract.getSubscriptionDetails(subId);
+      const [subscriber, merchant, tokenAddress, ratePerSecond, , , , , active, pausedByAI] = details;
+
+      if (!active || pausedByAI) {
+        // Clean up from memory if no longer active or already paused by AI
+        delete activeStreamRisks[subId];
+        continue;
+      }
+
+      // Check balance of the subscriber
+      const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOf(address) view returns (uint256)"], provider);
+      const balanceVal = await tokenContract.balanceOf(subscriber);
+
+      if (balanceVal === 0n) {
+        logTelemetry("ANALYST_AGENT", `CRITICAL: Active stream ${subId} subscriber ${subscriber} has zero balance! Triggering safety pause...`);
+        activeStreamRisks[subId] = 99;
+
+        // Compile audit report
+        const report = {
+          subId,
+          timestamp: new Date().toISOString(),
+          metadata: { subscriber, merchant, tokenAddress, rate: ratePerSecond.toString() },
+          evaluation: {
+            compliant: false,
+            riskScore: 99,
+            anomalyClass: "INSUFFICIENT_BALANCE",
+            reason: "Active stream subscriber has zero token balance. Autopausing stream."
+          }
+        };
+
+        // Save report in local cache
+        const ipfsCID = `ipfs://bafybeihash-zero-balance-${subId.substring(2, 18)}`;
+        auditReports[subId] = {
+          subId,
+          riskScore: 99,
+          reason: `Subscriber balance is zero. [IPFS CID: ${ipfsCID}]`,
+          anomalyClass: "INSUFFICIENT_BALANCE",
+          ipfsCID,
+          timestamp: new Date().toISOString()
+        };
+
+        // Hand-off to Decision Agent
+        await DecisionAgent.evaluateReport(subId, report, ipfsCID);
+      }
+    } catch (err) {
+      logTelemetry("WARNING", `Failed to audit active stream ${subId} balance: ${err.message}`);
+    }
+  }
+}
+
 let lastPolledBlock = 0;
 
 function setupEventListeners() {
@@ -936,6 +1013,9 @@ function setupEventListeners() {
           }
         }
       }
+
+      // Check balances of all active stream subscribers
+      await auditActiveStreams();
 
       lastPolledBlock = toBlock;
     } catch (err) {

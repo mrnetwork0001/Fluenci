@@ -71,7 +71,22 @@ export function useFluenci() {
   const [accountDomain, setAccountDomain] = useState("");
   const [announcedProviders, setAnnouncedProviders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorRaw] = useState("");
+  const errorTimerRef = useRef(null);
+
+  // Auto-dismiss errors after 5 seconds
+  const setError = (msg) => {
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    setErrorRaw(msg);
+    if (msg) {
+      errorTimerRef.current = setTimeout(() => setErrorRaw(""), 5000);
+    }
+  };
+
+  const clearError = () => {
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    setErrorRaw("");
+  };
 
   // QIE Pass KYC state
   const [kycState, setKycState] = useState({
@@ -635,16 +650,51 @@ export function useFluenci() {
     }
   };
 
-  // Resolve QieDomain (.qie)
+  // Resolve QieDomain (.qie) — forward lookup via Explorer API
+  // The QIE Domain Registry does not expose a public resolve function,
+  // so we scan registration transactions (selector 0xf2101e95) to the registry
+  // and find the one that registered the requested domain name.
   const resolveQieDomain = async (domainName) => {
-    if (!contracts.qiedomain) return ethers.ZeroAddress;
+    const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
+    const REGISTER_SELECTOR = "0xf2101e95";
     try {
-      const provider = getReadProvider();
-      const domainContract = new ethers.Contract(contracts.qiedomain, DOMAIN_ABI, provider);
-      const res = await domainContract.resolveDomain(domainName);
-      return res;
+      // Query all txs to the domain registry contract
+      const explorerUrl = `https://mainnet.qie.digital/api?module=account&action=txlist&address=${QIE_DOMAIN_REGISTRY}&startblock=0&endblock=99999999&sort=desc`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const resp = await fetch(explorerUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const txData = await resp.json();
+
+      if (txData.status === "1" && txData.result) {
+        // Find the registration tx that matches the requested domain name
+        for (const tx of txData.result) {
+          if (
+            tx.to?.toLowerCase() === QIE_DOMAIN_REGISTRY.toLowerCase() &&
+            tx.input?.startsWith(REGISTER_SELECTOR) &&
+            tx.isError === "0"
+          ) {
+            try {
+              const params = "0x" + tx.input.slice(10);
+              const decoded = ethers.AbiCoder.defaultAbiCoder().decode(
+                ["string", "string[]", "string[]"],
+                params
+              );
+              const registeredDomain = decoded[0]; // e.g. "mrnetwork.qie"
+              if (registeredDomain.toLowerCase() === domainName.toLowerCase()) {
+                // The sender of the registration tx is the domain owner
+                return tx.from;
+              }
+            } catch (decodeErr) {
+              // Skip malformed tx inputs
+            }
+          }
+        }
+      }
+      console.warn("Domain not found in registry txs:", domainName);
+      return ethers.ZeroAddress;
     } catch (err) {
-      console.warn("Domain resolution failed for", domainName);
+      console.warn("Domain resolution via Explorer API failed for", domainName, err.message);
       return ethers.ZeroAddress;
     }
   };
@@ -1215,6 +1265,7 @@ export function useFluenci() {
     realtimeClaimables,
     loading,
     error,
+    clearError,
     txState,
     resetTx,
     contracts,

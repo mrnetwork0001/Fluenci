@@ -867,7 +867,27 @@ export default function App() {
             }}
           >
             <Shield size={20} />
-            <span>{fluenci.error}</span>
+            <span style={{ flex: 1 }}>{fluenci.error}</span>
+            <button 
+              onClick={() => fluenci.clearError()}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#f43f5e",
+                cursor: "pointer",
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0.7,
+                transition: "opacity 0.2s"
+              }}
+              onMouseEnter={e => e.target.style.opacity = 1}
+              onMouseLeave={e => e.target.style.opacity = 0.7}
+              title="Dismiss"
+            >
+              ✕
+            </button>
           </div>
         )}
  

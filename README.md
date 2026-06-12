@@ -362,7 +362,7 @@ Fluenci includes a built-in **Snake game** as a pay-as-you-play demo. It demonst
 ## 🔗 Links
 
 - **X (Twitter)**: [x.com/fluenciAI](https://x.com/fluenciAI)
-- **GitHub**: [github.com/mrnetwork0001/QieFlow](https://github.com/mrnetwork0001/QieFlow)
+- **GitHub**: [github.com/mrnetwork0001/Fluenci](https://github.com/mrnetwork0001/Fluenci)
 
 ---
 

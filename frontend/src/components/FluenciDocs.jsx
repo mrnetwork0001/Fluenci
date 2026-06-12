@@ -426,14 +426,14 @@ export default function FluenciDocs() {
               <ContractCard 
                 name="FluenciRegistry" 
                 description="Core stream orchestration registry. Manages user subscriptions, cliff periods, stream rates, deposit balances, and withdrawal/termination events."
-                address="0x13D948a6A3384a744cdB84B0236bbba7CC79cA41"
+                address="0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9"
                 isCore={true}
                 isVerified={true}
               />
               <ContractCard 
                 name="FluenciAIAuditor" 
                 description="Autonomous security auditor. Holds cryptographic signature verification and controls the safety pause states triggered by the AI Sentry."
-                address="0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02"
+                address="0xF38d9458d14d916B60026693a76FBe7cDEf651Fa"
                 isCore={true}
                 isVerified={true}
               />

@@ -34,11 +34,11 @@ Fluenci is built natively on the QIE ecosystem, integrating:
 
 The protocol is deployed and active on QIE Mainnet. All contracts are fully verified and operational:
 
-### Fluenci Protocol Contracts (v2 — with auto-settle on terminate)
+### Fluenci Protocol Contracts (v3 — with 0.5% protocol fee + auto-settle on terminate)
 | Contract | Address |
 |---|---|
-| **FluenciRegistry** (v2) | [`0x13D948a6A3384a744cdB84B0236bbba7CC79cA41`](https://mainnet.qie.digital/address/0x13D948a6A3384a744cdB84B0236bbba7CC79cA41) |
-| **FluenciAIAuditor** (v3) | [`0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02`](https://mainnet.qie.digital/address/0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02) |
+| **FluenciRegistry** (v3) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
+| **FluenciAIAuditor** (v4) | [`0xF38d9458d14d916B60026693a76FBe7cDEf651Fa`](https://mainnet.qie.digital/address/0xF38d9458d14d916B60026693a76FBe7cDEf651Fa) |
 | **FluenciRouter** | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
 | **AI Auditor Hot Wallet** | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
 
@@ -176,8 +176,8 @@ The backend handles the AI Sentry loops, OpenAI assessments, QIE Pass integratio
    ```ini
    PORT=5001
    RPC_URL=https://rpc1mainnet.qie.digital
-   REGISTRY_ADDRESS=0x13D948a6A3384a744cdB84B0236bbba7CC79cA41
-   AUDITOR_ADDRESS=0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02
+   REGISTRY_ADDRESS=0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9
+   AUDITOR_ADDRESS=0xF38d9458d14d916B60026693a76FBe7cDEf651Fa
    AI_PRIVATE_KEY=your_ai_private_key_here
    OPENAI_API_KEY=your_openai_api_key_here
    QIEPASS_API_URL=https://did-stapi.qie.digital

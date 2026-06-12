@@ -234,7 +234,7 @@ export default function SubscriberPanel({
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
               <span>QUSDC stable:</span>
-              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(2)} QUSDC</strong>
+              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(4)} QUSDC</strong>
             </div>
           </div>
         </div>

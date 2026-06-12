@@ -31,6 +31,8 @@ contract FluenciRegistry {
     address public owner;
     address public qiePass;
     address public aiAuditor;
+    address public treasury;
+    uint256 public protocolFeeBps = 50; // 0.5% = 50 basis points (max 500 = 5%)
 
     enum DisputeState { NONE, OPEN, RESOLVED }
 
@@ -65,6 +67,7 @@ contract FluenciRegistry {
     event StreamResumed(bytes32 indexed subId);
     event StreamTerminated(bytes32 indexed subId);
     event FundsWithdrawn(bytes32 indexed subId, address indexed merchant, uint256 amount);
+    event ProtocolFeeCollected(bytes32 indexed subId, address indexed treasury, uint256 feeAmount);
     event DisputeOpened(bytes32 indexed subId, address indexed subscriber);
     event DisputeResolved(bytes32 indexed subId, uint256 subscriberRefund, uint256 merchantShare);
 
@@ -78,9 +81,10 @@ contract FluenciRegistry {
         _;
     }
 
-    constructor(address _qiePass) {
+    constructor(address _qiePass, address _treasury) {
         owner = msg.sender;
         qiePass = _qiePass;
+        treasury = _treasury;
     }
 
     function setAIAuditor(address _aiAuditor) external onlyOwner {
@@ -89,6 +93,16 @@ contract FluenciRegistry {
 
     function setQiePass(address _qiePass) external onlyOwner {
         qiePass = _qiePass;
+    }
+
+    function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Invalid treasury");
+        treasury = _treasury;
+    }
+
+    function setProtocolFeeBps(uint256 _feeBps) external onlyOwner {
+        require(_feeBps <= 500, "Fee cannot exceed 5%");
+        protocolFeeBps = _feeBps;
     }
 
     /**
@@ -163,13 +177,25 @@ contract FluenciRegistry {
 
         sub.lastClaimedTimestamp = claimEnd;
 
-        // Perform settlement in designated token
-        require(
-            IERC20(sub.tokenAddress).transferFrom(sub.subscriber, sub.merchant, claimableAmount),
-            "Payment transfer failed"
-        );
+        // Perform settlement with protocol fee split
+        uint256 fee = (treasury != address(0) && protocolFeeBps > 0)
+            ? (claimableAmount * protocolFeeBps) / 10000
+            : 0;
+        uint256 merchantAmount = claimableAmount - fee;
 
-        emit FundsWithdrawn(subId, sub.merchant, claimableAmount);
+        require(
+            IERC20(sub.tokenAddress).transferFrom(sub.subscriber, sub.merchant, merchantAmount),
+            "Merchant transfer failed"
+        );
+        if (fee > 0) {
+            require(
+                IERC20(sub.tokenAddress).transferFrom(sub.subscriber, treasury, fee),
+                "Fee transfer failed"
+            );
+            emit ProtocolFeeCollected(subId, treasury, fee);
+        }
+
+        emit FundsWithdrawn(subId, sub.merchant, merchantAmount);
 
         // If stopTime has been reached, terminate stream auto-cleanup
         if (sub.stopTime > 0 && claimEnd == sub.stopTime) {
@@ -225,10 +251,19 @@ contract FluenciRegistry {
                 uint256 claimableAmount = claimableDuration * sub.ratePerSecond;
                 sub.lastClaimedTimestamp = claimEnd;
 
-                // Transfer accumulated QUSDC to merchant
-                bool success = IERC20(sub.tokenAddress).transferFrom(sub.subscriber, sub.merchant, claimableAmount);
+                // Transfer accumulated QUSDC with protocol fee split
+                uint256 fee = (treasury != address(0) && protocolFeeBps > 0)
+                    ? (claimableAmount * protocolFeeBps) / 10000
+                    : 0;
+                uint256 merchantAmount = claimableAmount - fee;
+
+                bool success = IERC20(sub.tokenAddress).transferFrom(sub.subscriber, sub.merchant, merchantAmount);
                 if (success) {
-                    emit FundsWithdrawn(subId, sub.merchant, claimableAmount);
+                    emit FundsWithdrawn(subId, sub.merchant, merchantAmount);
+                    if (fee > 0) {
+                        IERC20(sub.tokenAddress).transferFrom(sub.subscriber, treasury, fee);
+                        emit ProtocolFeeCollected(subId, treasury, fee);
+                    }
                 }
             }
         }

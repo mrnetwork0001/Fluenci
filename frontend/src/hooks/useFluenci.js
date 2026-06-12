@@ -40,13 +40,18 @@ const DEX_ABI = [
 
 // QIE Domain resolution is handled via the QIE Explorer API (no onchain reverse lookup available)
 // Official QIE Domain Registry: 0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed
+const DOMAIN_ABI = [
+  "function resolveDomain(string domainName) external view returns (address)",
+  "function registerDomain(string domainName, address owner) external",
+  "function getDomainOwner(string domainName) external view returns (address)"
+];
 
 const CONTRACT_ADDRESSES_BY_CHAIN = {
   1990: { // QIE Mainnet
-    registry: "0x13D948a6A3384a744cdB84B0236bbba7CC79cA41",
+    registry: "0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9",
     qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official QUSDC
     qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
-    auditor: "0x5A2bFC25a951da06dCee2Bf1B7719c43ceB59B02",
+    auditor: "0xF38d9458d14d916B60026693a76FBe7cDEf651Fa",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
     fluenciRouter: "0x75475647f52531D4086296415392E4AA94b92de7", // FluenciRouter (wraps QieDex with onchain attribution)
     qiedomain: "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed" // Official QIE Domain Registry (mainnet)
@@ -289,7 +294,10 @@ export function useFluenci() {
         const REGISTER_SELECTOR = "0xf2101e95";
         try {
           const explorerUrl = `https://mainnet.qie.digital/api?module=account&action=txlist&address=${account}&startblock=0&endblock=99999999&sort=desc`;
-          const resp = await fetch(explorerUrl);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+          const resp = await fetch(explorerUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
           const txData = await resp.json();
           let domain = "";
           if (txData.status === "1" && txData.result) {

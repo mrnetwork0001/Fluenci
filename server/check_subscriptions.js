@@ -2,7 +2,7 @@ const { ethers } = require("ethers");
 require("dotenv").config();
 
 const RPC_URL = process.env.RPC_URL || "https://rpc1mainnet.qie.digital";
-const REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS || "0x13D948a6A3384a744cdB84B0236bbba7CC79cA41";
+const REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS || "0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9";
 const USER_ADDRESS = "0x07F3D74e8BC5fdbfc02a3187DbD6cd08E96C05a8";
 
 async function main() {

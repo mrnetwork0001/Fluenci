@@ -624,6 +624,7 @@ export default function App() {
               contracts={fluenci.contracts}
               kycState={fluenci.kycState}
               checkKycStatus={fluenci.checkKycStatus}
+              resolveQieDomain={fluenci.resolveQieDomain}
             />
             
             <QieDoodleGame

@@ -23,9 +23,14 @@ export default function SubscriberPanel({
   swapQieForTokens,
   contracts,
   kycState,
-  checkKycStatus
+  checkKycStatus,
+  resolveQieDomain
 }) {
   const [merchant, setMerchant] = useState("");
+  const [resolvingDomain, setResolvingDomain] = useState(false);
+  const [resolvedAddress, setResolvedAddress] = useState(null);
+  const [resolutionError, setResolutionError] = useState(false);
+
   const [rate, setRate] = useState(""); // rate per hour
   const [tokenSymbol, setTokenSymbol] = useState("QUSDC");
   const [cliffSeconds, setCliffSeconds] = useState("");
@@ -95,6 +100,65 @@ export default function SubscriberPanel({
       clearTimeout(delayDebounceFn);
     };
   }, [swapAmount, swapMode, contracts.fluenciRouter, contracts.qiedex, contracts.qusdc]);
+
+  // Resolve / Validate input address or domain
+  useEffect(() => {
+    if (!merchant) {
+      setResolvedAddress(null);
+      setResolutionError(false);
+      setResolvingDomain(false);
+      return;
+    }
+
+    const trimmed = merchant.trim();
+
+    // Check if it is a valid hex address
+    if (ethers.isAddress(trimmed)) {
+      setResolvedAddress(trimmed);
+      setResolutionError(false);
+      setResolvingDomain(false);
+      return;
+    }
+
+    // Check if it is a QIE domain
+    if (trimmed.toLowerCase().endsWith(".qie")) {
+      setResolvingDomain(true);
+      setResolutionError(false);
+      setResolvedAddress(null);
+
+      const delayDebounceFn = setTimeout(async () => {
+        try {
+          if (resolveQieDomain) {
+            const resolved = await resolveQieDomain(trimmed);
+            if (resolved && resolved !== ethers.ZeroAddress && resolved !== "0x0000000000000000000000000000000000000000") {
+              setResolvedAddress(resolved);
+              setResolutionError(false);
+            } else {
+              setResolvedAddress(null);
+              setResolutionError(true);
+            }
+          } else {
+            setResolutionError(true);
+          }
+        } catch (err) {
+          setResolvedAddress(null);
+          setResolutionError(true);
+        } finally {
+          setResolvingDomain(false);
+        }
+      }, 600); // 600ms debounce to avoid rapid API calls while typing
+
+      return () => clearTimeout(delayDebounceFn);
+    } else {
+      setResolvedAddress(null);
+      if (trimmed.length > 5) {
+        setResolutionError(true);
+      } else {
+        setResolutionError(false);
+      }
+      setResolvingDomain(false);
+    }
+  }, [merchant, resolveQieDomain]);
 
   const handleSubmitSubscription = (e) => {
     e.preventDefault();
@@ -532,9 +596,51 @@ export default function SubscriberPanel({
         
         <form onSubmit={handleSubmitSubscription} className="subscriber-form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "flex-end" }}>
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
-              Merchant (Address or .qie domain)
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", margin: 0 }}>
+                Merchant (Address or .qie domain)
+              </label>
+              
+              {/* Verification status badge */}
+              {merchant && (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  {resolvingDomain ? (
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Loader2 size={10} className="animate-spin" /> Check...
+                    </span>
+                  ) : resolvedAddress ? (
+                    <span style={{ 
+                      fontSize: "0.65rem", 
+                      color: "#15803d", 
+                      background: "#dcfce7", 
+                      padding: "2px 6px", 
+                      borderRadius: "12px", 
+                      fontWeight: "700", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: "3px" 
+                    }}>
+                      <ShieldCheck size={10} /> Valid
+                    </span>
+                  ) : resolutionError ? (
+                    <span style={{ 
+                      fontSize: "0.65rem", 
+                      color: "#b91c1c", 
+                      background: "#fee2e2", 
+                      padding: "2px 6px", 
+                      borderRadius: "12px", 
+                      fontWeight: "700", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: "3px" 
+                    }}>
+                      <AlertTriangle size={10} /> Invalid
+                    </span>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
             <input 
               type="text" 
               placeholder="e.g. netflix.qie or 0x..."
@@ -544,6 +650,25 @@ export default function SubscriberPanel({
               onChange={(e) => setMerchant(e.target.value)}
               required
             />
+
+            {/* Subtext showing resolution */}
+            {merchant && (
+              <div style={{ marginTop: "4px", minHeight: "16px" }}>
+                {resolvingDomain ? (
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
+                    Checking registry...
+                  </span>
+                ) : resolvedAddress ? (
+                  <span style={{ fontSize: "0.65rem", color: "#15803d", display: "flex", alignItems: "center", gap: "4px", fontWeight: "500" }}>
+                    ✓ Resolves to: <code style={{ background: "rgba(21, 128, 61, 0.08)", padding: "1px 4px", borderRadius: "3px", fontSize: "0.65rem", fontFamily: "monospace" }}>{resolvedAddress.slice(0, 10)}...{resolvedAddress.slice(-8)}</code>
+                  </span>
+                ) : resolutionError ? (
+                  <span style={{ fontSize: "0.65rem", color: "#b91c1c", display: "flex", alignItems: "center", gap: "4px" }}>
+                    ✗ Unregistered .qie domain or invalid address
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div>

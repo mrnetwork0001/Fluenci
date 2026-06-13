@@ -1647,7 +1647,7 @@ export default function App() {
           {/* Resources Column */}
           <div className="footer-col">
             <h4>RESOURCES</h4>
-            <a href="#faq" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>FAQ</a>
+            <a href="/docs" onClick={(e) => { e.preventDefault(); setViewMode('dashboard'); setActiveTab('docs'); window.history.pushState({}, '', '/docs'); }}>Docs</a>
             <a href={`https://mainnet.qie.digital/address/${fluenci.contracts.registry}`} target="_blank" rel="noopener noreferrer">Contracts</a>
             <a href={`https://mainnet.qie.digital/address/${fluenci.contracts.fluenciRouter || '0x75475647f52531D4086296415392E4AA94b92de7'}`} target="_blank" rel="noopener noreferrer">FluenciRouter</a>
           </div>

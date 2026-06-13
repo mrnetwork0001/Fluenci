@@ -187,7 +187,7 @@ function renderArticleContent(content) {
     // List item
     if (line.startsWith("- **")) {
       elements.push(
-        <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "0.92rem", color: "#444444", lineHeight: "1.6", marginBottom: "6px" }}>
+        <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "0.92rem", color: "#444444", lineHeight: "1.6", marginBottom: "6px", textAlign: "justify" }}>
           <span style={{ color: "#2563eb", fontWeight: "bold", flexShrink: 0 }}>-</span>
           <span dangerouslySetInnerHTML={{ __html: formatInline(line.replace("- ", "")) }} />
         </div>
@@ -204,7 +204,7 @@ function renderArticleContent(content) {
 
     // Regular paragraph
     elements.push(
-      <p key={i} style={{ fontSize: "0.95rem", color: "#444444", lineHeight: "1.75", margin: "0 0 12px 0" }}
+      <p key={i} style={{ fontSize: "0.95rem", color: "#444444", lineHeight: "1.75", margin: "0 0 12px 0", textAlign: "justify" }}
         dangerouslySetInnerHTML={{ __html: formatInline(line) }}
       />
     );

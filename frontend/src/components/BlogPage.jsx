@@ -20,7 +20,7 @@ const ARTICLES = [
     title: "Why We Built the First AI-Protected Streaming Payments Protocol on QIE Blockchain",
     excerpt: "There's a $3.5 billion problem hiding in plain sight across every blockchain network that supports recurring payments. Every streaming payment protocol operates completely blind.",
     author: "Fluenci Team",
-    date: "June 10, 2026",
+    date: "June 14, 2026",
     readTime: "8 min read",
     category: "Deep Dive",
     categoryColor: "#2563eb",

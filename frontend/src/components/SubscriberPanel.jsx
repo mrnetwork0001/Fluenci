@@ -529,7 +529,7 @@ export default function SubscriberPanel({
           </button>
         </div>
         
-        <form onSubmit={handleSubmitSubscription} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "flex-end" }}>
+        <form onSubmit={handleSubmitSubscription} className="subscriber-form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "flex-end" }}>
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "6px" }}>
               Merchant (Address or .qie domain)
@@ -839,7 +839,7 @@ export default function SubscriberPanel({
                                 type="text"
                                 placeholder="Recipient address or .qie"
                                 className="glass-card"
-                                style={{ padding: "4px 8px", fontSize: "0.7rem", width: "120px", color: "#111111", background: "rgba(0,0,0,0.04)", border: "1px solid #e0e0e0" }}
+                                style={{ padding: "4px 8px", fontSize: "0.7rem", width: "120px", maxWidth: "100%", color: "#111111", background: "rgba(0,0,0,0.04)", border: "1px solid #e0e0e0", boxSizing: "border-box" }}
                                 value={transferTarget[stream.id] || ""}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -862,7 +862,7 @@ export default function SubscriberPanel({
 
                           {/* Option A: Dispute handling interface */}
                           {stream.active && stream.disputeState === 1 && (
-                            <div style={{ background: "#f8f8f8", border: "1px solid rgba(255,160,0,0.1)", padding: "8px", borderRadius: "6px", marginTop: "4px", width: "240px", textAlign: "left" }}>
+                            <div style={{ background: "#f8f8f8", border: "1px solid rgba(255,160,0,0.1)", padding: "8px", borderRadius: "6px", marginTop: "4px", width: "100%", maxWidth: "240px", textAlign: "left", boxSizing: "border-box" }}>
                               <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "4px" }}>Dispute Resolution Desk</div>
                               <input 
                                 type="text"

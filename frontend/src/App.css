@@ -1773,18 +1773,35 @@
     grid-template-columns: 1fr !important;
   }
 
+  /* ── Subscriber Form Grid: single column on mobile ── */
+  .subscriber-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   /* ── Tables: horizontal scroll wrapper ── */
   table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
+    max-width: 100%;
   }
 
   thead, tbody, tr {
     display: table;
     width: 100%;
     table-layout: auto;
+  }
+
+  /* ── Table cells: allow wrapping on mobile ── */
+  td, th {
+    white-space: normal !important;
+    word-break: break-word;
+  }
+
+  /* ── Overflow containment for dashboard cards ── */
+  .dashboard-content .glass-card {
+    overflow: hidden !important;
+    max-width: 100% !important;
   }
 
   /* ── Form inputs: full width ── */
@@ -1794,6 +1811,7 @@
   .glass-card select,
   .glass-card textarea {
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
     font-size: 16px !important; /* Prevents iOS zoom on focus */
   }

@@ -513,6 +513,7 @@ export function useFluenci() {
     setTxState({ status: "preparing", action: "Verifying Identity via QIE Pass", hash: "", error: "" });
 
     try {
+      if (!SERVER_URL) throw new Error("Backend server not available. KYC verification requires the server to be running.");
       const res = await fetch(`${SERVER_URL}/qiepass/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -569,6 +570,7 @@ export function useFluenci() {
     }
 
     kycPollRef.current = setInterval(async () => {
+      if (!SERVER_URL) return;
       try {
         const res = await fetch(`${SERVER_URL}/qiepass/status/${requestId}`);
         const data = await res.json();
@@ -598,6 +600,7 @@ export function useFluenci() {
   // Step 3: Claim verified credentials
   const claimKyc = async (requestId) => {
     try {
+      if (!SERVER_URL) throw new Error("Backend server not available.");
       setKycState(prev => ({ ...prev, status: "claiming" }));
       setTxStep("confirming", { action: "Verifying credentials onchain..." });
       const res = await fetch(`${SERVER_URL}/qiepass/claim`, {
@@ -640,6 +643,7 @@ export function useFluenci() {
   const checkKycStatus = async () => {
     if (!kycState.requestId) return;
     try {
+      if (!SERVER_URL) throw new Error("Backend server not available.");
       const res = await fetch(`${SERVER_URL}/qiepass/status/${kycState.requestId}`);
       const data = await res.json();
       if (data.success && data.status === "consent_given" && data.vcMetadata?.ready) {
@@ -811,7 +815,7 @@ export function useFluenci() {
 
       // Send swap telemetry to backend asynchronously
       try {
-        fetch(`${SERVER_URL}/swap-telemetry`, {
+        if (SERVER_URL) fetch(`${SERVER_URL}/swap-telemetry`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ txHash: tx.hash })

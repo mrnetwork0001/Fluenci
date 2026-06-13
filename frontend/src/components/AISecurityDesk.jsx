@@ -39,6 +39,7 @@ export default function AISecurityDesk({
 
   // Fetch telemetry logs from Express server (wallet-scoped)
   const fetchTelemetry = async () => {
+    if (!API_BASE_URL) { simulateLogs(); return; }
     try {
       const walletParam = account ? `?wallet=${account}` : "";
       const res = await fetch(`${API_BASE_URL}/telemetry${walletParam}`);
@@ -78,6 +79,7 @@ export default function AISecurityDesk({
     });
 
     try {
+      if (!API_BASE_URL) throw new Error("No backend");
       const res = await fetch(`${API_BASE_URL}/configure`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,6 +108,7 @@ export default function AISecurityDesk({
     setInjectingAnomaly(true);
     
     try {
+      if (!API_BASE_URL) throw new Error("No backend");
       const res = await fetch(`${API_BASE_URL}/trigger-anomaly`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

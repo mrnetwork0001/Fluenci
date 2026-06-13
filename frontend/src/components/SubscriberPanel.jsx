@@ -152,6 +152,7 @@ export default function SubscriberPanel({
 
   // Request AI arbitration details from offchain node
   const requestArbitration = async (subId, stream) => {
+    if (!API_BASE_URL) { alert("AI Arbitrator requires the backend server to be running."); return; }
     try {
       const response = await fetch(`${API_BASE_URL}/arbitrate-dispute`, {
         method: "POST",

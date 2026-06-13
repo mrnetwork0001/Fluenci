@@ -173,6 +173,7 @@ function LandingTelemetryTerminal() {
   useEffect(() => {
     let active = true;
     const fetchTelemetry = async () => {
+      if (!API_BASE_URL) return;
       try {
         const res = await fetch(`${API_BASE_URL}/telemetry`);
         if (res.ok) {
@@ -562,6 +563,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
     const fetchStats = async () => {
+      if (!API_BASE_URL) return;
       try {
         const res = await fetch(`${API_BASE_URL}/stats`);
         if (res.ok) {

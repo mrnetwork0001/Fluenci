@@ -180,6 +180,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
     }
 
     try {
+      if (!API_BASE_URL) throw new Error("No backend");
       const history = newMessages
         .filter(m => m.role === "user" || m.role === "ai")
         .map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }));

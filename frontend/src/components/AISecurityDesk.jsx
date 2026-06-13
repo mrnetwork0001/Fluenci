@@ -144,17 +144,19 @@ export default function AISecurityDesk({
 
   const getLogColor = (type) => {
     switch (type) {
-      case "ALERT": return "#999999";
-      case "ACTION": return "#999999";
-      case "SUCCESS": return "#ffffff";
-      case "AUDIT": return "#ffffff";
-      case "SENTRY_AGENT": return "#ffffff"; // Blue
-      case "ANALYST_AGENT": return "#888888"; // Purple
-      case "DECISION_AGENT": return "#10b981"; // Emerald
-      case "ARBITRATOR_AGENT": return "#f59e0b"; // Amber
-      case "SIMULATION": return "#a78bfa"; // Violet
-      case "WARNING": return "#999999";
-      default: return "var(--text-secondary)";
+      case "ALERT": return "#f87171";
+      case "ACTION": return "#60a5fa";
+      case "SUCCESS": return "#4ade80";
+      case "AUDIT": return "#c084fc";
+      case "SENTRY_AGENT": return "#38bdf8";
+      case "ANALYST_AGENT": return "#c084fc";
+      case "DECISION_AGENT": return "#34d399";
+      case "ARBITRATOR_AGENT": return "#fbbf24";
+      case "SIMULATION": return "#a78bfa";
+      case "WARNING": return "#fb923c";
+      case "INFO": return "#38bdf8";
+      case "SYSTEM": return "#94a3b8";
+      default: return "#e2e8f0";
     }
   };
 
@@ -380,23 +382,23 @@ export default function AISecurityDesk({
         <div 
           style={{ 
             flexGrow: 1, 
-            background: "rgba(0, 0, 0, 0.5)", 
+            background: "#0f172a", 
             borderRadius: "8px", 
             padding: "16px", 
             fontFamily: "monospace", 
             fontSize: "0.8rem", 
-            lineHeight: "1.5", 
+            lineHeight: "1.6", 
             overflowY: "auto", 
-            border: "1px solid rgba(255,255,255,0.05)"
+            border: "1px solid #1e293b"
           }}
         >
           {telemetryLogs.map((log) => (
-            <div key={log.id} style={{ marginBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.02)", paddingBottom: "6px" }}>
-              <span style={{ color: "var(--text-muted)" }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>{" "}
+            <div key={log.id} style={{ marginBottom: "10px", borderBottom: "1px solid #1e293b", paddingBottom: "6px" }}>
+              <span style={{ color: "#64748b" }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>{" "}
               <span style={{ color: getLogColor(log.type), fontWeight: "bold" }}>[{log.type}]</span>{" "}
-              <span style={{ color: "var(--text-primary)" }}>{log.message}</span>
+              <span style={{ color: "#e2e8f0" }}>{log.message}</span>
               {log.details && Object.keys(log.details).length > 0 && (
-                <div style={{ paddingLeft: "15px", color: "var(--text-secondary)", fontSize: "0.75rem", marginTop: "2px", wordBreak: "break-all" }}>
+                <div style={{ paddingLeft: "15px", color: "#94a3b8", fontSize: "0.75rem", marginTop: "2px", wordBreak: "break-all" }}>
                   {JSON.stringify(log.details)}
                 </div>
               )}

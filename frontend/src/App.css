@@ -1886,12 +1886,19 @@
     font-size: 0.85rem !important;
   }
 
-  /* Stats row: wrap into 2x2 grid */
+  /* Stats row: force 2x2 grid */
   .hero-stats-row {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 0 !important;
+    gap: 12px 0 !important;
     max-width: 100% !important;
+    padding: 16px !important;
+  }
+
+  /* Force stat items to fill grid cells */
+  .hero-stats-row > div[style*="flex"] {
+    flex: unset !important;
+    width: 100% !important;
   }
 
   /* Hide vertical dividers in stats row on mobile */

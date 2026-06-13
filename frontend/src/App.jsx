@@ -331,7 +331,8 @@ function LandingTelemetryTerminal() {
 }
 
 const IS_LAUNCHED = import.meta.env.VITE_APP_LAUNCHED === "true";
-const LAUNCH_DATE_MS = new Date("2026-06-14T06:00:00Z").getTime();
+const LAUNCH_DATE_MS = new Date("2026-06-15T06:00:00Z").getTime();
+const PREVIEW_SECRET = import.meta.env.VITE_PREVIEW_SECRET || "mrnetwork419";
 
 export default function App() {
   const fluenci = useFluenci();
@@ -347,18 +348,18 @@ export default function App() {
   const [timeRemaining, setTimeRemaining] = useState(() => LAUNCH_DATE_MS - Date.now());
   const [isBypassed, setIsBypassed] = useState(() => {
     try {
-      return localStorage.getItem("fluenci_preview_bypass") === "true";
+      return localStorage.getItem("fluenci_preview_bypass") === PREVIEW_SECRET;
     } catch (e) {
       return false;
     }
   });
 
-  // Check URL query parameters for bypass: ?preview=true
+  // Check URL query parameters for bypass: ?preview=SECRET
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("preview") === "true") {
+    if (params.get("preview") === PREVIEW_SECRET) {
       try {
-        localStorage.setItem("fluenci_preview_bypass", "true");
+        localStorage.setItem("fluenci_preview_bypass", PREVIEW_SECRET);
       } catch (e) {}
       setIsBypassed(true);
     }

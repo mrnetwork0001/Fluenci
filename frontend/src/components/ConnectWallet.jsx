@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown, Smartphone, Shield, Globe, QrCode, ChevronRight, Puzzle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import LogoImage from "../assets/logo.png";
 
 export default function ConnectWallet({ 
   account, 
@@ -308,11 +309,10 @@ export default function ConnectWallet({
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
                   <div style={{ 
                     width: "48px", height: "48px", margin: "0 auto 14px auto",
-                    background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
                     borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 4px 20px rgba(99, 102, 241, 0.3)"
+                    overflow: "hidden"
                   }}>
-                    <Wallet size={24} color="#ffffff" />
+                    <img src={LogoImage} alt="Fluenci" style={{ width: "48px", height: "48px", borderRadius: "14px" }} />
                   </div>
                   <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.02em" }}>
                     Connect Wallet

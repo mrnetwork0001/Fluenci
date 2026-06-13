@@ -226,133 +226,16 @@ export default function AISecurityDesk({
 
         </div>
 
-        {/* Dynamic Contract Address Configuration Form */}
-        <div className="glass-card">
-          <h3 style={{ fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
-            <Settings size={18} color="#666666" />
-            Auditor Node Configuration
-          </h3>
-          
-          <form onSubmit={handleSaveConfig} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                Blockchain Provider RPC URL
-              </label>
-              <input 
-                type="text" 
-                className="glass-card" 
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid #e0e0e0", color: "#111111", fontSize: "0.85rem" }}
-                value={serverConfig.rpcUrl}
-                onChange={(e) => setServerConfig({ ...serverConfig, rpcUrl: e.target.value })}
-                required
-              />
-            </div>
-            
-            <div>
-              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                FluenciRegistry Contract Address
-              </label>
-              <input 
-                type="text" 
-                className="glass-card" 
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid #e0e0e0", color: "#111111", fontSize: "0.85rem", fontFamily: "monospace" }}
-                value={serverConfig.registryAddress}
-                onChange={(e) => setServerConfig({ ...serverConfig, registryAddress: e.target.value })}
-                required
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                FluenciAIAuditor Contract Address
-              </label>
-              <input 
-                type="text" 
-                className="glass-card" 
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid #e0e0e0", color: "#111111", fontSize: "0.85rem", fontFamily: "monospace" }}
-                value={serverConfig.auditorAddress}
-                onChange={(e) => setServerConfig({ ...serverConfig, auditorAddress: e.target.value })}
-                required
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                AI Auditor Private Key (Enables Autonomous Pausing)
-              </label>
-              <input 
-                type="password" 
-                placeholder="0x..."
-                className="glass-card" 
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid #e0e0e0", color: "#111111", fontSize: "0.85rem" }}
-                value={serverConfig.aiPrivateKey}
-                onChange={(e) => setServerConfig({ ...serverConfig, aiPrivateKey: e.target.value })}
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              className="btn btn-secondary" 
-              style={{ marginTop: "8px", alignSelf: "flex-end", fontSize: "0.8rem", padding: "8px 16px" }}
-              disabled={savingConfig}
-            >
-              Update Config
-            </button>
-          </form>
-        </div>
-
-        {/* Manual Anomaly Trigger Gating */}
-        <div className="glass-card" style={{ border: "1px dashed rgba(244, 63, 94, 0.3)" }}>
-          <h3 style={{ fontSize: "1.1rem", color: "#777777", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <AlertOctagon size={18} />
-            SecOps Emergency Control
-          </h3>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "16px" }}>
-            Manually trigger an anomaly alert for a payment stream. The AI Sentry node will compile the compliance audit report and execute an autonomous safety pause onchain.
-          </p>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                Select Active Payment Stream
-              </label>
-              <select 
-                className="glass-card" 
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "rgba(17, 24, 43, 0.9)", border: "1px solid #e0e0e0", color: "#ffffff", fontSize: "0.85rem" }}
-                value={selectedStream}
-                onChange={(e) => setSelectedStream(e.target.value)}
-              >
-                <option value="">-- Choose active stream --</option>
-                {allActiveStreams.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    ID: {s.id.substring(0, 10)}... (Rate: {((s.ratePerSecond * 3600) / 1e6).toFixed(2)} qUSD/hr)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                Audit Exploit Details (Reason)
-              </label>
-              <input 
-                type="text" 
-                className="glass-card" 
-                style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", background: "#f8f8f8", border: "1px solid #e0e0e0", color: "#111111", fontSize: "0.85rem" }}
-                value={anomalyReason}
-                onChange={(e) => setAnomalyReason(e.target.value)}
-              />
-            </div>
-
-            <button 
-              className="btn btn-danger" 
-              style={{ alignSelf: "flex-start", marginTop: "4px", fontSize: "0.8rem", padding: "8px 16px" }}
-              disabled={injectingAnomaly || !selectedStream}
-              onClick={handleInjectAnomaly}
-            >
-              Trigger Safety Pause
-            </button>
+        {/* Read-only info: Config is managed server-side via .env */}
+        <div className="glass-card" style={{ padding: "16px", border: "1px solid #e0e0e0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <Settings size={16} color="#666666" />
+            <span style={{ fontSize: "0.9rem", fontWeight: "700", color: "#333333" }}>Node Configuration</span>
           </div>
+          <p style={{ fontSize: "0.8rem", color: "#888888", lineHeight: "1.5", margin: 0 }}>
+            Auditor node settings, contract addresses, and AI keys are managed securely server-side. 
+            Contact the protocol admin to update node configuration.
+          </p>
         </div>
 
       </div>

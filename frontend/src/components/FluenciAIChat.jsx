@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { API_BASE_URL } from "../config";
 
 const ARCADE_MERCHANT = "0xfe5f1d13a31a5b86833adf4486720331d6e4a6bb";
 const STORAGE_KEY = "fluenci_chat_sessions";
@@ -183,7 +184,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
         .filter(m => m.role === "user" || m.role === "ai")
         .map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }));
 
-      const res = await fetch("http://localhost:5001/api/chat", {
+      const res = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: history })

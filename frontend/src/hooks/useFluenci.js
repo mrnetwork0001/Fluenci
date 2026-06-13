@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import EthereumProvider from "@walletconnect/ethereum-provider";
+import { API_BASE_URL } from "../config";
 
 // ABI definitions
 const REGISTRY_ABI = [
@@ -499,7 +500,7 @@ export function useFluenci() {
   // QIE PASS REAL KYC VERIFICATION
   // ==========================================
 
-  const SERVER_URL = "http://127.0.0.1:5001";
+  const SERVER_URL = API_BASE_URL;
 
   // Step 1: Start KYC verification
   const startKycVerification = async () => {

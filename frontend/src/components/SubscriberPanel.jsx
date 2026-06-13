@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Play, Trash2, AlertTriangle, ShieldAlert, Sparkles, Coins, ArrowRight, ShieldCheck, Scale, RefreshCw, Send, ExternalLink, Loader2 } from "lucide-react";
 import { ethers } from "ethers";
+import { API_BASE_URL } from "../config";
 
 export default function SubscriberPanel({
   account,
@@ -152,7 +153,7 @@ export default function SubscriberPanel({
   // Request AI arbitration details from offchain node
   const requestArbitration = async (subId, stream) => {
     try {
-      const response = await fetch("http://127.0.0.1:5001/arbitrate-dispute", {
+      const response = await fetch(`${API_BASE_URL}/arbitrate-dispute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,7 +174,7 @@ export default function SubscriberPanel({
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to contact AI Arbitrator. Make sure the server is running on port 5001.");
+      alert(`Failed to contact AI Arbitrator. Make sure the server is running on ${API_BASE_URL}.`);
     }
   };
 

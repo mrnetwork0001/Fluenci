@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Shield, Settings, Terminal, RefreshCw, AlertOctagon, Info, CheckCircle2 } from "lucide-react";
+import { API_BASE_URL } from "../config";
 
 export default function AISecurityDesk({
   contracts,
@@ -40,7 +41,7 @@ export default function AISecurityDesk({
   const fetchTelemetry = async () => {
     try {
       const walletParam = account ? `?wallet=${account}` : "";
-      const res = await fetch(`http://127.0.0.1:5001/telemetry${walletParam}`);
+      const res = await fetch(`${API_BASE_URL}/telemetry${walletParam}`);
       if (res.ok) {
         const data = await res.json();
         const logsArray = Array.isArray(data) ? data : (data.logs || []);
@@ -77,7 +78,7 @@ export default function AISecurityDesk({
     });
 
     try {
-      const res = await fetch("http://127.0.0.1:5001/configure", {
+      const res = await fetch(`${API_BASE_URL}/configure`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,7 +106,7 @@ export default function AISecurityDesk({
     setInjectingAnomaly(true);
     
     try {
-      const res = await fetch("http://127.0.0.1:5001/trigger-anomaly", {
+      const res = await fetch(`${API_BASE_URL}/trigger-anomaly`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

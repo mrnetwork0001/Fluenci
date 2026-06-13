@@ -16,6 +16,7 @@ import QieStableCoinLogo from "./assets/qusdc.png";
 import QieDexLogo from "./assets/qiedex.png";
 import QieDomainsLogo from "./assets/qiedomains.png";
 import "./App.css";
+import { API_BASE_URL } from "./config";
 
 // Default deployment addresses
 const DEFAULT_HARDHAT_CONTRACTS = {
@@ -173,7 +174,7 @@ function LandingTelemetryTerminal() {
     let active = true;
     const fetchTelemetry = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:5001/telemetry");
+        const res = await fetch(`${API_BASE_URL}/telemetry`);
         if (res.ok) {
           const data = await res.json();
           if (!active) return;
@@ -240,7 +241,7 @@ function LandingTelemetryTerminal() {
         if (active) {
           setServerOnline(false);
           setLogs([
-            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "AI Sentry Node offline (Cannot fetch from http://localhost:5001)." },
+            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: `AI Sentry Node offline (Cannot fetch from ${API_BASE_URL}).` },
             { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "Please start the server backend (npm start) to view real onchain telemetry." }
           ]);
           setActiveStreams(0);
@@ -464,7 +465,7 @@ export default function App() {
     let active = true;
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:5001/stats");
+        const res = await fetch(`${API_BASE_URL}/stats`);
         if (res.ok) {
           const data = await res.json();
           if (!active) return;

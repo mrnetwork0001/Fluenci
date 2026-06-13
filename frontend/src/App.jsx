@@ -381,6 +381,7 @@ export default function App() {
 
   // Sync URL when viewMode or activeTab changes
   useEffect(() => {
+    window.scrollTo(0, 0);
     let targetPath = '/';
     if (viewMode === 'blog') {
       targetPath = '/blog';

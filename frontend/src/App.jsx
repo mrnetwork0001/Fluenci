@@ -610,7 +610,135 @@ export default function App() {
     }
   };
 
+  const formatTimeRemainingComponents = (ms) => {
+    if (ms <= 0) {
+      return (
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <div>
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px 20px", minWidth: "72px" }}>00</div>
+            <div style={{ fontSize: "0.68rem", color: "#555", marginTop: "6px", textTransform: "uppercase", fontWeight: "700" }}>Hrs</div>
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.15)", alignSelf: "center", fontSize: "2rem", marginBottom: "20px" }}>:</span>
+          <div>
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px 20px", minWidth: "72px" }}>00</div>
+            <div style={{ fontSize: "0.68rem", color: "#555", marginTop: "6px", textTransform: "uppercase", fontWeight: "700" }}>Min</div>
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.15)", alignSelf: "center", fontSize: "2rem", marginBottom: "20px" }}>:</span>
+          <div>
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px 20px", minWidth: "72px" }}>00</div>
+            <div style={{ fontSize: "0.68rem", color: "#555", marginTop: "6px", textTransform: "uppercase", fontWeight: "700" }}>Sec</div>
+          </div>
+        </div>
+      );
+    }
+    const totalSecs = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    
+    const hStr = String(hrs).padStart(2, "0");
+    const mStr = String(mins).padStart(2, "0");
+    const sStr = String(secs).padStart(2, "0");
+
+    return (
+      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div>
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px 20px", minWidth: "72px" }}>{hStr}</div>
+          <div style={{ fontSize: "0.68rem", color: "#555", marginTop: "6px", textTransform: "uppercase", fontWeight: "700" }}>Hrs</div>
+        </div>
+        <span style={{ color: "rgba(255,255,255,0.15)", alignSelf: "center", fontSize: "2rem", marginBottom: "20px" }}>:</span>
+        <div>
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px 20px", minWidth: "72px" }}>{mStr}</div>
+          <div style={{ fontSize: "0.68rem", color: "#555", marginTop: "6px", textTransform: "uppercase", fontWeight: "700" }}>Min</div>
+        </div>
+        <span style={{ color: "rgba(255,255,255,0.15)", alignSelf: "center", fontSize: "2rem", marginBottom: "20px" }}>:</span>
+        <div>
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px 20px", minWidth: "72px" }}>{sStr}</div>
+          <div style={{ fontSize: "0.68rem", color: "#555", marginTop: "6px", textTransform: "uppercase", fontWeight: "700" }}>Sec</div>
+        </div>
+      </div>
+    );
+  };
+
   const isSupportedNetwork = fluenci.chainId === 1990;
+
+  if (!IS_LAUNCHED && !isBypassed) {
+    return (
+      <div style={{ 
+        minHeight: "100vh", 
+        display: "flex", 
+        flexDirection: "column", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        background: "#000000",
+        color: "#ffffff",
+        fontFamily: "'Inter', sans-serif",
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        {/* Glowing background meshes */}
+        <div style={{
+          position: "absolute",
+          top: "20%",
+          left: "30%",
+          width: "400px",
+          height: "400px",
+          background: "radial-gradient(circle, rgba(7, 154, 183, 0.15) 0%, rgba(0,0,0,0) 70%)",
+          filter: "blur(60px)",
+          pointerEvents: "none"
+        }} />
+        <div style={{
+          position: "absolute",
+          bottom: "20%",
+          right: "25%",
+          width: "350px",
+          height: "350px",
+          background: "radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, rgba(0,0,0,0) 70%)",
+          filter: "blur(50px)",
+          pointerEvents: "none"
+        }} />
+
+        <div className="glass-card" style={{ 
+          zIndex: 1, 
+          padding: "48px 32px", 
+          borderRadius: "24px", 
+          border: "1px solid rgba(255, 255, 255, 0.08)", 
+          background: "rgba(255, 255, 255, 0.02)", 
+          backdropFilter: "blur(20px)",
+          textAlign: "center",
+          maxWidth: "520px",
+          width: "90%",
+          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)"
+        }}>
+          <img src={LogoImage} alt="Fluenci" style={{ width: "64px", height: "64px", borderRadius: "16px", marginBottom: "20px" }} />
+          <h1 style={{ fontSize: "2.5rem", fontWeight: "900", margin: "0 0 10px 0", letterSpacing: "-0.03em", fontFamily: "'Montserrat', sans-serif" }}>Fluenci</h1>
+          <p style={{ color: "#888888", fontSize: "0.95rem", margin: "0 0 40px 0" }}>AI-Shielded Streaming Payments on QIE Blockchain</p>
+          
+          <div style={{ fontSize: "0.75rem", color: "#079AB7", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: "700", marginBottom: "16px" }}>
+            Public Launch In
+          </div>
+          
+          <div style={{ 
+            fontSize: "3.2rem", 
+            fontWeight: "800", 
+            fontFamily: "monospace", 
+            letterSpacing: "0.02em", 
+            color: "#ffffff",
+            display: "flex",
+            justifyContent: "center",
+            gap: "16px",
+            textShadow: "0 0 20px rgba(7, 154, 183, 0.3)"
+          }}>
+            {formatTimeRemainingComponents(timeRemaining)}
+          </div>
+        </div>
+
+        <div style={{ position: "absolute", bottom: "40px", fontSize: "0.78rem", color: "#444444" }}>
+          © 2026 Fluenci Protocol. All rights reserved.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "#f5f5f5" }}>

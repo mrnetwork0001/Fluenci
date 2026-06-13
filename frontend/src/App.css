@@ -2180,9 +2180,9 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* Stats row: single column */
+  /* Stats row: keep 2x2 grid on small screens */
   .hero-stats-row {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr 1fr !important;
   }
 
   .mobile-nav-overlay a {

@@ -1134,81 +1134,89 @@ export default function App() {
             {/* Hero Section */}
             <section className="home-hero-section" id="features">
               <div className="hero-grid">
-                <div style={{ textAlign: "left", zIndex: 1 }}>
+                {/* Hero Text Block — uses display:contents on mobile for grid reordering */}
+                <div className="hero-text-block" style={{ textAlign: "left", zIndex: 1 }}>
 
-                  <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
-                    <span style={{ fontSize: "3.8rem", whiteSpace: "nowrap" }}>Stop <span style={{ color: "#079AB7", borderRight: "3px solid #079AB7", paddingRight: "2px" }}>{heroDisplay}</span> Streams</span>
-                    <br />
-                    <span style={{ color: "#555555" }}>AI-Shielded Payments.</span>
-                  </h1>
-                  <p className="hero-subtitle">
-                    Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.
-                  </p>
-                  <div className="hero-cta-buttons" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-                    {(IS_LAUNCHED || isBypassed) ? (
-                      <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
-                        Launch App
-                      </button>
-                    ) : (
-                      <div className="glass-card" style={{ 
-                        padding: "10px 20px", 
-                        border: "1px solid rgba(7, 154, 183, 0.3)", 
-                        background: "rgba(7, 154, 183, 0.05)",
-                        borderRadius: "8px",
-                        fontSize: "0.9rem",
-                        fontWeight: "700",
-                        color: "#079AB7",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontFamily: "monospace"
-                      }}>
-                        <span className="pulse" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#079AB7" }} />
-                        <span>Launch In: {formatTimeRemaining(timeRemaining)}</span>
-                      </div>
-                    )}
-                    <a href="#how-it-works" className="btn btn-secondary" style={{ textDecoration: "none" }}>
-                      Explore the Platform
-                    </a>
+                  {/* Title + Subtitle */}
+                  <div className="hero-heading-block">
+                    <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
+                      <span style={{ fontSize: "3.8rem", whiteSpace: "nowrap" }}>Stop <span style={{ color: "#079AB7", borderRight: "3px solid #079AB7", paddingRight: "2px" }}>{heroDisplay}</span> Streams</span>
+                      <br />
+                      <span style={{ color: "#555555" }}>AI-Shielded Payments.</span>
+                    </h1>
+                    <p className="hero-subtitle">
+                      Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.
+                    </p>
                   </div>
 
-                  {/* Real-time Protocol Stats Row */}
-                  <div className="hero-stats-row" style={{ 
-                    display: "flex", 
-                    gap: "0", 
-                    marginTop: "40px", 
-                    padding: "16px 0", 
-                    background: "#f8fafc", 
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    maxWidth: "680px",
-                    flexWrap: "wrap"
-                  }}>
-                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>
-                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#0f172a", fontFamily: "monospace" }}>
-                        {stats.uniqueUsersCount}
-                      </div>
+                  {/* CTA + Stats */}
+                  <div className="hero-cta-stats-block">
+                    <div className="hero-cta-buttons" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+                      {(IS_LAUNCHED || isBypassed) ? (
+                        <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
+                          Launch App
+                        </button>
+                      ) : (
+                        <div className="glass-card" style={{ 
+                          padding: "10px 20px", 
+                          border: "1px solid rgba(7, 154, 183, 0.3)", 
+                          background: "rgba(7, 154, 183, 0.05)",
+                          borderRadius: "8px",
+                          fontSize: "0.9rem",
+                          fontWeight: "700",
+                          color: "#079AB7",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontFamily: "monospace"
+                        }}>
+                          <span className="pulse" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#079AB7" }} />
+                          <span>Launch In: {formatTimeRemaining(timeRemaining)}</span>
+                        </div>
+                      )}
+                      <a href="#how-it-works" className="btn btn-secondary" style={{ textDecoration: "none" }}>
+                        Explore the Platform
+                      </a>
                     </div>
-                    <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
-                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Settled Volume</div>
-                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                        ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+
+                    {/* Real-time Protocol Stats Row */}
+                    <div className="hero-stats-row" style={{ 
+                      display: "flex", 
+                      gap: "0", 
+                      marginTop: "40px", 
+                      padding: "16px 0", 
+                      background: "#f8fafc", 
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "12px",
+                      maxWidth: "680px",
+                      flexWrap: "wrap"
+                    }}>
+                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#0f172a", fontFamily: "monospace" }}>
+                          {stats.uniqueUsersCount}
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
-                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Swap Volume (DEX)</div>
-                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                        ${(stats.totalSwapVolumeUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
+                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Settled Volume</div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
+                          ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
-                    <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                      <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>App Revenue (0.5%)</div>
-                      <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                        ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
+                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Swap Volume (DEX)</div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
+                          ${(stats.totalSwapVolumeUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                      <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
+                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
+                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>App Revenue (0.5%)</div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
+                          ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
                       </div>
                     </div>
                   </div>

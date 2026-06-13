@@ -122,6 +122,28 @@
     margin-left: auto;
     margin-right: auto;
   }
+  /* Flatten .hero-text-block so its children become direct grid items */
+  .hero-text-block {
+    display: contents;
+  }
+  /* Reorder: heading (1) → mockup (2) → CTA+stats (3) */
+  .hero-heading-block {
+    order: 1;
+  }
+  .hero-mockup-wrapper {
+    order: 2;
+  }
+  .hero-cta-stats-block {
+    order: 3;
+  }
+  /* Center CTA buttons on mobile */
+  .hero-cta-stats-block .hero-cta-buttons {
+    justify-content: center;
+  }
+  .hero-cta-stats-block .hero-stats-row {
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -889,6 +911,12 @@
   justify-content: center;
   align-items: center;
   perspective: 1200px;
+  animation: heroFloat 4s ease-in-out infinite;
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-14px); }
 }
 
 /* Browser Window in Background */

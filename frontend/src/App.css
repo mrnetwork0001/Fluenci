@@ -111,7 +111,7 @@
 @media (max-width: 968px) {
   .hero-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 8px;
     text-align: center;
   }
   .hero-subtitle {

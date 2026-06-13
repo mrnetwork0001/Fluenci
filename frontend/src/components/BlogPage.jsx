@@ -497,62 +497,6 @@ export default function BlogPage({ onBack }) {
         </div>
       ))}
 
-      {/* Topic Cards */}
-      <div style={{ marginTop: "40px" }}>
-        <h3 style={{
-          fontSize: "0.8rem",
-          fontWeight: "700",
-          color: "#999999",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          marginBottom: "16px"
-        }}>
-          Explore Topics
-        </h3>
-        <div className="blog-topics-grid" style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "12px"
-        }}>
-          {[
-            { icon: <Shield size={20} />, label: "AI Security", color: "#d97706" },
-            { icon: <Cpu size={20} />, label: "Multi-Agent AI", color: "#8b5cf6" },
-            { icon: <Coins size={20} />, label: "Streaming Payments", color: "#2563eb" },
-            { icon: <Gamepad2 size={20} />, label: "Fluenci Arcade", color: "#ec4899" },
-            { icon: <Globe size={20} />, label: "QIE Ecosystem", color: "#10b981" },
-            { icon: <Zap size={20} />, label: "DeFi Innovation", color: "#f59e0b" }
-          ].map((topic, idx) => (
-            <div key={idx} style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "8px",
-              padding: "20px 12px",
-              background: "#ffffff",
-              border: "1px solid #e5e5e5",
-              borderRadius: "14px",
-              transition: "all 0.2s ease",
-              cursor: "default"
-            }}>
-              <div style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
-                background: `${topic.color}10`,
-                color: topic.color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-                {topic.icon}
-              </div>
-              <span style={{ fontSize: "0.78rem", fontWeight: "700", color: "#555555" }}>
-                {topic.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

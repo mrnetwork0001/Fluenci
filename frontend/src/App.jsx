@@ -330,6 +330,9 @@ function LandingTelemetryTerminal() {
   );
 }
 
+const IS_LAUNCHED = import.meta.env.VITE_APP_LAUNCHED === "true";
+const LAUNCH_DATE_MS = new Date("2026-06-14T06:00:00Z").getTime();
+
 export default function App() {
   const fluenci = useFluenci();
   const [activeTab, setActiveTab] = useState("subscriber");
@@ -340,6 +343,45 @@ export default function App() {
   const [isDashMenuOpen, setDashMenuOpen] = useState(false);
   const prevAccountRef = useRef(fluenci.account);
   const cardRef = useRef(null);
+
+  const [timeRemaining, setTimeRemaining] = useState(() => LAUNCH_DATE_MS - Date.now());
+  const [isBypassed, setIsBypassed] = useState(() => {
+    try {
+      return localStorage.getItem("fluenci_preview_bypass") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Check URL query parameters for bypass: ?preview=true
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("preview") === "true") {
+      try {
+        localStorage.setItem("fluenci_preview_bypass", "true");
+      } catch (e) {}
+      setIsBypassed(true);
+    }
+  }, []);
+
+  // Update countdown clock
+  useEffect(() => {
+    if (timeRemaining <= 0) return;
+    const interval = setInterval(() => {
+      const remaining = LAUNCH_DATE_MS - Date.now();
+      setTimeRemaining(remaining <= 0 ? 0 : remaining);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timeRemaining]);
+
+  const formatTimeRemaining = (ms) => {
+    if (ms <= 0) return "00h : 00m : 00s";
+    const totalSecs = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return `${String(hrs).padStart(2, "0")}h : ${String(mins).padStart(2, "0")}m : ${String(secs).padStart(2, "0")}s`;
+  };
 
   const handleConnectClick = () => {
     const qieProvider = fluenci.announcedProviders.find(
@@ -492,11 +534,11 @@ export default function App() {
 
   // Auto-redirect to dashboard when wallet connects
   useEffect(() => {
-    if (!prevAccountRef.current && fluenci.account) {
+    if (!prevAccountRef.current && fluenci.account && (IS_LAUNCHED || isBypassed)) {
       setViewMode("dashboard");
     }
     prevAccountRef.current = fluenci.account;
-  }, [fluenci.account]);
+  }, [fluenci.account, isBypassed]);
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -969,9 +1011,28 @@ export default function App() {
                     Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.
                   </p>
                   <div className="hero-cta-buttons" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-                    <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
-                      Launch App
-                    </button>
+                    {(IS_LAUNCHED || isBypassed) ? (
+                      <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
+                        Launch App
+                      </button>
+                    ) : (
+                      <div className="glass-card" style={{ 
+                        padding: "10px 20px", 
+                        border: "1px solid rgba(7, 154, 183, 0.3)", 
+                        background: "rgba(7, 154, 183, 0.05)",
+                        borderRadius: "8px",
+                        fontSize: "0.9rem",
+                        fontWeight: "700",
+                        color: "#079AB7",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontFamily: "monospace"
+                      }}>
+                        <span className="pulse" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#079AB7" }} />
+                        <span>Launch In: {formatTimeRemaining(timeRemaining)}</span>
+                      </div>
+                    )}
                     <a href="#how-it-works" className="btn btn-secondary" style={{ textDecoration: "none" }}>
                       Explore the Platform
                     </a>
@@ -1323,9 +1384,29 @@ export default function App() {
               <div className="section-header">
                 <h2>Explore the Platform</h2>
                 <p style={{ marginBottom: "28px" }}>See how Fluenci bridges gaps, aligns protocols, and protects stream transitions-without disrupting your flow.</p>
-                <button className="btn btn-primary btn-cta-pulse" onClick={() => setViewMode("dashboard")}>
-                  Launch App
-                </button>
+                {(IS_LAUNCHED || isBypassed) ? (
+                  <button className="btn btn-primary btn-cta-pulse" onClick={() => setViewMode("dashboard")}>
+                    Launch App
+                  </button>
+                ) : (
+                  <div className="glass-card" style={{ 
+                    padding: "12px 24px", 
+                    border: "1px solid rgba(7, 154, 183, 0.3)", 
+                    background: "rgba(7, 154, 183, 0.05)",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: "700",
+                    color: "#079AB7",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontFamily: "monospace",
+                    margin: "0 auto"
+                  }}>
+                    <span className="pulse" style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#079AB7" }} />
+                    <span>Launch In: {formatTimeRemaining(timeRemaining)}</span>
+                  </div>
+                )}
               </div>
             </section>
           </div>
@@ -1358,7 +1439,9 @@ export default function App() {
             <h4>PROTOCOL</h4>
             <a href="#features" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>Features</a>
             <a href="#comparison" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>AI-Shield</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('dashboard'); }}>Launch App</a>
+            {(IS_LAUNCHED || isBypassed) && (
+              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('dashboard'); }}>Launch App</a>
+            )}
           </div>
 
           {/* Ecosystem Column */}

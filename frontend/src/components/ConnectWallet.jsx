@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Wallet, ShieldAlert, CheckCircle, X, ArrowLeft, LogOut, Copy, Check, ChevronDown, Smartphone, Shield, Globe, QrCode, ChevronRight, Puzzle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import LogoImage from "../assets/logo.png";
-import QieWalletLogo from "../assets/qiewallet.png";
+import QieLogoImage from "../assets/qie-logo.png";
 
 export default function ConnectWallet({ 
   account, 
@@ -349,7 +349,7 @@ export default function ConnectWallet({
                         overflow: "hidden",
                         flexShrink: 0
                       }}>
-                        <img src={QieWalletLogo} alt="QIE Wallet" style={{ width: "40px", height: "40px", borderRadius: "10px" }} />
+                        <img src={QieLogoImage} alt="QIE Wallet" style={{ width: "40px", height: "40px", borderRadius: "10px" }} />
                       </div>
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontWeight: "700", fontSize: "0.92rem", letterSpacing: "-0.01em" }}>QIE Wallet</div>
@@ -405,13 +405,11 @@ export default function ConnectWallet({
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{
                         width: "40px", height: "40px",
-                        background: "linear-gradient(135deg, #10b981, #059669)",
                         borderRadius: "10px",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 2px 12px rgba(16, 185, 129, 0.3)",
+                        overflow: "hidden",
                         flexShrink: 0
                       }}>
-                        <QrCode size={20} color="#ffffff" strokeWidth={2.5} />
+                        <img src={QieLogoImage} alt="QIE Mobile" style={{ width: "40px", height: "40px", borderRadius: "10px" }} />
                       </div>
                       <div style={{ textAlign: "left" }}>
                         <div style={{ fontWeight: "700", fontSize: "0.92rem", letterSpacing: "-0.01em" }}>QIE Mobile</div>

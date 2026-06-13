@@ -395,8 +395,13 @@ export default function App() {
     );
 
     if (qieProvider || hasQieInjected) {
+      // QIE Wallet detected (extension or injected) — connect directly
       fluenci.connectWallet(qieProvider || null);
+    } else if (window.ethereum) {
+      // Mobile in-app browser (Zerion, MetaMask, Trust, etc.) — connect to injected provider
+      fluenci.connectWallet(null);
     } else {
+      // No provider at all — show modal for WalletConnect / install links
       setWalletModalOpen(true);
     }
   };

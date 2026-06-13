@@ -32,7 +32,7 @@ It's not gas fees. It's not scalability. It's not even adoption.
 
 It's the fact that **every streaming payment protocol in existence today operates completely blind.**
 
-When you subscribe to a service using Sablier, Superfluid, or LlamaPay, your tokens flow out of your wallet continuously - every second, every block — with zero oversight. There's no system watching whether the merchant wallet has been compromised. No automated safeguard if someone manipulates the billing rate. No AI monitoring claim patterns for anomalies.
+When you subscribe to a service using Sablier, Superfluid, or LlamaPay, your tokens flow out of your wallet continuously - every second, every block - with zero oversight. There's no system watching whether the merchant wallet has been compromised. No automated safeguard if someone manipulates the billing rate. No AI monitoring claim patterns for anomalies.
 
 Your only protection? Manually checking your wallet and clicking "cancel" before the damage is done.
 
@@ -44,7 +44,7 @@ That's not security. That's a liability waiting to happen.
 
 ## What Is Fluenci?
 
-Fluenci is an **AI-shielded real-time streaming payments protocol** built natively on QIE Blockchain. It enables subscribers to stream QUSDC stablecoins to merchants on a per-second basis — with an autonomous AI Sentry layer that actively monitors every stream, detects anomalies, and freezes suspicious activity onchain without any human intervention.
+Fluenci is an **AI-shielded real-time streaming payments protocol** built natively on QIE Blockchain. It enables subscribers to stream QUSDC stablecoins to merchants on a per-second basis - with an autonomous AI Sentry layer that actively monitors every stream, detects anomalies, and freezes suspicious activity onchain without any human intervention.
 
 This isn't a feature we bolted on as an afterthought. The AI protection layer is the foundational architecture that every other component is built around.
 
@@ -58,15 +58,15 @@ Most projects that claim "AI integration" are running a chatbot or an off-chain 
 
 Our AI Sentry is a **multi-agent system** where four specialized agents work in concert, each responsible for a distinct phase of the security pipeline:
 
-**The Sentry Agent** performs continuous blockchain ingestion and mempool filtering. It watches every block on QIE Mainnet, tracking stream creation events, claim transactions, rate modifications, and wallet behavior patterns. It operates as the first line of detection — the eyes on every transaction.
+**The Sentry Agent** performs continuous blockchain ingestion and mempool filtering. It watches every block on QIE Mainnet, tracking stream creation events, claim transactions, rate modifications, and wallet behavior patterns. It operates as the first line of detection - the eyes on every transaction.
 
 **The Analyst Agent** runs LLM-powered pricing audits and behavioral analysis. When the Sentry Agent flags unusual activity, the Analyst examines the full context: Is this claim frequency normal for this stream's history? Does this rate change align with the merchant's established pattern? Has the merchant's wallet interacted with known exploit contracts?
 
-**The Decision Agent** holds the authority for autonomous onchain action. If the Analyst confirms an anomaly, the Decision Agent signs and submits a freeze transaction directly to the FluenciAIAuditor smart contract. The stream is paused onchain — meaning no funds can be claimed or withdrawn — within seconds of detection. No human approval needed. No delay.
+**The Decision Agent** holds the authority for autonomous onchain action. If the Analyst confirms an anomaly, the Decision Agent signs and submits a freeze transaction directly to the FluenciAIAuditor smart contract. The stream is paused onchain - meaning no funds can be claimed or withdrawn - within seconds of detection. No human approval needed. No delay.
 
 **The Arbitrator Agent** handles the aftermath. When a stream is frozen, both the subscriber and merchant may have legitimate claims to the streamed funds. The Arbitrator uses EIP-712 typed signatures to calculate fair split ratios based on the evidence, enabling trustless dispute resolution without requiring a centralized mediator.
 
-This entire pipeline — from detection to onchain freeze — executes in under 3 seconds on QIE Blockchain.
+This entire pipeline - from detection to onchain freeze - executes in under 3 seconds on QIE Blockchain.
 
 ---
 
@@ -74,11 +74,11 @@ This entire pipeline — from detection to onchain freeze — executes in under 
 
 We evaluated multiple chains before committing to QIE, and the decision came down to three factors that directly impact streaming payment viability:
 
-**Sub-second block finality.** Streaming payments update balances every second. If your underlying chain takes 12 seconds to confirm a block (like Ethereum L1), your "real-time" stream has 12 seconds of latency — and 12 seconds where an exploit could drain funds before the AI can respond. QIE's block times make sub-second safety pausing possible.
+**Sub-second block finality.** Streaming payments update balances every second. If your underlying chain takes 12 seconds to confirm a block (like Ethereum L1), your "real-time" stream has 12 seconds of latency - and 12 seconds where an exploit could drain funds before the AI can respond. QIE's block times make sub-second safety pausing possible.
 
 **Negligible gas costs.** Every stream claim, every AI pause, every dispute resolution is an onchain transaction. On Ethereum, the gas costs would make micro-payment streaming economically impossible. On QIE, these operations cost fractions of a cent, making per-second streaming viable for everyday use.
 
-**Native ecosystem infrastructure.** QIE isn't just a chain — it's an ecosystem with native DID (QIE Pass), domain resolution (QIE Domains), stablecoin infrastructure (QUSDC), and DEX liquidity (QIEDex). Fluenci integrates deeply with all of these, rather than rebuilding them from scratch.
+**Native ecosystem infrastructure.** QIE isn't just a chain - it's an ecosystem with native DID (QIE Pass), domain resolution (QIE Domains), stablecoin infrastructure (QUSDC), and DEX liquidity (QIEDex). Fluenci integrates deeply with all of these, rather than rebuilding them from scratch.
 
 ---
 
@@ -100,9 +100,9 @@ Fluenci doesn't just run on QIE. It's architecturally integrated with the core Q
 
 Beyond the core protocol, we built the Fluenci Arcade to demonstrate real-time micro-payment streams powering interactive experiences.
 
-**Qie Snake Game** — a stream-to-play classic where users insert QUSDC to start a micro-payment stream at 0.0001 QUSDC per second. The game runs as long as the stream flows. When you stop playing, the stream terminates automatically.
+**Qie Snake Game** - a stream-to-play classic where users insert QUSDC to start a micro-payment stream at 0.0001 QUSDC per second. The game runs as long as the stream flows. When you stop playing, the stream terminates automatically.
 
-**AI Chat Copilot** — a GPT-4o-mini powered conversational assistant, also funded by a per-second payment stream. Users can ask questions about the QIE ecosystem, stream management, and Fluenci features.
+**AI Chat Copilot** - a GPT-4o-mini powered conversational assistant, also funded by a per-second payment stream. Users can ask questions about the QIE ecosystem, stream management, and Fluenci features.
 
 This is a proof of concept for an entirely new category: **stream-funded services** where users pay continuously for exactly what they consume, with zero commitment and automatic termination.
 
@@ -114,10 +114,10 @@ Fluenci is not a concept, not a whitepaper, and not a testnet demo.
 
 The following contracts are deployed and operational on QIE Mainnet (Chain ID: 1990):
 
-- **FluenciRegistry** — Core stream orchestration
-- **FluenciAIAuditor** — Cryptographic AI safety pausing
-- **FluenciRouter** — Attributed swap routing through QIEDex AMM
-- **QIE Pass Integration** — Onchain identity gating
+- **FluenciRegistry** - Core stream orchestration
+- **FluenciAIAuditor** - Cryptographic AI safety pausing
+- **FluenciRouter** - Attributed swap routing through QIEDex AMM
+- **QIE Pass Integration** - Onchain identity gating
 
 Every transaction is publicly verifiable on the QIE Mainnet block explorer.
 
@@ -125,7 +125,7 @@ Every transaction is publicly verifiable on the QIE Mainnet block explorer.
 
 ## What's Next for Fluenci
 
-**Phase 2: Subscription Marketplace.** A discovery layer where merchants list services and subscribers browse and start streams — all protected by the AI Sentry.
+**Phase 2: Subscription Marketplace.** A discovery layer where merchants list services and subscribers browse and start streams - all protected by the AI Sentry.
 
 **Phase 3: Cross-Chain Streaming.** Leveraging QIE bridge infrastructure to enable streams across chains with AI protection.
 
@@ -225,7 +225,7 @@ export default function BlogPage({ onBack }) {
   const [selectedArticle, setSelectedArticle] = useState(null);
 
   const handleShare = (article) => {
-    const text = `${article.title} — by @FluenciAI`;
+    const text = `${article.title} - by @FluenciAI`;
     const url = window.location.href;
     if (navigator.share) {
       navigator.share({ title: article.title, text, url });

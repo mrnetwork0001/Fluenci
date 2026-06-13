@@ -444,13 +444,13 @@ export default function App() {
     );
 
     if (qieProvider || hasQieInjected) {
-      // QIE Wallet detected (extension or injected) — connect directly
+      // QIE Wallet detected (extension or injected) - connect directly
       fluenci.connectWallet(qieProvider || null);
     } else if (window.ethereum) {
-      // Mobile in-app browser (Zerion, MetaMask, Trust, etc.) — connect to injected provider
+      // Mobile in-app browser (Zerion, MetaMask, Trust, etc.) - connect to injected provider
       fluenci.connectWallet(null);
     } else {
-      // No provider at all — show modal for WalletConnect / install links
+      // No provider at all - show modal for WalletConnect / install links
       setWalletModalOpen(true);
     }
   };
@@ -1183,7 +1183,7 @@ export default function App() {
             {/* Hero Section */}
             <section className="home-hero-section" id="features">
               <div className="hero-grid">
-                {/* Hero Text Block — uses display:contents on mobile for grid reordering */}
+                {/* Hero Text Block - uses display:contents on mobile for grid reordering */}
                 <div className="hero-text-block" style={{ textAlign: "left", zIndex: 1 }}>
 
                   {/* Title + Subtitle */}
@@ -1501,7 +1501,7 @@ export default function App() {
                     ].map(([feature, standard, fluenci], i) => (
                       <tr key={i}>
                         <td className="matrix-feature-name">{feature}</td>
-                        <td className="matrix-standard-col">✗ {standard}</td>
+                        <td className="matrix-standard-col">�- {standard}</td>
                         <td className="matrix-fluenci-col">✓ {fluenci}</td>
                       </tr>
                     ))}

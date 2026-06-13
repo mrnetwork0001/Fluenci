@@ -382,7 +382,7 @@ export default function ConnectWallet({
                           setWcConnecting(false);
                           setWcError("");
                         } else {
-                          // Relay blocked or timed out — show error inside the QR view
+                          // Relay blocked or timed out - show error inside the QR view
                           setWcConnecting(false);
                           setWcError("Network is blocking WalletConnect relay.\n\nFix: Enable a VPN on your device, or switch to a different Wi-Fi / mobile data network, then tap Retry.");
                         }

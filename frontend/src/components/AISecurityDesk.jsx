@@ -320,7 +320,7 @@ export default function AISecurityDesk({
                 value={selectedStream}
                 onChange={(e) => setSelectedStream(e.target.value)}
               >
-                <option value="">- Choose active stream -</option>
+                <option value="">-- Choose active stream --</option>
                 {allActiveStreams.map((s) => (
                   <option key={s.id} value={s.id}>
                     ID: {s.id.substring(0, 10)}... (Rate: {((s.ratePerSecond * 3600) / 1e6).toFixed(2)} qUSD/hr)

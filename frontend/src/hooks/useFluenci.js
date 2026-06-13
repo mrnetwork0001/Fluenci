@@ -467,7 +467,7 @@ export function useFluenci() {
     }
   };
 
-  // Approve Tokens — approves a sensible cap (10,000 QUSDC) instead of unlimited
+  // Approve Tokens - approves a sensible cap (10,000 QUSDC) instead of unlimited
   const approveToken = async (tokenSymbol) => {
     setError("");
     setLoading(true);
@@ -652,7 +652,7 @@ export function useFluenci() {
     }
   };
 
-  // Resolve QieDomain (.qie) — forward lookup via Explorer API
+  // Resolve QieDomain (.qie) - forward lookup via Explorer API
   // The QIE Domain Registry does not expose a public resolve function,
   // so we scan registration transactions (selector 0xf2101e95) to the registry
   // and find the one that registered the requested domain name.
@@ -1143,7 +1143,7 @@ export function useFluenci() {
       // Timeout fallback: if no URI in 8s, network is blocking the relay
       const uriTimeout = setTimeout(async () => {
         if (!uriReceived) {
-          console.warn("WalletConnect URI timeout — relay likely blocked by network");
+          console.warn("WalletConnect URI timeout - relay likely blocked by network");
           if (onUri) onUri(null);
           setError("Network is blocking WalletConnect relay. Please use a VPN or try on a different Wi-Fi network.");
           setLoading(false);

@@ -6,8 +6,8 @@ const STORAGE_KEY = "fluenci_chat_sessions";
 
 // Local fallback responses
 const AI_RESPONSES = [
-  { keywords: ["fluenci", "what is", "about"], response: "Fluenci is a decentralized real-time streaming payment protocol on QIE Blockchain. Instead of monthly charges, you pay per second — and an AI Sentry Network watches every stream for anomalies." },
-  { keywords: ["stream", "how", "work"], response: "Streaming payments flow continuously at a rate you set (e.g., 0.0001 QUSDC/sec). The smart contract pulls from your wallet via transferFrom — you keep full custody at all times." },
+  { keywords: ["fluenci", "what is", "about"], response: "Fluenci is a decentralized real-time streaming payment protocol on QIE Blockchain. Instead of monthly charges, you pay per second - and an AI Sentry Network watches every stream for anomalies." },
+  { keywords: ["stream", "how", "work"], response: "Streaming payments flow continuously at a rate you set (e.g., 0.0001 QUSDC/sec). The smart contract pulls from your wallet via transferFrom - you keep full custody at all times." },
   { keywords: ["qie", "blockchain", "chain"], response: "QIE is an EVM-compatible L1 blockchain (Chain ID 1990). It supports QIE Wallet, QIE Pass, QIEDex, QIE Domains, and QUSDC stablecoin." },
   { keywords: ["ai", "sentry", "security"], response: "The AI Sentry uses multi-agent GPT-4o analysis to detect and pause suspicious streams autonomously via EIP-712 signatures." },
   { keywords: ["hello", "hi", "hey"], response: "Hey! 👋 I'm the Fluenci AI assistant powered by GPT-4o. Ask me anything about streaming payments, QIE, or DeFi!" },
@@ -317,7 +317,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
                         fontSize: "0.9rem", padding: "0 2px", flexShrink: 0
                       }}
                       title="Delete"
-                    >×</button>
+                    >�-</button>
                   </div>
                 ))}
               </div>
@@ -456,7 +456,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
         )}
       </div>
 
-      {/* Telemetry Sidebar — hidden in fullscreen */}
+      {/* Telemetry Sidebar - hidden in fullscreen */}
       {!isFullscreen && (
       <div style={{ flex: "0 0 240px", minWidth: "240px", display: "flex", flexDirection: "column", gap: "12px" }}>
         <div className="glass-card" style={{ background: "#f8f8f8", border: "1px solid #e8e8e8", padding: "16px" }}>
@@ -510,7 +510,7 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
         </div>
 
         <div style={{ fontSize: "0.8rem", color: "#888", lineHeight: "1.5", padding: "0 4px" }}>
-          💡 <strong style={{ color: "#555" }}>Powered by GPT-4o.</strong> Chat with real AI while a micro-stream flows at 0.0001 QUSDC/sec. Your chat history is saved locally — pick up where you left off.
+          💡 <strong style={{ color: "#555" }}>Powered by GPT-4o.</strong> Chat with real AI while a micro-stream flows at 0.0001 QUSDC/sec. Your chat history is saved locally - pick up where you left off.
         </div>
       </div>
       )}

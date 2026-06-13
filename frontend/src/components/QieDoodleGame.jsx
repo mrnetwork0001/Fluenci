@@ -325,7 +325,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
         <div>
           <h2 style={{ margin: 0, fontSize: "1.4rem", color: "#111111", fontWeight: "bold" }}>Fluenci Arcade</h2>
           <p style={{ margin: "4px 0 0 0", color: "#666666", fontSize: "0.9rem" }}>
-            Pay-as-you-use apps. Stream QUSDC while you play or chat — stop anytime.
+            Pay-as-you-use apps. Stream QUSDC while you play or chat - stop anytime.
           </p>
         </div>
         <div style={{ display: "flex", gap: "4px", background: "#f0f0f0", borderRadius: "10px", padding: "3px" }}>
@@ -529,7 +529,7 @@ export function QieDoodleGame({ account, subscriberStreams, createSubscription, 
           </div>
 
           <div style={{ fontSize: "0.8rem", color: "#888", lineHeight: "1.5", padding: "0 4px" }}>
-            💡 <strong style={{ color: "#555" }}>How it works:</strong> The Fluenci Snake Arcade opens a micro-payment stream at 0.0001 QUSDC/sec. You only pay while playing — pause or terminate the stream anytime from your Subscriber Panel. No upfront costs, no monthly fees.
+            💡 <strong style={{ color: "#555" }}>How it works:</strong> The Fluenci Snake Arcade opens a micro-payment stream at 0.0001 QUSDC/sec. You only pay while playing - pause or terminate the stream anytime from your Subscriber Panel. No upfront costs, no monthly fees.
           </div>
         </div>
       </div>

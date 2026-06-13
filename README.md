@@ -319,6 +319,35 @@ For a decentralized subscription protocol merging AI Agents and Web3 payments to
 
 ---
 
+## Future Roadmap & Earning Mechanisms
+
+To transition Fluenci from a hackathon prototype into a full-scale decentralized ecosystem, our roadmap focuses on expanding earning opportunities for both active users and passive network participants. We propose three primary models to make Fluenci a self-sustaining, community-driven earning engine:
+
+### 1. AI Sentry Node Staking & Co-Auditing (Security Node Mining)
+* **Objective**: Decentralize the AI Sentry network by allowing community members to run node telemetries.
+* **Mechanism**: 
+  * Users stake a designated amount of `QUSDC` or `QIE` to register a **Security Sentinel Node** on the protocol.
+  * Sentinels run a localized, light version of the offchain AI Sentry agent, which listens to stream telemetry logs, processes pricing and reputation risks, and flags billing anomalies.
+  * When anomalies are detected and verified onchain, the reporting nodes are awarded protocol "Security Bounties."
+* **Earnings Potential**: A portion (e.g., `0.1%`) of the global `0.5%` protocol stream fee is diverted into a **Sentinel Rewards Pool** and distributed among active, staked node operators based on uptime and successful anomaly classifications.
+
+### 2. Real-Time Stream Referrals (Viral Affiliate Income)
+* **Objective**: Incentivize organic growth and merchant acquisition through real-time rewards.
+* **Mechanism**:
+  * Users can generate a unique, cryptographically signed referral link linked to their DID or wallet.
+  * When a new subscriber initiates a stream to a merchant using this link (or when a merchant joins the platform via referral), the core `FluenciRegistry` contract automatically routes a customizable fraction (e.g., `0.2%` - `0.5%`) of every second-by-second payment directly to the referrer's wallet.
+* **Earnings Potential**: Referrers receive continuous, passive micro-income streamed directly into their accounts, watching their balances tick up live by the second, aligned with active subscriptions they helped onboard.
+
+### 3. Stream-to-Earn (Ad & Task Monetization)
+* **Objective**: Create a decentralized attention marketplace where users monetize their engagement.
+* **Mechanism**:
+  * Corporate sponsors, educational programs, and research institutions establish funded, time-locked streaming pools (e.g., "Learn-to-Stream" or "Engage-to-Stream" campaigns).
+  * Users perform small tasks, such as watching educational tutorials, filling out feedback surveys, or testing protocol extensions.
+  * Instead of receiving single lump-sum payouts upon completion, the system streams tokens to the user's wallet *in real-time* for every second they actively engage.
+* **Earnings Potential**: Users receive direct financial rewards for their time and feedback, viewing live second-by-second earning counters on their dashboard.
+
+---
+
 ## Testing the AI Sentry Pipeline
 
 To demonstrate the full autonomous security pipeline:

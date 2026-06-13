@@ -336,8 +336,22 @@ const PREVIEW_SECRET = import.meta.env.VITE_PREVIEW_SECRET || "mrnetwork419";
 
 export default function App() {
   const fluenci = useFluenci();
-  const [activeTab, setActiveTab] = useState("subscriber");
-  const [viewMode, setViewMode] = useState("landing");
+  // URL-based routing: parse initial path
+  const getInitialRoute = () => {
+    const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
+    switch (path) {
+      case 'blog': return { view: 'blog', tab: 'subscriber' };
+      case 'subscription': return { view: 'dashboard', tab: 'subscriber' };
+      case 'merchants': return { view: 'dashboard', tab: 'merchant' };
+      case 'security': return { view: 'dashboard', tab: 'security' };
+      case 'docs': return { view: 'dashboard', tab: 'docs' };
+      case 'dashboard': return { view: 'dashboard', tab: 'subscriber' };
+      default: return { view: 'landing', tab: 'subscriber' };
+    }
+  };
+  const initialRoute = getInitialRoute();
+  const [activeTab, setActiveTab] = useState(initialRoute.tab);
+  const [viewMode, setViewMode] = useState(initialRoute.view);
   const [activeFaqIndex, setActiveFaqIndex] = useState(null);
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -363,6 +377,41 @@ export default function App() {
       } catch (e) {}
       setIsBypassed(true);
     }
+  }, []);
+
+  // Sync URL when viewMode or activeTab changes
+  useEffect(() => {
+    let targetPath = '/';
+    if (viewMode === 'blog') {
+      targetPath = '/blog';
+    } else if (viewMode === 'dashboard') {
+      switch (activeTab) {
+        case 'subscriber': targetPath = '/subscription'; break;
+        case 'merchant': targetPath = '/merchants'; break;
+        case 'security': targetPath = '/security'; break;
+        case 'docs': targetPath = '/docs'; break;
+        default: targetPath = '/dashboard';
+      }
+    }
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ viewMode, activeTab }, '', targetPath);
+    }
+  }, [viewMode, activeTab]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state && e.state.viewMode) {
+        setViewMode(e.state.viewMode);
+        if (e.state.activeTab) setActiveTab(e.state.activeTab);
+      } else {
+        const route = getInitialRoute();
+        setViewMode(route.view);
+        setActiveTab(route.tab);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Update countdown clock

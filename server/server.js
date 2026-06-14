@@ -1174,6 +1174,7 @@ app.post("/swap-telemetry", async (req, res) => {
     }
     
     processedTxHashes.add(txHashLower);
+    uniqueUsers.add(tx.from);
     totalSwapVolume += qUSDCAmount;
     logTelemetry("SUCCESS", `Verified swap of ${Number(qUSDCAmount) / 1e6} qUSDC. Total Swap Volume updated.`, {
       txHash,

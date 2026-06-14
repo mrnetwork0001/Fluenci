@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Plus, Play, Trash2, AlertTriangle, ShieldAlert, Sparkles, Coins, ArrowRight, ShieldCheck, Scale, RefreshCw, Send, ExternalLink, Loader2 } from "lucide-react";
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../config";
@@ -102,6 +102,11 @@ export default function SubscriberPanel({
   }, [swapAmount, swapMode, contracts.fluenciRouter, contracts.qiedex, contracts.qusdc]);
 
   // Resolve / Validate input address or domain
+  const resolveQieDomainRef = useRef(resolveQieDomain);
+  useEffect(() => {
+    resolveQieDomainRef.current = resolveQieDomain;
+  }, [resolveQieDomain]);
+
   useEffect(() => {
     if (!merchant) {
       setResolvedAddress(null);
@@ -128,8 +133,9 @@ export default function SubscriberPanel({
 
       const delayDebounceFn = setTimeout(async () => {
         try {
-          if (resolveQieDomain) {
-            const resolved = await resolveQieDomain(trimmed);
+          const resolver = resolveQieDomainRef.current;
+          if (resolver) {
+            const resolved = await resolver(trimmed);
             if (resolved && resolved !== ethers.ZeroAddress && resolved !== "0x0000000000000000000000000000000000000000") {
               setResolvedAddress(resolved);
               setResolutionError(false);
@@ -158,7 +164,7 @@ export default function SubscriberPanel({
       }
       setResolvingDomain(false);
     }
-  }, [merchant, resolveQieDomain]);
+  }, [merchant]);
 
   const handleSubmitSubscription = (e) => {
     e.preventDefault();

@@ -180,7 +180,7 @@ export default function TransactionModal({ txState, onClose }) {
             lineHeight: "1.45",
             textAlign: "left"
           }}>
-            💡 <strong>No Testnet QIE for gas?</strong> If you need tokens to sign the KYC transaction, you can request free testnet gas from the official <a href="https://faucet.qie.digital" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline", fontWeight: "700" }}>QIE Faucet</a> without closing this window.
+            💡 <strong>No Testnet QIE for gas?</strong> If you need tokens to sign the KYC transaction, you can request free testnet gas from the official <a href="https://www.qie.digital/faucet" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline", fontWeight: "700" }}>QIE Faucet</a> without closing this window.
           </div>
         )}
 

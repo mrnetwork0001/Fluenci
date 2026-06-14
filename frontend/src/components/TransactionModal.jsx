@@ -167,6 +167,23 @@ export default function TransactionModal({ txState, onClose }) {
           })}
         </div>
 
+        {/* QIE Testnet Faucet helper callout */}
+        {action?.toLowerCase().includes("kyc") && !isFinished && (
+          <div style={{
+            margin: "16px 0",
+            padding: "12px",
+            background: "rgba(37, 99, 235, 0.08)",
+            border: "1px solid rgba(37, 99, 235, 0.2)",
+            borderRadius: "10px",
+            fontSize: "0.75rem",
+            color: "#cccccc",
+            lineHeight: "1.45",
+            textAlign: "left"
+          }}>
+            💡 <strong>No Testnet QIE for gas?</strong> If you need tokens to sign the KYC transaction, you can request free testnet gas from the official <a href="https://faucet.qie.digital" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline", fontWeight: "700" }}>QIE Faucet</a> without closing this window.
+          </div>
+        )}
+
         {/* Transaction Hash */}
         {hash && (
           <div className="tx-hash-container">

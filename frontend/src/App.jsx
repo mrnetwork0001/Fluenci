@@ -331,7 +331,7 @@ function LandingTelemetryTerminal() {
   );
 }
 
-const IS_LAUNCHED = import.meta.env.VITE_APP_LAUNCHED === "true";
+const IS_LAUNCHED = true;
 const LAUNCH_DATE_MS = new Date("2026-06-14T07:00:00Z").getTime();
 const PREVIEW_SECRET = import.meta.env.VITE_PREVIEW_SECRET || "mrnetwork419";
 

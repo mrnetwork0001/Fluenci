@@ -347,9 +347,44 @@ export default function SubscriberPanel({
                   transform: "translateY(-50%)", 
                   fontSize: "0.75rem", 
                   color: "var(--text-muted)",
-                  pointerEvents: "none"
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
                 }}>
-                  {swapMode === "QIE_TO_QUSDC" ? "QIE" : "QUSDC"}
+                  <button
+                    type="button"
+                    onClick={() => setSwapAmount(
+                      swapMode === "QIE_TO_QUSDC"
+                        ? parseFloat(qieBalance).toString()
+                        : parseFloat(qusdcBalance).toString()
+                    )}
+                    style={{
+                      background: "rgba(37, 99, 235, 0.1)",
+                      border: "1px solid rgba(37, 99, 235, 0.25)",
+                      borderRadius: "4px",
+                      color: "#2563eb",
+                      fontSize: "0.65rem",
+                      fontWeight: "700",
+                      padding: "2px 6px",
+                      cursor: "pointer",
+                      letterSpacing: "0.04em",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.2)";
+                      e.currentTarget.style.borderColor = "#2563eb";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.1)";
+                      e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.25)";
+                    }}
+                    title="Use max balance"
+                  >
+                    MAX
+                  </button>
+                  <span style={{ pointerEvents: "none" }}>
+                    {swapMode === "QIE_TO_QUSDC" ? "QIE" : "QUSDC"}
+                  </span>
                 </span>
               </div>
               

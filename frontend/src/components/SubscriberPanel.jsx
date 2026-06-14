@@ -458,6 +458,20 @@ export default function SubscriberPanel({
                 ? "Please approve the consent request in your QIE Wallet."
                 : "Streams require active QIE Pass DIDs to prevent bot exploits."}
             </p>
+            {kycState?.status === "pending_kyc" && (
+              <div style={{ 
+                marginTop: "10px", 
+                padding: "8px 10px", 
+                background: "rgba(37, 99, 235, 0.05)", 
+                border: "1px solid rgba(37, 99, 235, 0.15)", 
+                borderRadius: "6px", 
+                fontSize: "0.72rem", 
+                color: "#4b5563", 
+                lineHeight: "1.4" 
+              }}>
+                💡 <strong>No Testnet QIE for gas?</strong> If you need tokens to sign the KYC transaction, claim free testnet gas from the official <a href="https://faucet.qie.digital" target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", textDecoration: "underline", fontWeight: "700" }}>QIE Faucet</a>.
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             {qiePassVerified || kycState?.status === "verified" ? (

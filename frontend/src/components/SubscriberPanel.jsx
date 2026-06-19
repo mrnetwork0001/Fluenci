@@ -52,6 +52,7 @@ export default function SubscriberPanel({
 
   const [expectedOutput, setExpectedOutput] = useState("0");
   const [calculatingSwap, setCalculatingSwap] = useState(false);
+  const [qiePrice, setQiePrice] = useState(0.08); // default fallback price of 1 QIE = $0.08
 
   // Dynamic swap quote calculations using getAmountsOut
   useEffect(() => {
@@ -100,6 +101,41 @@ export default function SubscriberPanel({
       clearTimeout(delayDebounceFn);
     };
   }, [swapAmount, swapMode, contracts.fluenciRouter, contracts.qiedex, contracts.qusdc]);
+
+  // Fetch dynamic QIE price in USD (QUSDC) using QIEDex getAmountsOut
+  useEffect(() => {
+    let active = true;
+    const fetchQiePrice = async () => {
+      try {
+        const provider = new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
+        const MAINNET_DEX = "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef";
+        const MAINNET_QUSDC = "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5";
+        const dexContract = new ethers.Contract(
+          MAINNET_DEX, 
+          ["function getAmountsOut(uint256 amountIn, address[] path) external view returns (uint256[])"], 
+          provider
+        );
+        const path = ["0x0087904D95BEe9E5F24dc8852804b547981A9139", MAINNET_QUSDC]; // WQIE → qUSDC
+        const amountIn = ethers.parseUnits("1", 18);
+        const amounts = await dexContract.getAmountsOut(amountIn, path);
+        if (active) {
+          const price = parseFloat(ethers.formatUnits(amounts[1], 6));
+          if (price > 0) {
+            setQiePrice(price);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch dynamic QIE price", e);
+      }
+    };
+    fetchQiePrice();
+    // Poll price every 30 seconds
+    const interval = setInterval(fetchQiePrice, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Resolve / Validate input address or domain
   const resolveQieDomainRef = useRef(resolveQieDomain);
@@ -288,6 +324,10 @@ export default function SubscriberPanel({
       : parseFloat(swapAmount) > parseFloat(qusdcBalance)
   );
 
+  const qieValueUsd = parseFloat(qieBalance || 0) * qiePrice;
+  const qusdcValueUsd = parseFloat(qusdcBalance || 0);
+  const totalPortfolioValue = qieValueUsd + qusdcValueUsd;
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
       
@@ -296,17 +336,35 @@ export default function SubscriberPanel({
         
         {/* Token balances Card */}
         <div className="glass-card">
-          <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>
+          <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: "0 0 16px 0" }}>
             Self-Custody Balances
           </h3>
-          <div style={{ display: "grid", gap: "8px" }}>
-            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>Native QIE:</span>
-              <strong style={{ color: "#111111" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
+          <div style={{ marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid rgba(0, 0, 0, 0.06)" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
+              Total Portfolio Value
             </div>
-            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
+            <div style={{ fontSize: "1.8rem", fontWeight: "800", color: "#111111", fontFamily: "'Montserrat', sans-serif" }}>
+              ${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: "10px" }}>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Native QIE:</span>
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ color: "#111111", display: "block" }}>{parseFloat(qieBalance).toFixed(4)} QIE</strong>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  ${qieValueUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
               <span>QUSDC stable:</span>
-              <strong style={{ color: "#111111" }}>{parseFloat(qusdcBalance).toFixed(4)} QUSDC</strong>
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ color: "#111111", display: "block" }}>{parseFloat(qusdcBalance).toFixed(4)} QUSDC</strong>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  ${qusdcValueUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
           </div>
         </div>

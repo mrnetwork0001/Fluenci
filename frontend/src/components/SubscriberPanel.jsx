@@ -668,8 +668,6 @@ export default function SubscriberPanel({
               padding: "6px 14px", 
               fontSize: "0.75rem", 
               borderRadius: "8px",
-              border: "none",
-              boxShadow: inputMode === "rate" ? "none" : "none",
               cursor: "pointer"
             }}
             onClick={() => setInputMode("rate")}
@@ -683,8 +681,6 @@ export default function SubscriberPanel({
               padding: "6px 14px", 
               fontSize: "0.75rem", 
               borderRadius: "8px",
-              border: "none",
-              boxShadow: inputMode === "total" ? "none" : "none",
               cursor: "pointer"
             }}
             onClick={() => setInputMode("total")}

@@ -61,21 +61,17 @@ export default function FluenciDocs() {
             alignItems: "center",
             gap: "10px",
             padding: "12px 20px",
-            background: "#f8f8f8",
-            border: "1px solid #e5e5e5",
             borderRadius: "12px",
             cursor: "pointer",
             fontSize: "0.85rem",
             fontWeight: "600",
-            color: "#555555",
-            transition: "all 0.2s ease",
             maxWidth: "48%"
           }}
         >
           <ChevronLeft size={16} />
           <div style={{ textAlign: "left" }}>
-            <div style={{ fontSize: "0.7rem", color: "#999999", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous</div>
-            <div style={{ marginTop: "2px" }}>{prevSection.shortTitle}</div>
+            <div className="docs-nav-label" style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Previous</div>
+            <div className="docs-nav-title" style={{ marginTop: "2px" }}>{prevSection.shortTitle}</div>
           </div>
         </button>
       )}
@@ -88,21 +84,17 @@ export default function FluenciDocs() {
             alignItems: "center",
             gap: "10px",
             padding: "12px 20px",
-            background: "#111111",
-            border: "1px solid #111111",
             borderRadius: "12px",
             cursor: "pointer",
             fontSize: "0.85rem",
             fontWeight: "600",
-            color: "#ffffff",
-            transition: "all 0.2s ease",
             marginLeft: "auto",
             maxWidth: "48%"
           }}
         >
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Next</div>
-            <div style={{ marginTop: "2px" }}>{nextSection.shortTitle}</div>
+            <div className="docs-nav-label" style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Next</div>
+            <div className="docs-nav-title" style={{ marginTop: "2px" }}>{nextSection.shortTitle}</div>
           </div>
           <ChevronRight size={16} />
         </button>
@@ -519,16 +511,12 @@ export default function FluenciDocs() {
                 gap: "10px",
                 width: "100%",
                 padding: "12px 16px",
-                background: isActive ? "#111111" : "transparent",
-                border: "none",
                 borderRadius: "10px",
-                color: isActive ? "#ffffff" : "#555555",
                 fontSize: "0.88rem",
                 fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.2s ease"
+                cursor: "pointer"
               }}
-              className="docs-sidebar-btn"
+              className={`docs-sidebar-btn ${isActive ? "active" : ""}`}
             >
               {section.icon}
               {section.title}
@@ -746,18 +734,15 @@ function ContractCard({ name, description, address, isVerified, isCore }) {
             justifyContent: "center",
             gap: "8px",
             padding: "10px",
-            background: "#111111",
-            color: "#ffffff",
             borderRadius: "8px",
             textDecoration: "none",
             fontSize: "0.8rem",
             fontWeight: "600",
-            textAlign: "center",
-            transition: "background 0.2s"
+            textAlign: "center"
           }}
           className="explorer-link-btn"
         >
-          <span style={{ color: "#ffffff" }}>View on Explorer</span>
+          <span>View on Explorer</span>
           <ExternalLink size={12} />
         </a>
       </div>

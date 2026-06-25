@@ -120,8 +120,15 @@ export default function MerchantDashboard({
             No incoming subscriber stream NFTs mapped to this address.
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <div>
+            <div className="upgrade-downtime-warning-box" style={{ marginBottom: "12px", marginTop: 0 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+              <span>
+                <strong>QIE Network Upgrade Alert:</strong> Onchain settlements are temporarily paused. Claiming accumulated stream balances will fail or time out until validators complete synchronizing.
+              </span>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                   <th style={{ padding: "10px 6px" }}>Stream NFT ID</th>
@@ -221,6 +228,7 @@ export default function MerchantDashboard({
                 })}
               </tbody>
             </table>
+          </div>
           </div>
         )}
       </div>

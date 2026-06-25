@@ -8,7 +8,7 @@ import { QieDoodleGame } from "./components/QieDoodleGame";
 import FluenciDocs from "./components/FluenciDocs";
 import BlogPage from "./components/BlogPage";
 import TransactionModal from "./components/TransactionModal";
-import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X, Wallet, CheckCircle, LogOut, FileText } from "lucide-react";
+import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X, Wallet, CheckCircle, LogOut, FileText, AlertTriangle, ChevronDown, ChevronUp, Clock, HardDrive, Info } from "lucide-react";
 import LogoImage from "./assets/logo.png";
 import QiePassLogo from "./assets/qiepass.png";
 import QieWalletLogo from "./assets/qiewallet.png";
@@ -158,6 +158,115 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
         animation: "pulse 0.8s infinite"
       }} />
     </span>
+  );
+}
+
+function QieUpgradeBanner() {
+  const [isDismissed, setIsDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("fluenci_qie_upgrade_banner_dismissed") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+  const [isExpanded, setIsExpanded] = useState(() => {
+    try {
+      return localStorage.getItem("fluenci_qie_upgrade_banner_expanded") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    try {
+      localStorage.setItem("fluenci_qie_upgrade_banner_dismissed", "true");
+    } catch (e) {}
+  };
+
+  const handleRestore = () => {
+    setIsDismissed(false);
+    try {
+      localStorage.setItem("fluenci_qie_upgrade_banner_dismissed", "false");
+    } catch (e) {}
+  };
+
+  const toggleExpand = () => {
+    const nextState = !isExpanded;
+    setIsExpanded(nextState);
+    try {
+      localStorage.setItem("fluenci_qie_upgrade_banner_expanded", String(nextState));
+    } catch (e) {}
+  };
+
+  if (isDismissed) {
+    return (
+      <div className="qie-upgrade-floating-trigger" onClick={handleRestore} title="Show QIE Network Upgrade Notice">
+        <AlertTriangle size={14} />
+        <span>QIE Upgrade Notice</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qie-upgrade-banner">
+      <div className="qie-upgrade-content" style={{ flexDirection: "column", alignItems: "stretch", gap: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+          <div className="qie-upgrade-main">
+            <div className="qie-upgrade-icon-wrapper">
+              <AlertTriangle size={18} color="#fbbf24" />
+            </div>
+            <div className="qie-upgrade-text-block">
+              <div className="qie-upgrade-title">
+                QIE Blockchain Network Upgrade In Progress
+                <span className="pill-badge yellow" style={{ padding: "2px 8px", fontSize: "0.68rem", background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "20px", fontWeight: "700", marginLeft: "8px" }}>~1 Week Downtime</span>
+              </div>
+              <div className="qie-upgrade-desc">
+                The network is undergoing a major upgrade. Transactions, streaming updates, and validator services are temporarily paused.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button className="qie-upgrade-details-toggle" onClick={toggleExpand}>
+              {isExpanded ? (
+                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>Hide Details <ChevronUp size={12} /></span>
+              ) : (
+                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>Show Details <ChevronDown size={12} /></span>
+              )}
+            </button>
+            <button className="qie-upgrade-close" onClick={handleDismiss} title="Dismiss notice">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+        
+        {isExpanded && (
+          <div className="qie-upgrade-detail-panel">
+            <div className="qie-upgrade-detail-item">
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Clock size={12} />
+                Downtime Duration
+              </strong>
+              <span>Approximately one week for validators to update and sync to the new chain release.</span>
+            </div>
+            <div className="qie-upgrade-detail-item">
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <HardDrive size={12} />
+                Assets & Security
+              </strong>
+              <span>User assets and data remain completely secure. No action is required from token holders.</span>
+            </div>
+            <div className="qie-upgrade-detail-item">
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Info size={12} />
+                Improvements
+              </strong>
+              <span>This prepares the foundation for QIE ID, QIE Pass integrations, identity management, and security.</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -801,6 +910,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "#f5f5f5" }}>
+      <QieUpgradeBanner />
       {/* Navbar */}
       <header 
         className={viewMode === "landing" ? "landing-header" : "dashboard-header"}
@@ -1017,23 +1127,29 @@ export default function App() {
         )}
 
         {viewMode === "dashboard" && (
-          <div className="connect-wallet-header">
-            <ConnectWallet
-              account={fluenci.account}
-              accountDomain={fluenci.accountDomain}
-              chainId={fluenci.chainId}
-              connectWallet={fluenci.connectWallet}
-              connectWalletConnect={fluenci.connectWalletConnect}
-              finalizeWalletConnect={fluenci.finalizeWalletConnect}
-              disconnectWallet={fluenci.disconnectWallet}
-              loading={fluenci.loading}
-              switchToQieMainnet={fluenci.switchToQieMainnet}
-              showDashboard={viewMode === "dashboard"}
-              onLaunchApp={() => setViewMode("dashboard")}
-              announcedProviders={fluenci.announcedProviders}
-              isOpen={isWalletModalOpen}
-              setIsOpen={setWalletModalOpen}
-            />
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="dashboard-upgrade-status-badge" title="QIE Network Upgrade (Downtime: ~1 week)">
+              <div className="dashboard-upgrade-radar" />
+              <span>QIE Upgrade Mode</span>
+            </div>
+            <div className="connect-wallet-header">
+              <ConnectWallet
+                account={fluenci.account}
+                accountDomain={fluenci.accountDomain}
+                chainId={fluenci.chainId}
+                connectWallet={fluenci.connectWallet}
+                connectWalletConnect={fluenci.connectWalletConnect}
+                finalizeWalletConnect={fluenci.finalizeWalletConnect}
+                disconnectWallet={fluenci.disconnectWallet}
+                loading={fluenci.loading}
+                switchToQieMainnet={fluenci.switchToQieMainnet}
+                showDashboard={viewMode === "dashboard"}
+                onLaunchApp={() => setViewMode("dashboard")}
+                announcedProviders={fluenci.announcedProviders}
+                isOpen={isWalletModalOpen}
+                setIsOpen={setWalletModalOpen}
+              />
+            </div>
           </div>
         )}
       </header>

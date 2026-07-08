@@ -502,10 +502,6 @@ export default function SubscriberPanel({
                 ? `Insufficient ${swapMode === "QIE_TO_QUSDC" ? "QIE" : "QUSDC"} Balance` 
                 : `Swap ${swapMode === "QIE_TO_QUSDC" ? "QIE ➔ QUSDC" : "QUSDC ➔ QIE"}`}
             </button>
-            <div className="upgrade-downtime-warning-box">
-              <AlertTriangle size={12} style={{ flexShrink: 0 }} />
-              <span>DEX swaps will fail or hang during the QIE network upgrade downtime.</span>
-            </div>
           </div>
         </div>
 
@@ -920,12 +916,6 @@ export default function SubscriberPanel({
             ⚠ You must verify KYC (QIE Pass) and approve the selected token to begin streaming.
           </p>
         )}
-        <div className="upgrade-downtime-warning-box">
-          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-          <span>
-            <strong>QIE Network Upgrade Notice:</strong> Onchain transactions are currently delayed due to the active blockchain infrastructure upgrade. Creating new streams or claiming balances may not execute.
-          </span>
-        </div>
       </div>
 
       {/* 4. Subscriber Active Streams Table */}

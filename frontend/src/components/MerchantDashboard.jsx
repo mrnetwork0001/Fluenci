@@ -121,12 +121,6 @@ export default function MerchantDashboard({
           </div>
         ) : (
           <div>
-            <div className="upgrade-downtime-warning-box" style={{ marginBottom: "12px", marginTop: 0 }}>
-              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-              <span>
-                <strong>QIE Network Upgrade Alert:</strong> Onchain settlements are temporarily paused. Claiming accumulated stream balances will fail or time out until validators complete synchronizing.
-              </span>
-            </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>

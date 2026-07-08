@@ -1018,10 +1018,6 @@ export default function App() {
 
         {viewMode === "dashboard" && (
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div className="dashboard-upgrade-status-badge" title="QIE Network Upgrade (Downtime: ~1 week)">
-              <div className="dashboard-upgrade-radar" />
-              <span>QIE Upgrade Mode</span>
-            </div>
             <div className="connect-wallet-header">
               <ConnectWallet
                 account={fluenci.account}

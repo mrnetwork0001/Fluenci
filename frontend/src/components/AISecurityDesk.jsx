@@ -190,12 +190,6 @@ export default function AISecurityDesk({
               "Node backend offline. Start the backend node server (server.js) to enable real-time telemetry and autonomous AI safety pausing."
             )}
           </p>
-          <div className="upgrade-downtime-warning-box">
-            <AlertOctagon size={14} style={{ flexShrink: 0 }} />
-            <span>
-              <strong>Downtime Alert:</strong> Real-time event ingestion and autonomous onchain safety pauses will be delayed until the QIE blockchain upgrade completes.
-            </span>
-          </div>
         </div>
 
         {/* AI Agents Control Center Grid */}

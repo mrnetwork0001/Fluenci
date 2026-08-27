@@ -387,8 +387,16 @@ export default function SubscriberDashboard({
                   </div>
                 </div>
 
-                <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 13.5 }}>
-                  {formatPrice(sub.amountPerPeriod, sub.periodSeconds)}
+                <div>
+                  <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 13.5 }}>
+                    {formatPrice(sub.amountPerPeriod, sub.periodSeconds)}
+                  </div>
+                  {toUnits(sub.owed) > 0n && (
+                    <div className="fl-mono fl-stat-value--accent" style={{ fontSize: 11, marginTop: 3 }}
+                         title="Accrued and claimable by the merchant, not yet withdrawn from your wallet">
+                      {money(sub.owed)} accruing
+                    </div>
+                  )}
                 </div>
 
                 <div>

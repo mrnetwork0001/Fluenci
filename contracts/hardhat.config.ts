@@ -6,7 +6,14 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.24",
+  solidity: {
+    version: "0.8.24",
+    settings: {
+      // The optimizer was previously unset (i.e. off), which both inflated
+      // deployment cost and pushed FluenciRegistryV4 past the EVM stack limit.
+      optimizer: { enabled: true, runs: 200 },
+    },
+  },
   networks: {
     hardhat: {
       chainId: 31337

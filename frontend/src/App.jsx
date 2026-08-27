@@ -5,8 +5,8 @@ import SubscriberPanel from "./components/SubscriberPanel";
 import MerchantDashboard from "./components/MerchantDashboard";
 import AISecurityDesk from "./components/AISecurityDesk";
 import { QieDoodleGame } from "./components/QieDoodleGame";
-import FluenciDocs from "./components/FluenciDocs";
 import BlogPage from "./components/BlogPage";
+import DocsSite from "./components/DocsSite";
 import TransactionModal from "./components/TransactionModal";
 import { Shield, Sparkles, Building2, UserCircle, Terminal, HelpCircle, Activity, X, Wallet, CheckCircle, LogOut, FileText, AlertTriangle, ChevronDown, ChevronUp, Clock, HardDrive, Info } from "lucide-react";
 import LogoImage from "./assets/logo.png";
@@ -428,7 +428,7 @@ export default function App() {
         : { view: 'dashboard', tab: 'subscriber' };
       case 'swap': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'swap' };
       case 'limits': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'limits' };
-      case 'docs': return { view: 'dashboard', tab: 'docs' };
+      case 'docs': return { view: 'docsite', tab: 'subscriber' };
       // Escape hatches: /v1 always the old dashboard, /v2 always the new one.
       case 'v1': return { view: 'dashboard', tab: 'subscriber' };
       case 'v2': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'dashboard' };
@@ -481,6 +481,8 @@ export default function App() {
     let targetPath = '/';
     if (viewMode === 'blog') {
       targetPath = '/blog';
+    } else if (viewMode === 'docsite') {
+      targetPath = '/docs';
     } else if (viewMode === 'v2') {
       // v2 owns its own sub-navigation and pushes its own paths; only the
       // entry path is set here, and anything under it is left alone.
@@ -492,7 +494,6 @@ export default function App() {
         case 'subscriber': targetPath = '/subscription'; break;
         case 'merchant': targetPath = '/merchants'; break;
         case 'security': targetPath = '/security'; break;
-        case 'docs': targetPath = '/docs'; break;
         default: targetPath = '/dashboard';
       }
     }
@@ -762,10 +763,6 @@ export default function App() {
             refreshData={fluenci.refreshData}
           />
         );
-      case "docs":
-        return (
-          <FluenciDocs />
-        );
       default:
         return null;
     }
@@ -931,6 +928,10 @@ export default function App() {
     );
   }
 
+  if (viewMode === "docsite") {
+    return <DocsSite onHome={goHome} onApp={() => launchApp()} />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "#f5f5f5" }}>
       {V2_BUILD_NOTICE && <BuildNoticeBanner />}
@@ -997,12 +998,10 @@ export default function App() {
         {(viewMode === "landing" || viewMode === "blog") && (
           <>
             <nav className="landing-nav">
-              <a href="#features" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Features</a>
               <a href="#how-it-works" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>How it works</a>
               <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Protect</a>
-              <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
               <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); }} style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Blog</a>
+              <a href="/docs" onClick={(e) => { e.preventDefault(); setViewMode('docsite'); }} style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Docs</a>
             </nav>
 
             <button 
@@ -1016,12 +1015,10 @@ export default function App() {
             </button>
 
             <div className={`mobile-nav-overlay ${isMobileMenuOpen ? "open" : ""}`}>
-              <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
               <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it works</a>
               <a href="#arbitration" onClick={() => setMobileMenuOpen(false)}>Protect</a>
-              <a href="#comparison" onClick={() => setMobileMenuOpen(false)}>Comparison</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); setMobileMenuOpen(false); }}>Blog</a>
+              <a href="/docs" onClick={(e) => { e.preventDefault(); setViewMode('docsite'); setMobileMenuOpen(false); }}>Docs</a>
             </div>
           </>
         )}
@@ -1057,9 +1054,9 @@ export default function App() {
                 AI Security
               </button>
               <button 
-                className={`btn ${activeTab === "docs" ? "btn-primary" : "btn-secondary"}`}
+                className="btn btn-secondary"
                 style={{ padding: "8px 16px", borderRadius: "8px", border: "none", boxShadow: "none", fontSize: "0.82rem" }}
-                onClick={() => setActiveTab("docs")}
+                onClick={() => setViewMode("docsite")}
               >
                 <HelpCircle size={16} />
                 Docs
@@ -1101,8 +1098,8 @@ export default function App() {
                 AI Security
               </button>
               <button 
-                className={`dash-overlay-item ${activeTab === "docs" ? "active" : ""}`}
-                onClick={() => { setActiveTab("docs"); setDashMenuOpen(false); }}
+                className="dash-overlay-item"
+                onClick={() => { setViewMode("docsite"); setDashMenuOpen(false); }}
               >
                 <HelpCircle size={20} />
                 Docs
@@ -1421,7 +1418,7 @@ export default function App() {
                         <span className="browser-dot yellow"></span>
                         <span className="browser-dot green"></span>
                       </div>
-                      <div className="browser-url-bar">fluenci.app/dashboard</div>
+                      <div className="browser-url-bar">fluenci.xyz/dashboard</div>
                     </div>
                     <div className="browser-content">
                       <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "10px", marginBottom: "12px" }}>
@@ -1833,7 +1830,7 @@ export default function App() {
           {/* Resources Column */}
           <div className="footer-col">
             <h4>RESOURCES</h4>
-            <a href="/docs" onClick={(e) => { e.preventDefault(); setViewMode('dashboard'); setActiveTab('docs'); window.history.pushState({}, '', '/docs'); }}>Docs</a>
+            <a href="/docs" onClick={(e) => { e.preventDefault(); setViewMode('docsite'); }}>Docs</a>
             <a href={`https://mainnet.qie.digital/address/${fluenci.contracts.registry}`} target="_blank" rel="noopener noreferrer">Contracts</a>
             <a href={`https://mainnet.qie.digital/address/${fluenci.contracts.fluenciRouter || '0x75475647f52531D4086296415392E4AA94b92de7'}`} target="_blank" rel="noopener noreferrer">FluenciRouter</a>
           </div>

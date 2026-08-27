@@ -717,6 +717,7 @@ export default function App() {
     uniqueUsersCount: 0,
     totalVolumeUSD: 0,
     totalRevenueUSD: 0,
+    streamsCreatedCount: 0,
     totalSwapVolumeUSD: 0
   });
 
@@ -1460,9 +1461,9 @@ export default function App() {
                       </div>
                       <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
                       <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>App Revenue (0.5%)</div>
+                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Streams Created</div>
                         <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                          ${stats.totalRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {(stats.streamsCreatedCount || 0).toLocaleString()}
                         </div>
                       </div>
                     </div>

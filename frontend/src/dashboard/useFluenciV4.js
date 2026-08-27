@@ -191,15 +191,19 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
         // The button says "Approve and start streaming"; it has to actually approve.
         // A year of the agreed price is a sane default headroom.
         const runner = c.runner;
-        const headroom = (amountPerPeriod * 31_536_000n) / BigInt(periodSeconds || 1);
-        await ensureAllowance(runner, headroom > 0n ? headroom : amountPerPeriod);
-        return c.createSubscription(merchant, token || tokenAddress, amountPerPeriod, periodSeconds, cliffTime, stopTime);
+        // Form values arrive as strings; coerce before BigInt math, or
+        // `"100000" * 31_536_000n` throws "invalid numeric value" before send.
+        const amt = BigInt(amountPerPeriod);
+        const per = BigInt(periodSeconds);
+        const headroom = (amt * 31_536_000n) / (per > 0n ? per : 1n);
+        await ensureAllowance(runner, headroom > 0n ? headroom : amt);
+        return c.createSubscription(merchant, token || tokenAddress, amt, per, BigInt(cliffTime || 0), BigInt(stopTime || 0));
       }, "Approve and start subscription"),
     [run, tokenAddress, ensureAllowance]
   );
 
   const setSpendCap = useCallback(
-    (merchant, maxAmount, periodSeconds) => run(`cap:${merchant}`, (c) => c.setSpendCap(merchant, maxAmount, periodSeconds), "Set spending limit"),
+    (merchant, maxAmount, periodSeconds) => run(`cap:${merchant}`, (c) => c.setSpendCap(merchant, BigInt(maxAmount), BigInt(periodSeconds)), "Set spending limit"),
     [run]
   );
   const clearSpendCap = useCallback((merchant) => run(`cap:${merchant}`, (c) => c.clearSpendCap(merchant), "Remove spending limit"), [run]);

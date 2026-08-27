@@ -1,403 +1,419 @@
-# Fluenci - AI-Shielded Real-Time Streaming Payments on QIE Blockchain
+# Fluenci - Stripe-style subscriptions for Web3
 
-> **Stop Blind Streams. AI-Shielded Payments.**
+Recurring payments on the QIE Blockchain (Chain ID 1990), settled in `qUSDC`. A merchant
+charges `$20/month`. A subscriber sees `$20/month`. Payment streaming, qUSDC and QIEDex
+routing run underneath, but nobody has to think about tokens per second.
 
-Fluenci is a decentralized, real-time streaming payment protocol built on the **QIE Blockchain (Chain ID 1990)**. It enables subscribers to pay merchants continuously per second - for subscriptions, API usage, salaries, and more - using `QUSDC` stablecoins, all while an autonomous AI Sentry Network watches every transaction in real time.
+The part that is hard to copy is the combination:
 
-<img width="1901" height="973" alt="12 06 2026_09 43 27_REC" src="https://github.com/user-attachments/assets/9641fa89-8624-4a17-a367-8703b9f5434d" />
+- **Verified recurring payments** - period-based billing settled onchain, exact to the cent.
+- **QIE identity** - merchants choose whether subscribers need a QIE ID or a verified QIE Pass.
+- **QIE reputation** - a minimum-score gate, consumed as a signed attestation from QIE's
+  offchain reputation service.
+- **Programmable spending limits** - a subscriber caps a merchant at, say, $20 per month.
+  The cap is enforced onchain. The merchant cannot exceed it, and only the subscriber can
+  raise it.
 
-**dApp link:** https://fluenci.xyz
-
----
-
-## Key Innovations
-
-### 1. Tradeable Subscription NFTs
-Each payment stream is minted as a unique **ERC-721 NFT**. Subscription ownership can be transferred, gifted, or traded on any NFT marketplace. When the NFT changes hands, the smart contract automatically shifts billing obligations to the new owner's wallet.
-
-### 2. Autonomous AI Sentry Network
-An offchain **Multi-Agent AI node** (Sentry, Analyst, Decision, and Arbitrator agents) monitors every stream in real time. It uses **OpenAI GPT-4o** to analyze billing velocity anomalies, compiles IPFS audit reports, and can autonomously execute onchain safety pauses - no human intervention required.
-
-### 3. Progressive KYC via QIE Pass
-Merchants can receive payments without KYC for frictionless onboarding. However, **withdrawing/claiming** funds requires QIE Pass identity verification. This Progressive KYC model balances user experience with regulatory compliance.
-
-### 4. Privacy-Preserving Telemetry
-The public-facing AI Telemetry Node on the landing page anonymizes all sensitive data - wallet addresses, transaction hashes, stream IDs, and KYC identifiers are masked (`0x07f3••••05a8`). The AI Security Desk shows only the connected wallet's own activity (wallet-scoped filtering).
-
-### 5. Native QIE Ecosystem - 5 Deep Integrations
-Fluenci is built natively on the QIE ecosystem, integrating:
-- **QIE Pass** - Decentralized identity verification (DID)
-- **QIE Wallet** - Native browser wallet with gas overrides
-- **QIE Stable Coin (QUSDC)** - Stablecoin for volatility-free payments
-- **QIE Dex** - Decentralized exchange for QIE ⇄ qUSDC swaps
-- **QIE Domains** - Human-readable `.qie` domain names resolved to wallet addresses
+**dApp:** https://fluenci.xyz
 
 ---
 
-## QIE Mainnet Deployments (Chain ID 1990)
+## Status
 
-The protocol is deployed and active on QIE Mainnet. All contracts are fully verified and operational:
+Read this before anything else in the file.
 
-### Fluenci Protocol Contracts (v3 - with 0.5% protocol fee + auto-settle on terminate)
+| | State |
+|---|---|
+| FluenciRegistry **v3** | Live on QIE mainnet. This is what `fluenci.xyz` talks to today. |
+| FluenciRegistry **v4** | Written and tested (50 passing tests). **Not yet deployed to mainnet.** |
+| FluenciReputationAttestor | Written and tested. Not deployed. Needs QIE's signing key before the reputation gate can do anything. |
+| v2 dashboard (consumer UI, Fluenci Protect, spending limits) | Built against v4, behind an env flag. Goes live with the v4 cutover. |
+| No-code merchant payment links | **Not built.** Next phase. |
+| SDK / "Pay with Fluenci" embed | **Not built.** Next phase. |
+| Merchant directory / marketplace | **Not built.** Next phase. |
+
+Sequencing and the cutover checklist are in [`ROADMAP.md`](./ROADMAP.md).
+
+---
+
+## FluenciRegistryV4
+
+### Period-based pricing
+
+v3 stored an integer `ratePerSecond`. qUSDC has 6 decimals, so at that precision a
+consumer price is not representable:
+
+| Intended price | What v3 actually bills |
+|---|---|
+| $20 / month | $18.14 |
+| $5 / month | $2.59 |
+| $1 / month | reverts - `ratePerSecond` truncates to 0 |
+
+v4 stores `amountPerPeriod` + `periodSeconds` and accrues against a single cumulative
+`billedSeconds` counter. `$20/month` is `amountPerPeriod = 20_000000`,
+`periodSeconds = 2_592_000`, and it is exact. Because everything owed is derived from one
+cumulative figure rather than per-claim deltas, a merchant claiming monthly and a merchant
+claiming every second are paid identically; truncation is bounded at one token unit over the
+life of the stream instead of compounding on every claim. Periods run from 60 seconds to
+3,650 days.
+
+### Merchant-configurable access
+
+v3 required a verified QIE Pass from every subscriber before a stream could exist. v4 lets
+each merchant pick:
+
+| Gate | Requirement on the subscriber |
+|---|---|
+| `OPEN` | None. **This is the default** for any merchant who has not configured a policy. |
+| `QIE_ID` | Holds a QIE identity |
+| `QIE_PASS` | Holds a verified QIE Pass |
+| `MIN_REPUTATION` | Reputation score at or above the merchant's threshold |
+
+**No KYC is required to subscribe.** Merchants still need a verified QIE Pass to *withdraw*
+(`requireMerchantKyc`, owner-toggleable without a redeploy) - that is the progressive-KYC
+model, and it is the only place identity is mandatory.
+
+Each identity source sits behind its own interface. An unconfigured adapter makes its gate
+revert rather than silently pass, and every external identity read is wrapped in `try/catch`
+so a reverting adapter fails the gate closed instead of bricking the registry.
+
+### Programmable spending limits
+
+`setSpendCap(merchant, maxAmount, periodSeconds)` caps what one merchant may pull from the
+caller per window. Notes on the design:
+
+- The cap is scoped to the **(subscriber, merchant) pair**, not to a subscription. Per
+  subscription, a merchant could open three streams and draw the cap three times.
+- ERC-20 allowance cannot do this. An allowance to the registry is global; it cannot tell
+  `merchant-a.qie` from `merchant-b.qie`. Enforcement has to live inside the registry or the
+  feature is cosmetic.
+- A claim over the cap is **clamped, not reverted**. The merchant receives what it is owed up
+  to the cap, a `SpendCapReached` event fires, and the remainder stays accrued.
+- Only the subscriber can call `setSpendCap`, so any increase is subscriber-approved by
+  construction.
+- Windows are fixed, not rolling. A sliding window needs per-claim history that is expensive
+  onchain, and "resets on the 1st" is easier to explain.
+
+### Subscription NFTs are transferable, but receipt is opt-in
+
+Each subscription is still an ERC-721 token, and billing follows ownership. That is exactly
+why receiving one now requires consent.
+
+An audit of the v3 design found the following: because billing follows the token, and because
+an *unset* spending cap reads as unlimited, an attacker could mint a punitive stream to their
+own merchant address and transfer the NFT to any wallet holding a standing allowance to the
+registry. The recipient becomes the payer, uncapped, without ever having agreed to anything.
+
+v4 requires `setAcceptsSubscriptionTransfers(true)` on the recipient before a transfer
+lands, re-checks the merchant's gate against the incoming payer, and forces the outgoing
+owner's arrears to settle to zero first - otherwise the old owner's debt would be charged to
+the new one, outside whatever cap they had set.
+
+### Fluenci Protect
+
+The four-agent dashboard (Sentry / Analyst / Decision / Arbitrator) is collapsed into one
+system: anomaly detection, alerts, and emergency pausing, with one control that matters - the
+risk level at which a stream is paused.
+
+**Protect never holds or escrows funds.** Creating a subscription locks nothing up, so there
+is no pot for the monitoring layer to seize, and the routine Protect action is a pause
+(`pauseStreamByAI`), which moves no tokens.
+
+Be precise about the authority, though. `pauseStreamByAI` requires `msg.sender == aiAuditor`,
+and `resolveDispute` requires a signature that recovers to
+`IFluenciAIAuditor(aiAuditor).trustedAiWorker()` - the same AI Auditor key, and that second
+path does move money. What contains it is not a separation of keys but the bounds on the
+payout:
+
+- Only the subscriber can open the dispute. `openDispute` is `onlySubscriber`; neither the
+  merchant nor Protect can start one.
+- The payout is capped at what has already accrued - `require(merchantShare <= outstanding)`.
+  Nothing unaccrued and nothing future-dated can be reached.
+- It is then clamped by the subscriber's spend cap for that merchant, exactly as an ordinary
+  claim is.
+- It can only pay that subscription's own merchant, in that subscription's own token.
+
+So an AI Auditor signature can settle an already-accrued balance to the merchant the
+subscriber was already paying. It cannot direct funds anywhere else.
+
+### Pull-based custody
+
+Creating a subscription locks nothing. Stream parameters are registered onchain and funds
+are pulled from the subscriber's wallet as they accrue, via `transferFrom` on claim.
+Subscribers keep custody throughout. A claim fails cleanly if the balance is short.
+
+---
+
+## QIE ecosystem integration - what is whose
+
+This section was wrong in earlier versions of this README. Corrected.
+
+### Contracts QIE deployed
+
 | Contract | Address |
 |---|---|
-| **FluenciRegistry** (v3) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
-| **FluenciAIAuditor** (v4) | [`0xF38d9458d14d916B60026693a76FBe7cDEf651Fa`](https://mainnet.qie.digital/address/0xF38d9458d14d916B60026693a76FBe7cDEf651Fa) |
-| **FluenciRouter** | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
-| **AI Auditor Hot Wallet** | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
+| qUSDC (6 decimals) | [`0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5`](https://mainnet.qie.digital/address/0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5) |
+| QIEDex Router | [`0x08cd2e72e156D8563B4351eb4065C262A9f553Ef`](https://mainnet.qie.digital/address/0x08cd2e72e156D8563B4351eb4065C262A9f553Ef) |
+| QIE reverse resolver (address → primary `.qie` name) | [`0x76ec8ed377cC0d36D1B48027ac7892Ec6799171E`](https://mainnet.qie.digital/address/0x76ec8ed377cC0d36D1B48027ac7892Ec6799171E) |
+| QIE domain registry (forward) | [`0x26cCB3fABd6db18834987134d715Ba2346CE7223`](https://mainnet.qie.digital/address/0x26cCB3fABd6db18834987134d715Ba2346CE7223) |
+| QIE domain registry (forward) | [`0x1D69d75AD7b77b91C3760F84faC52E651710f62e`](https://mainnet.qie.digital/address/0x1D69d75AD7b77b91C3760F84faC52E651710f62e) |
 
-### QIE Ecosystem Integrations
-| Integration | Address |
-|---|---|
-| **QIE Pass (KYC)** | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
-| **QIE Stable Coin (qUSDC)** | [`0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5`](https://mainnet.qie.digital/address/0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5) |
-| **QIEDex Router** | [`0x08cd2e72e156D8563B4351eb4065C262A9f553Ef`](https://mainnet.qie.digital/address/0x08cd2e72e156D8563B4351eb4065C262A9f553Ef) |
-| **QIE Domain Registry** | [`0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed`](https://mainnet.qie.digital/address/0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed) |
+QIE runs two forward registries and a name lives in exactly one of them, so forward
+resolution queries both. Reverse resolution is a single `resolve(address)` call - v1 paged
+the block explorer and decoded registration calldata, which was slow and wrong whenever a
+name had been transferred rather than registered.
 
----
+### QIE Pass - Fluenci runs an oracle bridge, not a QIE contract
 
-## Latest Developments (June 2026)
+`0x0766Ff824376CEf38CFa5C155A51E90578096e38` was previously listed here as "QIE Pass (KYC)"
+under QIE ecosystem integrations. **That is a Fluenci-deployed contract, not QIE
+infrastructure.** Its creator is `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` - Fluenci's own
+AI worker hot wallet, listed as such in the deployment table below. It is unverified. Both of
+those facts are checkable on the QIE explorer today.
 
-### WalletConnect v2 Mobile Support
-- **QIE Mobile Wallet** can now connect to Fluenci by scanning a QR code via WalletConnect v2
-- The connect modal shows an instant QR code for mobile scan, with no page reload required
-- Relay URL upgraded to `wss://relay.walletconnect.com` for broader network compatibility
-- Network-blocked users (restricted ISPs/hotspots) receive an immediate, actionable error message within 8 seconds instead of a silent 30-second timeout
-- A **Retry** button is shown on failure - users can reconnect without reopening the modal
+Do not read verification status as the tell. The QIE contracts listed above are not uniformly
+verified either - qUSDC and one of the two forward registries are verified; the QIEDex router,
+the reverse resolver and the other forward registry are not - and they do not share a single
+deployer (`0x9a689036A798cF1a96e65c1911cE7B444C4e06a4` deployed the name registries; qUSDC and
+the QIEDex router came from other addresses). What distinguishes `0x0766Ff82…` is its creator:
+a Fluenci key.
 
-### Multi-Wallet Support (EIP-6963)
-- The wallet selection modal now supports **three connection paths**:
-  1. **QIE Wallet (Browser Extension)** - detected via EIP-6963 provider announcements
-  2. **QIE Mobile Wallet** - WalletConnect v2 QR code scan
-  3. **Other EVM Wallets** - any injected EIP-6963 provider (MetaMask, Rabby, etc.)
+What it really is:
 
-### Live Protocol Dashboard
-- Powered by QIE Mainnet, the landing page now tracks **settled volume**, **DEX swaps**, and **protocol revenue** in real time directly from onchain events
+```
+Fluenci backend  ──►  pass-api.qie.digital        (QIE's real QIE Pass API, HMAC-SHA256)
+                 ◄──  signed credential + proof
+                      verify signature, expiry, revocation
+                 ──►  registerIdentity(wallet, true)
+                      on 0x0766Ff82…  (Fluenci's oracle bridge, written by the hot wallet)
 
-### Fluenci Blog
-- Full in-app blog (`/blog`) with articles on streaming payments, QIE ecosystem, AI sentry design, and tokenomics
-- No external CMS dependency - content is bundled in the frontend
-
-### Fluenci Docs
-- Complete in-app protocol documentation (`/docs`) covering:
-  - Smart contract ABI references
-  - API endpoints
-  - Integration guides for merchants and subscribers
-  - QIE Pass KYC flow
-
-### Fluenci AI Chat
-- Interactive AI assistant embedded in the dashboard
-- Answers questions about the protocol, streams, DEX swaps, and QIE ecosystem using context-aware responses
-- Powered by OpenAI GPT-4o via the backend node
-
-### UI/UX Refinements
-- Wallet option buttons redesigned with clearer hover contrast for improved text readability
-- Modal connection flow tightened - loading states, error states, and success states are all clearly differentiated
-- Protocol revenue stats displayed with animated counters on the landing page
-
----
-
-## Architecture Overview
-
-```mermaid
-graph TD
-    User([Subscriber/Merchant]) -->|Interacts| UI[Vite Frontend Dashboard]
-    UI -->|Browser Extension| Wallet[QIE Wallet Extension]
-    UI -->|WalletConnect v2 QR| MobileWallet[QIE Mobile Wallet]
-    Wallet -->|Sends TX| BC[QIE Blockchain]
-    MobileWallet -->|Sends TX| BC
-
-    subgraph Onchain Contracts
-        BC --> Registry[FluenciRegistry.sol]
-        BC --> Auditor[FluenciAIAuditor.sol]
-        BC --> QPass[QIE Pass KYC]
-        BC --> QDex[QIEDex Router]
-        BC --> QDom[QIE Domain Registry]
-    end
-
-    subgraph Offchain AI Sentry Node
-        Sentry[Sentry Agent] -->|Listen Events| Registry
-        Sentry -->|Ingests data| Analyst[Analyst Agent]
-        Analyst -->|GPT-4o Evaluation| Decision[Decision Agent]
-        Analyst -->|Generate Audit Report| IPFS[Simulated IPFS]
-        Decision -->|Trigger safety pause| Auditor
-
-        Arbitrator[Arbitrator Agent] -->|GPT-4o Dispute Splits| Dispute[AI Dispute Arbitration]
-        Dispute -->|Return EIP-712 Signature| UI
-    end
-
-    subgraph Privacy Layer
-        Telemetry[Telemetry Logs] -->|Public: Anonymized| Landing[Landing Page]
-        Telemetry -->|Wallet-Scoped| SecurityDesk[AI Security Desk]
-    end
+FluenciRegistry  ──►  verifyIdentity(wallet)  on 0x0766Ff82…
 ```
 
-### 1. Real-Time Payment Stream Model (Pull-Based)
-Fluenci uses a **pull-based streaming architecture**:
-- Creating a stream does **not** lock tokens inside the contract upfront
-- Stream parameters are registered onchain (rate per second, cliff time, stop time)
-- When a merchant claims accrued funds, the contract executes a direct `transferFrom` pull from the subscriber's wallet
-- Subscribers maintain full custody of their tokens at all times
-- Claims fail gracefully if the subscriber's balance falls below the accumulated amount
+The verification itself is genuinely QIE's. The onchain record of it is Fluenci's, written by
+a Fluenci-controlled key. That is a legitimate oracle-bridge architecture and it is how the
+QIE Pass gate works today - but it should not be read as QIE having deployed a registry for
+us. If QIE ships a canonical onchain QIE Pass registry, `setQiePass()` repoints the registry
+at it with no migration.
 
-### 2. Multi-Agent AI Sentry Node
-The AI Sentry is a multi-agent system running as an Express.js backend:
+### QIE Reputation - offchain, consumed via signed attestation
 
-| Agent | Role | Technology |
-|---|---|---|
-| **Sentry Agent** | Ingests onchain events (`SubscriptionCreated`, `StreamPaused`, `DisputeOpened`, etc.) in real-time | ethers.js event listeners |
-| **Analyst Agent** | Audits stream rates, verifies merchant domain reputation via QIE Domains, compiles audit reports with IPFS CIDs | OpenAI GPT-4o |
-| **Decision Agent** | Evaluates risk scores and autonomously triggers onchain safety pauses when risk exceeds 75% | Autonomous TX signing |
-| **Arbitrator Agent** | Resolves subscriber disputes by evaluating evidence, determining refund/payout splits, and signing EIP-712 messages | OpenAI GPT-4o |
+**QIE Reputation has no onchain contract.** Four independent sweeps of the chain confirmed
+this. It is an offchain HTTP service at `reputation.qie.digital`, and the score is computed
+from signals (wallet age, transaction history, staking, verified reports) that change over
+time. Any claim of an onchain QIE reputation registry is false.
 
-### 3. Progressive KYC via QIE Pass
-- **Subscribers**: Must complete QIE Pass KYC to create or resume streams
-- **Merchants**: Can receive payments without KYC for frictionless onboarding, but **must complete QIE Pass to withdraw/claim** accrued funds
-- Integration via the **QIE Pass Sandbox API** (`https://did-stapi.qie.digital`) with HMAC-SHA256 authentication
-- The `FluenciRegistry.sol` enforces KYC checks in `claimStream()` via the `IQiePass` interface
+`FluenciReputationAttestor` bridges it without inventing a contract that does not exist:
 
-### 4. QIE Domain Resolution
-- Resolves human-readable `.qie` domain names to wallet addresses
-- Uses the official QIE Domain Registry (EIP-1967 proxy) at `0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed`
-- Since no onchain reverse lookup exists, domain resolution is performed by querying the wallet's transaction history via the QIE Explorer API and decoding registration calldata (selector `0xf2101e95`)
-- Connected wallets with registered `.qie` domains see their domain name displayed in the dashboard
+1. QIE's reputation service signs an EIP-712 attestation over
+   `(wallet, score, tier, modelVersion, issuedAt, expiresAt, chainId)`.
+2. Anyone may relay it to `submitAttestation()` - the signature is the authority, not
+   `msg.sender`, so a user, a merchant, or Fluenci's backend can submit on a subscriber's
+   behalf without being trusted.
+3. The contract checks the signature against an upgradeable `authorisedSigner`, rejects a
+   wrong chain, an expired or future-dated window, a retired `modelVersion`, and any
+   attestation older than the one already on record.
+4. `getScore(address)` returns 0 once the attestation expires, so the registry's gate fails
+   closed.
 
-### 5. QIEDex Swap & Reverse Swap
-- Integrated DeFi swap panel supporting **QIE ⇄ qUSDC** directly through official QIEDex pools
-- Automatically handles multi-step approvals for the router
-- Utilizes direct JSON-RPC EIP-1193 signature calls to prevent browser wallet hangs
-- Swap volume is tracked and displayed on the landing page stats in real time
+**The signer is not yet configured.** QIE has not provided the key. Until it does,
+`MIN_REPUTATION` cannot be satisfied by anyone - the adapter is built and tested, the gate is
+inert. `OPEN` and `QIE_PASS` work on day one, which is why this does not block the v4
+deployment.
 
-### 6. Privacy-Preserving Telemetry
-Fluenci implements a dual-mode telemetry system:
-
-| Mode | Endpoint | Behavior |
-|---|---|---|
-| **Public** (Landing Page) | `GET /telemetry` | All wallet addresses, tx hashes, stream IDs, and KYC identifiers are anonymized (e.g., `0x07f3••••05a8`) |
-| **Private** (AI Security Desk) | `GET /telemetry?wallet=0x...` | Only logs related to the connected wallet are returned (wallet-scoped filtering) |
-
-The anonymization engine masks any `0x`-prefixed hex string of 20+ characters, covering:
-- Wallet addresses (40 hex chars)
-- Transaction hashes (64 hex chars)
-- Stream/subscription IDs (bytes32)
-- KYC identifiers
+Only the reputation **result** is ever stored onchain - score, tier, model version, validity
+window. No KYC data, no documents, no underlying signals.
 
 ---
 
-## Landing Page Features
+## Deployments (QIE Mainnet, Chain ID 1990)
 
-The landing page is designed to showcase the protocol's capabilities at a glance:
+### Live today - Fluenci v3
 
-- **Typewriter Hero Title**: Dynamic cycling text - "Stop **Blind** / **Rogue** / **Unaudited** Streams" with a typewriter animation
-- **Live Protocol Stats**: Real-time counters for Active Users, Settled Volume, Swap Volume (DEX), and App Revenue (0.5% fee) - powered directly from QIE Mainnet
-- **AI Telemetry Node**: Live terminal widget pulling real telemetry from the backend with anonymized logs
-- **Ecosystem Marquee Carousel**: Auto-scrolling infinite carousel showcasing all 5 QIE integrations with pause-on-hover
-- **Feature Comparison Matrix**: Side-by-side comparison of Standard Web3 Streams vs. Fluenci AI-Shield
-- **FAQ Accordion**: Expandable answers to common questions about the protocol
+| Contract | Address |
+|---|---|
+| FluenciRegistry (v3) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
+| FluenciAIAuditor | [`0xF38d9458d14d916B60026693a76FBe7cDEf651Fa`](https://mainnet.qie.digital/address/0xF38d9458d14d916B60026693a76FBe7cDEf651Fa) |
+| FluenciRouter | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
+| QIE Pass oracle bridge (Fluenci-deployed, unverified) | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
+| AI worker hot wallet (EOA) | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
+
+New stream creation against v3 is frozen in the frontend (`V3_WRITES_FROZEN`) while v4
+lands. Existing v3 streams keep settling.
+
+### Not yet deployed
+
+`FluenciRegistryV4` and `FluenciReputationAttestor` have no mainnet address. Deploy them with
+`contracts/scripts/deployV4.ts`; the frontend picks them up from
+`VITE_REGISTRY_V4_ADDRESS` and `VITE_REPUTATION_ATTESTOR_ADDRESS`, so cutover is an
+environment change rather than a code edit.
 
 ---
 
-## Quick Start Guide
+## Quick start
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18+)
-- [QIE Wallet Extension](https://chrome.google.com/webstore) connected to QIE Mainnet (Chain ID: 1990)
+Requires Node.js 18+ and a wallet on QIE Mainnet (Chain ID 1990).
 
-### 1. Smart Contracts
-To view, compile, or test the smart contracts:
+### Contracts
+
 ```bash
 cd contracts
 npm install
 npx hardhat compile
+npx hardhat test
 ```
 
-### 2. Backend Node Server
-The backend handles the AI Sentry loops, OpenAI assessments, QIE Pass integrations, and privacy-preserving telemetry.
+50 tests cover v4 and the attestor, across `FluenciV4`, `FluenciV4.security` and
+`FluenciAttestation`. `test/Fluenci.test.ts` is the legacy v3 suite - a further 10 tests,
+still passing against the v3 registry.
 
-1. Navigate to the server folder:
-   ```bash
-   cd server
-   npm install
-   ```
-2. Configure your `.env` file (`server/.env`):
-   ```ini
-   PORT=5001
-   RPC_URL=https://rpc1mainnet.qie.digital
-   REGISTRY_ADDRESS=0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9
-   AUDITOR_ADDRESS=0xF38d9458d14d916B60026693a76FBe7cDEf651Fa
-   AI_PRIVATE_KEY=your_ai_private_key_here
-   OPENAI_API_KEY=your_openai_api_key_here
-   QIEPASS_API_URL=https://did-stapi.qie.digital
-   QIEPASS_PUBLIC_KEY=your_qiepass_public_key_here
-   QIEPASS_SECRET_KEY=your_qiepass_secret_key_here
-   QIEPASS_CLAIMS=firstName
-   START_BLOCK=8320000
-   ```
-3. Start the node server:
-   ```bash
-   npm start
-   ```
+Local end-to-end, with mocks and a seeded subscription:
 
-### 3. Frontend App
-The React Vite frontend handles the subscriber panel, merchant dashboard, DEX swaps, and the AI Security Desk.
+```bash
+npx hardhat node                                        # terminal 1
+npx hardhat run scripts/deployV4.ts --network localhost # terminal 2
+```
 
-1. Navigate to the frontend folder:
-   ```bash
-   cd frontend
-   npm install
-   ```
-2. Start the local Vite server:
-   ```bash
-   npm run dev
-   ```
-3. Open `http://localhost:5173` in your browser.
+### Backend
 
-> **Mobile Connection Note**: To connect via QIE Mobile Wallet (WalletConnect QR), ensure your network allows outbound WebSocket connections (`wss://`). If you are on a restricted network or mobile hotspot, enable a VPN before connecting.
+Indexes onchain events, runs the Protect monitoring loop, bridges QIE Pass, and serves
+telemetry.
+
+```bash
+cd server
+npm install
+npm start
+```
+
+`server/.env`:
+
+```ini
+PORT=5001
+RPC_URL=https://rpc1mainnet.qie.digital
+REGISTRY_ADDRESS=0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9
+AUDITOR_ADDRESS=0xF38d9458d14d916B60026693a76FBe7cDEf651Fa
+AI_PRIVATE_KEY=
+OPENAI_API_KEY=
+QIEPASS_API_URL=https://pass-api.qie.digital
+QIEPASS_PUBLIC_KEY=
+QIEPASS_SECRET_KEY=
+QIEPASS_CLAIMS=firstName
+START_BLOCK=8320000
+```
+
+Move `REGISTRY_ADDRESS` and `START_BLOCK` together at cutover. Moving one without the other
+leaves the indexer scanning roughly 1.4M empty blocks.
+
+### Frontend
+
+```bash
+cd frontend
+npm install --legacy-peer-deps
+npm run dev
+```
+
+`--legacy-peer-deps` is required: `lucide-react@0.379.0` peers React ≤18 and the project is on
+React 19. A plain `npm install` fails on a clean clone.
+
+`frontend/.env`:
+
+```ini
+VITE_API_URL=http://127.0.0.1:5001
+VITE_REGISTRY_ADDRESS=              # v3 registry
+VITE_REGISTRY_V4_ADDRESS=           # v4 registry, once deployed
+VITE_REPUTATION_ATTESTOR_ADDRESS=
+VITE_REPUTATION_API_URL=            # QIE reputation service base URL
+```
+
+There is no database. Telemetry is an in-memory array and does not survive a restart.
+Persistence is a prerequisite for payment links and the directory.
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
-QieFlow/
-├── contracts/                  # Solidity smart contracts (Hardhat)
+Fluenci/
+├── contracts/
 │   ├── contracts/
-│   │   ├── FluenciRegistry.sol # Core streaming payment registry + NFT minting
-│   │   └── FluenciAIAuditor.sol# AI safety pause enforcement contract
-│   ├── scripts/
-│   │   └── deployMainnet.ts    # QIE Mainnet deployment script
-│   └── hardhat.config.ts       # Hardhat configuration for QIE Mainnet
+│   │   ├── FluenciRegistryV4.sol          # period pricing, gates, spend caps, opt-in NFTs
+│   │   ├── FluenciReputationAttestor.sol  # EIP-712 signed reputation attestations
+│   │   ├── FluenciRegistry.sol            # v3, live on mainnet
+│   │   ├── FluenciAIAuditor.sol           # safety-pause authority
+│   │   ├── FluenciRouter.sol              # QIEDex swaps with onchain attribution
+│   │   └── Mock*.sol                      # qUSDC, QIE Pass, QIE Dex, reputation - tests only
+│   ├── scripts/deployV4.ts
+│   └── test/                              # FluenciV4, FluenciV4.security, FluenciAttestation
 │
-├── server/                     # Express.js backend (AI Sentry Node)
-│   ├── server.js               # Multi-agent AI system + REST API + telemetry
-│   └── .env                    # Environment variables (RPC, keys, etc.)
+├── server/
+│   ├── server.js                          # event indexer, Protect loop, QIE Pass bridge, telemetry
+│   └── check_subscriptions.js
 │
-├── frontend/                   # React Vite frontend
-│   ├── src/
-│   │   ├── App.jsx             # Main app + landing page + dashboard routing
-│   │   ├── App.css             # Landing page styles (marquee, cards, etc.)
-│   │   ├── hooks/
-│   │   │   └── useFluenci.js   # Core Web3 hook (wallet, WalletConnect v2, contracts)
-│   │   ├── components/
-│   │   │   ├── SubscriberPanel.jsx    # Subscribe, pause, resume, terminate streams
-│   │   │   ├── MerchantDashboard.jsx  # Claim funds, view merchant streams
-│   │   │   ├── AISecurityDesk.jsx     # Wallet-scoped telemetry + manual safety pause
-│   │   │   ├── TransactionModal.jsx   # Multi-step transaction progress modal
-│   │   │   ├── ConnectWallet.jsx      # Multi-wallet modal (Extension + WalletConnect + EVM)
-│   │   │   ├── FluenciAIChat.jsx      # In-app AI assistant powered by GPT-4o
-│   │   │   ├── BlogPage.jsx           # In-app blog (streaming payments, QIE ecosystem)
-│   │   │   ├── FluenciDocs.jsx        # In-app protocol documentation
-│   │   │   └── QieDoodleGame.jsx      # Fluenci Snake Arcade (pay-as-you-play)
-│   │   └── assets/                    # Logos (QIE Pass, Wallet, qUSDC, DEX, Domains)
-│   └── index.html
+├── frontend/src/
+│   ├── config.js                          # V2_BUILD_NOTICE, V3_WRITES_FROZEN
+│   ├── dashboard/                          # the v2 consumer surface (v4)
+│   │   ├── NewSubscription.jsx            # "$20/month" - no rate or cliff inputs
+│   │   ├── SpendingLimits.jsx             # per-merchant caps
+│   │   ├── Protect.jsx                    # Fluenci Protect, one surface
+│   │   ├── SubscriberDashboard.jsx  MerchantDashboardV2.jsx  Swap.jsx
+│   │   ├── qieName.js                     # .qie forward + reverse resolution
+│   │   ├── v4Config.js                    # v4 addresses and ABI, all env-driven
+│   │   └── useFluenciV4.js
+│   ├── components/                        # v1 surface + demos
+│   │   ├── SubscriberPanel.jsx  MerchantDashboard.jsx  AISecurityDesk.jsx
+│   │   ├── FluenciDocs.jsx  BlogPage.jsx
+│   │   ├── FluenciAIChat.jsx              # demo
+│   │   └── QieDoodleGame.jsx              # demo (Snake)
+│   └── hooks/useFluenci.js                # v3 hook
 │
-└── README.md                   # This file
+├── design/                                # dashboard design canvas
+└── ROADMAP.md
 ```
 
----
-
-## Economic Sustainability & Revenue Model
-
-For a decentralized subscription protocol merging AI Agents and Web3 payments to be viable, it must demonstrate a clear path to self-sustainability. Fluenci achieves this through a multi-tiered model:
-
-### 1. Protocol Stream Fee (Tollbooth Model)
-- **Mechanism**: A protocol fee of **0.5%** is charged when a merchant claims funds from an active stream via `claimStream()`
-- **Execution**: The `FluenciRegistry` splits every payment:
-  - **99.5%** goes to the merchant
-  - **0.5%** is redirected to the **Fluenci Treasury**
-- **Sustainability**: Scales linearly with TVL and transaction volume - displayed live on the landing page
-
-### 2. Premium AI Sentry Subscription (SaaS)
-- **Mechanism**: Basic security telemetry is free. Merchants can subscribe to **AI Sentry Premium Defense** for faster queues, deeper reputation checks, and custom alert thresholds
-- **Sustainability**: Provides stable, predictable cash flow to cover offchain AI node operational costs
-
-### 3. AI Dispute Arbitration Fee
-- **Mechanism**: Resolving disputes involves gas consumption (EIP-712 signatures) and LLM API costs. A fixed fee is charged upon opening a dispute
-
-### 4. Yield-Bearing Collateral Escrows (Future Phase)
-- **Mechanism**: In escrowed stream setups, the contract will deposit idle collateral into liquid staking/lending pools on QIE, with generated yield flowing to the Treasury
+The Snake arcade and the AI chat are demos of micro-streaming and nothing more. They are not
+product features and are not on the roadmap.
 
 ---
 
-## Future Roadmap & Earning Mechanisms
+## Economic model
 
-To transition Fluenci from a hackathon prototype into a full-scale decentralized ecosystem, our roadmap focuses on expanding earning opportunities for both active users and passive network participants. We propose three primary models to make Fluenci a self-sustaining, community-driven earning engine:
+**Protocol fee - the only revenue mechanism that exists.** 0.5% is taken when a merchant
+settles. 99.5% goes to the merchant, 0.5% to the treasury. On a normal claim, `_settle`
+computes the fee against the cumulative settled amount less the fee already taken
+(`settledFees`), so claim frequency does not change the total.
+The contract hard-caps the fee at 5% (`protocolFeeBps`, max 500), so the owner cannot raise it
+past that. If no treasury is set, no fee is taken.
 
-### 1. AI Sentry Node Staking & Co-Auditing (Security Node Mining)
-* **Objective**: Decentralize the AI Sentry network by allowing community members to run node telemetries.
-* **Mechanism**: 
-  * Users stake a designated amount of `QUSDC` or `QIE` to register a **Security Sentinel Node** on the protocol.
-  * Sentinels run a localized, light version of the offchain AI Sentry agent, which listens to stream telemetry logs, processes pricing and reputation risks, and flags billing anomalies.
-  * When anomalies are detected and verified onchain, the reporting nodes are awarded protocol "Security Bounties."
-* **Earnings Potential**: A portion (e.g., `0.1%`) of the global `0.5%` protocol stream fee is diverted into a **Sentinel Rewards Pool** and distributed among active, staked node operators based on uptime and successful anomaly classifications.
+That scales with settled volume and nothing else. It is the whole model today.
 
-### 2. Real-Time Stream Referrals (Viral Affiliate Income)
-* **Objective**: Incentivize organic growth and merchant acquisition through real-time rewards.
-* **Mechanism**:
-  * Users can generate a unique, cryptographically signed referral link linked to their DID or wallet.
-  * When a new subscriber initiates a stream to a merchant using this link (or when a merchant joins the platform via referral), the core `FluenciRegistry` contract automatically routes a customizable fraction (e.g., `0.2%` - `0.5%`) of every second-by-second payment directly to the referrer's wallet.
-* **Earnings Potential**: Referrers receive continuous, passive micro-income streamed directly into their accounts, watching their balances tick up live by the second, aligned with active subscriptions they helped onboard.
-
-### 3. Stream-to-Earn (Ad & Task Monetization)
-* **Objective**: Create a decentralized attention marketplace where users monetize their engagement.
-* **Mechanism**:
-  * Corporate sponsors, educational programs, and research institutions establish funded, time-locked streaming pools (e.g., "Learn-to-Stream" or "Engage-to-Stream" campaigns).
-  * Users perform small tasks, such as watching educational tutorials, filling out feedback surveys, or testing protocol extensions.
-  * Instead of receiving single lump-sum payouts upon completion, the system streams tokens to the user's wallet *in real-time* for every second they actively engage.
-* **Earnings Potential**: Users receive direct financial rewards for their time and feedback, viewing live second-by-second earning counters on their dashboard.
+Not built, and not to be described as revenue: premium Protect tiers, dispute-resolution fees,
+yield on escrowed collateral, sentinel-node staking, referral splits, stream-to-earn. Disputes
+exist onchain (`openDispute` / `resolveDispute`), authorised by an EIP-191 `personal_sign`
+signature from the AI Auditor's trusted worker key - not EIP-712, which is used only by
+`FluenciReputationAttestor`. Dispute resolution is **not** free: `resolveDispute` takes the
+same 0.5% protocol fee out of the merchant's payout and transfers it to the treasury. Unlike
+`_settle` it computes that fee on the payout alone and never touches `settledFees`, so it
+sits outside the cumulative fee accounting described above. There is no *separate*
+dispute-resolution fee, and none is planned - but the protocol fee still applies.
 
 ---
 
-## Testing the AI Sentry Pipeline
+## Where this is going
 
-To demonstrate the full autonomous security pipeline:
+The network effect being built toward: more merchants → more subscribers → more QIE Wallet
+users → more QIE ID / QIE Pass / Reputation usage → more qUSDC and QIE transactions → more
+reason for the next merchant to join.
 
-1. **Start the backend**: Ensure the AI Sentry Node Server is running with a valid `OPENAI_API_KEY` and `AI_PRIVATE_KEY`
-2. **Connect wallet**: Open the frontend, connect your QIE Wallet, and complete **QIE Pass KYC** verification
-3. **Get qUSDC**: Use the integrated DEX to swap QIE for qUSDC stablecoins
-4. **Create a stream**: Open the Subscriber Panel, enter a merchant address, rate, and duration to create a payment stream
-5. **Trigger the AI**: Open the **AI Security Desk** tab, select an active stream, type an exploit reason, and click **Trigger Safety Pause**
-6. **Watch the AI work**:
-   - **Sentry Agent** captures the manual trigger
-   - **Analyst Agent** evaluates stream risk via GPT-4o and compiles an IPFS audit report
-   - **Decision Agent** broadcasts the safety pause transaction onchain
-   - Telemetry logs appear in real time in the Security Desk terminal
-   - The stream's status changes to **"Paused by AI"**
-
----
-
-## Security & Privacy
-
-| Feature | Implementation |
-|---|---|
-| **Wallet-Scoped Telemetry** | AI Security Desk only shows logs related to the connected wallet |
-| **Public Data Anonymization** | Landing page masks all 0x hex identifiers (addresses, tx hashes, stream IDs) |
-| **Progressive KYC** | Merchants receive payments freely but must verify identity to withdraw |
-| **EIP-712 Signatures** | AI dispute resolutions are cryptographically signed and verified onchain |
-| **Pull-Based Custody** | Subscriber tokens never leave their wallet - only pulled on claim |
-| **WalletConnect v2** | Mobile connections use encrypted WalletConnect v2 relay protocol |
-
----
-
-## Fluenci Snake Arcade
-
-Fluenci includes a built-in **Snake game** as a pay-as-you-play demo. It demonstrates micro-payment streaming in action:
-
-- **Subscribe & Play**: Opens a QUSDC micro-stream at 0.0001 QUSDC/sec to `fluenci.qie`
-- **Live Telemetry**: Score, session time, and QUSDC streamed update in real-time
-- **Auto-Settle on Terminate**: When the player clicks "Stop Streaming", the contract auto-settles accumulated QUSDC to the merchant before deactivation
-- **Best Score Tracking**: Persisted in localStorage across sessions
-- **Touch Controls**: Supports swipe on mobile devices
+The three pieces that drive it - payment links, the SDK, and the merchant directory - are the
+next phase and are **not built**. Ordering and constraints are in [`ROADMAP.md`](./ROADMAP.md).
 
 ---
 
 ## Links
 
-- **X (Twitter)**: [x.com/fluenciAI](https://x.com/fluenciAI)
-- **GitHub**: [github.com/mrnetwork0001/Fluenci](https://github.com/mrnetwork0001/Fluenci)
-
----
+- X: [x.com/fluenciAI](https://x.com/fluenciAI)
+- GitHub: [github.com/mrnetwork0001/Fluenci](https://github.com/mrnetwork0001/Fluenci)
 
 ## License
 
-© 2026 Fluenci Protocol. Built for QIE Blockchain Hackathon. All rights reserved.
+© 2026 Fluenci Protocol. Built for QIE Blockchain. All rights reserved.

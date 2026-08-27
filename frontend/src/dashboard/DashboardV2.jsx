@@ -94,6 +94,23 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
     return () => { live = false; };
   }, [account]);
 
+  // Reverse-resolve each subscriber's .qie name for the merchant Subscribers view.
+  const [subNames, setSubNames] = useState({});
+  useEffect(() => {
+    let live = true;
+    const addrs = [...new Set((v4.merchantStreams || []).map((s) => s.subscriber).filter(Boolean))];
+    const pending = addrs.filter((a) => subNames[a] === undefined);
+    if (pending.length === 0) return;
+    const provider = new ethers.JsonRpcProvider(MAINNET_RPC);
+    Promise.all(pending.map(async (a) => [a, await resolveQieName(a, provider)])).then((pairs) => {
+      if (!live) return;
+      setSubNames((m) => ({ ...m, ...Object.fromEntries(pairs.map(([a, n]) => [a, n || null])) }));
+    });
+    return () => { live = false; };
+  }, [v4.merchantStreams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [subPage, setSubPage] = useState(0);
+
   // Close the picker as soon as a wallet actually lands.
   useEffect(() => { if (account) setWalletOpen(false); }, [account]);
 
@@ -331,7 +348,14 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
           const per = (n) => ({ 60: "minute", 3600: "hour", 86400: "day", 604800: "week", 2592000: "month" }[n] || `${n}s`);
           const money = (v) => `$${Number(ethers.formatUnits(v ?? 0n, QUSDC_DECIMALS)).toFixed(2)}`;
           const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
+          // Prefer the subscriber's .qie name; fall back to the truncated address.
+          const label = (a) => subNames[a] || short(a);
+          const initial = (a) => (subNames[a] ? subNames[a][0] : (a || "?").slice(2, 3)).toUpperCase();
           const cols = { display: "grid", gridTemplateColumns: "2.2fr 1.1fr 1.3fr 1fr", gap: 16, alignItems: "center" };
+          const PER_PAGE = 12;
+          const pages = Math.max(1, Math.ceil(subs.length / PER_PAGE));
+          const sp = Math.min(subPage, pages - 1);
+          const shown = subs.slice(sp * PER_PAGE, sp * PER_PAGE + PER_PAGE);
           return (
             <>
               <h1 className="fl-title">Subscribers</h1>
@@ -352,17 +376,28 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
                     <div className="fl-lbl">Claimable</div>
                     <div className="fl-lbl">Status</div>
                   </div>
-                  {subs.map((s, i) => (
+                  {shown.map((s, i) => (
                     <div key={s.id || i} className="fl-trow" style={cols}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div className="fl-avatar">{(s.subscriber || "?").slice(2, 3).toUpperCase()}</div>
-                        <div className="fl-mono" style={{ fontSize: 12.5, color: "var(--fl-fg)" }} title={s.subscriber}>{short(s.subscriber)}</div>
+                        <div className="fl-avatar">{initial(s.subscriber)}</div>
+                        <div className="fl-mono" style={{ fontSize: 12.5, color: "var(--fl-fg)" }} title={s.subscriber}>{label(s.subscriber)}</div>
                       </div>
                       <div className="fl-mono" style={{ fontSize: 13 }}>{money(s.amountPerPeriod)}/{per(s.periodSeconds)}</div>
                       <div className="fl-mono fl-stat-value--accent" style={{ fontSize: 13 }}>{money(s.owed || 0n)}</div>
                       <div><span className={`fl-pill ${s.pausedByAI ? "fl-pill--warn" : "fl-pill--on"}`}>{s.pausedByAI ? "Paused" : "Active"}</span></div>
                     </div>
                   ))}
+                </div>
+              )}
+              {!v4.loading && subs.length > PER_PAGE && (
+                <div className="fl-row--between" style={{ marginTop: 12 }}>
+                  <span className="fl-mono" style={{ color: "var(--fl-fg-3)", fontSize: 11.5 }}>
+                    {sp * PER_PAGE + 1}-{Math.min(sp * PER_PAGE + PER_PAGE, subs.length)} of {subs.length}
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="fl-btn fl-btn--ghost" style={{ padding: "6px 12px" }} disabled={sp === 0} onClick={() => setSubPage(sp - 1)}>Prev</button>
+                    <button className="fl-btn fl-btn--ghost" style={{ padding: "6px 12px" }} disabled={sp >= pages - 1} onClick={() => setSubPage(sp + 1)}>Next</button>
+                  </div>
                 </div>
               )}
             </>

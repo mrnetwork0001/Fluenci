@@ -326,19 +326,48 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               onRegisterName={() => fluenci?.registerQieDomain?.()}
             />
           );
-        case "subscribers":
+        case "subscribers": {
+          const subs = usingSample ? [] : (v4.merchantStreams || []);
+          const per = (n) => ({ 60: "minute", 3600: "hour", 86400: "day", 604800: "week", 2592000: "month" }[n] || `${n}s`);
+          const money = (v) => `$${Number(ethers.formatUnits(v ?? 0n, QUSDC_DECIMALS)).toFixed(2)}`;
+          const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
+          const cols = { display: "grid", gridTemplateColumns: "2.2fr 1.1fr 1.3fr 1fr", gap: 16, alignItems: "center" };
           return (
             <>
               <h1 className="fl-title">Subscribers</h1>
               <p className="fl-sub">Everyone currently streaming a payment to you.</p>
-              <SubscriberDashboard
-                loading={v4.loading}
-                subscriptions={usingSample ? [] : v4.merchantStreams}
-                activity={[]}
-                onNewSubscription={() => setActive("dashboard")}
-              />
+              {v4.loading ? (
+                <div className="fl-card"><div className="fl-lbl">Loading…</div></div>
+              ) : subs.length === 0 ? (
+                <EmptyState
+                  icon={<IconStore size={26} stroke="#333333" />}
+                  title="No subscribers yet"
+                  body="When someone opens a subscription to you, they appear here with what they are streaming and what you can claim."
+                />
+              ) : (
+                <div className="fl-card fl-card--flush">
+                  <div className="fl-thead" style={cols}>
+                    <div className="fl-lbl">Subscriber</div>
+                    <div className="fl-lbl">Price</div>
+                    <div className="fl-lbl">Claimable</div>
+                    <div className="fl-lbl">Status</div>
+                  </div>
+                  {subs.map((s, i) => (
+                    <div key={s.id || i} className="fl-trow" style={cols}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div className="fl-avatar">{(s.subscriber || "?").slice(2, 3).toUpperCase()}</div>
+                        <div className="fl-mono" style={{ fontSize: 12.5, color: "var(--fl-fg)" }} title={s.subscriber}>{short(s.subscriber)}</div>
+                      </div>
+                      <div className="fl-mono" style={{ fontSize: 13 }}>{money(s.amountPerPeriod)}/{per(s.periodSeconds)}</div>
+                      <div className="fl-mono fl-stat-value--accent" style={{ fontSize: 13 }}>{money(s.owed || 0n)}</div>
+                      <div><span className={`fl-pill ${s.pausedByAI ? "fl-pill--warn" : "fl-pill--on"}`}>{s.pausedByAI ? "Paused" : "Active"}</span></div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           );
+        }
         default:
           return <MerchantDashboardV2 loading={v4.loading} />;
       }

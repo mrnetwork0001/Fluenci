@@ -16,7 +16,7 @@ import QieStableCoinLogo from "./assets/qusdc.png";
 import QieDexLogo from "./assets/qiedex.png";
 import QieDomainsLogo from "./assets/qiedomains.png";
 import "./App.css";
-import { API_BASE_URL } from "./config";
+import { API_BASE_URL, V2_BUILD_NOTICE } from "./config";
 
 // Default deployment addresses
 const DEFAULT_HARDHAT_CONTRACTS = {
@@ -158,6 +158,117 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
         animation: "pulse 0.8s infinite"
       }} />
     </span>
+  );
+}
+
+// v2 build notice — restored from 38f4c60 (CSS for .qie-upgrade-* is still in index.css),
+// recolored from outage-amber to brand cyan and rewritten for the v2 rebuild.
+function BuildNoticeBanner() {
+  const [isDismissed, setIsDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("fluenci_v2_build_notice_dismissed") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+  const [isExpanded, setIsExpanded] = useState(() => {
+    try {
+      return localStorage.getItem("fluenci_v2_build_notice_expanded") === "true";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    try {
+      localStorage.setItem("fluenci_v2_build_notice_dismissed", "true");
+    } catch (e) {}
+  };
+
+  const handleRestore = () => {
+    setIsDismissed(false);
+    try {
+      localStorage.setItem("fluenci_v2_build_notice_dismissed", "false");
+    } catch (e) {}
+  };
+
+  const toggleExpand = () => {
+    const nextState = !isExpanded;
+    setIsExpanded(nextState);
+    try {
+      localStorage.setItem("fluenci_v2_build_notice_expanded", String(nextState));
+    } catch (e) {}
+  };
+
+  if (isDismissed) {
+    return (
+      <div className="qie-upgrade-floating-trigger" onClick={handleRestore} title="Show Fluenci v2 build notice">
+        <Sparkles size={14} />
+        <span>v2 In Progress</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qie-upgrade-banner">
+      <div className="qie-upgrade-content" style={{ flexDirection: "column", alignItems: "stretch", gap: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+          <div className="qie-upgrade-main">
+            <div className="qie-upgrade-icon-wrapper">
+              <Sparkles size={18} color="#079AB7" />
+            </div>
+            <div className="qie-upgrade-text-block">
+              <div className="qie-upgrade-title">
+                Fluenci v2 is being built right now
+                <span className="pill-badge" style={{ padding: "2px 8px", fontSize: "0.68rem", background: "rgba(7, 154, 183, 0.15)", color: "#079AB7", border: "1px solid rgba(7, 154, 183, 0.3)", borderRadius: "20px", fontWeight: "700", marginLeft: "8px" }}>V2 IN PROGRESS</span>
+              </div>
+              <div className="qie-upgrade-desc">
+                v1 is live on this site and settling real streams on QIE mainnet — we're rebuilding the streaming registry and dashboard against a new integration spec, and v2 deploys to this domain the day the contracts land.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button className="qie-upgrade-details-toggle" onClick={toggleExpand}>
+              {isExpanded ? (
+                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>Hide Details <ChevronUp size={12} /></span>
+              ) : (
+                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>Show Details <ChevronDown size={12} /></span>
+              )}
+            </button>
+            <button className="qie-upgrade-close" onClick={handleDismiss} title="Dismiss notice">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="qie-upgrade-detail-panel">
+            <div className="qie-upgrade-detail-item">
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <CheckCircle size={12} />
+                Live now
+              </strong>
+              <span>Connect a wallet and explore the full v1 dashboard, AI Security Desk and merchant flows. Everything you see is the shipped product, running against QIE mainnet.</span>
+            </div>
+            <div className="qie-upgrade-detail-item">
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Clock size={12} />
+                Paused
+              </strong>
+              <span>New stream creation on the v1 registry is off while we migrate contracts. Existing streams keep settling normally.</span>
+            </div>
+            <div className="qie-upgrade-detail-item">
+              <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Info size={12} />
+                Next
+              </strong>
+              <span>v2 brings the new registry, updated settlement logic and the integration spec's endpoints. Same domain, no migration for you.</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -801,6 +912,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: viewMode === "landing" ? "#000000" : "#f5f5f5" }}>
+      {V2_BUILD_NOTICE && <BuildNoticeBanner />}
       {/* Navbar */}
       <header 
         className={viewMode === "landing" ? "landing-header" : "dashboard-header"}

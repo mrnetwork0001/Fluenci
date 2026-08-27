@@ -50,7 +50,9 @@ const DOMAIN_ABI = [
 
 const CONTRACT_ADDRESSES_BY_CHAIN = {
   1990: { // QIE Mainnet
-    registry: "0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9",
+    // v4 cutover: set VITE_REGISTRY_ADDRESS in Vercel to repoint without a code change.
+    // The v3 literal stays as the fallback, so behaviour is identical while it is unset.
+    registry: import.meta.env.VITE_REGISTRY_ADDRESS || "0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9",
     qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official QUSDC
     qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
     auditor: "0xF38d9458d14d916B60026693a76FBe7cDEf651Fa",

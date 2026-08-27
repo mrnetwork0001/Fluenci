@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Play, Trash2, AlertTriangle, ShieldAlert, Sparkles, Coins, ArrowRight, ShieldCheck, Scale, RefreshCw, Send, ExternalLink, Loader2 } from "lucide-react";
 import { ethers } from "ethers";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL, V3_WRITES_FROZEN } from "../config";
 
 export default function SubscriberPanel({
   account,
@@ -234,6 +234,13 @@ export default function SubscriberPanel({
     
     if (calculatedRatePerSecond <= 0n) {
       alert("Calculated streaming rate is too small. Try a higher total amount or shorter duration.");
+      return;
+    }
+
+    // v2 rebuild: block new writes to the v3 registry while v4 is being deployed,
+    // otherwise this pulls real funds into a registry we are about to abandon.
+    if (V3_WRITES_FROZEN) {
+      alert("New streams are paused while the v2 registry is deployed. Existing streams keep settling normally.");
       return;
     }
 
@@ -904,14 +911,20 @@ export default function SubscriberPanel({
             type="submit" 
             className="btn btn-primary"
             style={{ height: "38px", display: "flex", gap: "4px", justifyContent: "center" }}
-            disabled={loading || !qiePassVerified || !isAllowanceApproved(tokenSymbol)}
+            disabled={V3_WRITES_FROZEN || loading || !qiePassVerified || !isAllowanceApproved(tokenSymbol)}
           >
             <Plus size={14} />
             Stream
           </button>
         </form>
         
-        {(!qiePassVerified || !isAllowanceApproved(tokenSymbol)) && (
+        {V3_WRITES_FROZEN && (
+          <p style={{ color: "#079AB7", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
+            New streams are paused while the v2 registry is deployed. Existing streams keep settling normally.
+          </p>
+        )}
+
+        {!V3_WRITES_FROZEN && (!qiePassVerified || !isAllowanceApproved(tokenSymbol)) && (
           <p style={{ color: "#777777", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
             ⚠ You must verify KYC (QIE Pass) and approve the selected token to begin streaming.
           </p>

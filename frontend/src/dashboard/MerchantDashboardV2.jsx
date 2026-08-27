@@ -286,9 +286,9 @@ export default function MerchantDashboardV2({
           <div className="fl-stack" style={{ gap: 9 }} role="radiogroup" aria-label="Access policy">
             {GATES.map(({ value, label, help }) => {
               const isReputation = value === 3;
-              const isQieId = value === 1;
-              const unavailable =
-                (isReputation && !reputationGateAvailable) || (isQieId && !idGateAvailable);
+              // QIE ID gating is wired on mainnet (QieIdAdapter), so only the
+              // reputation gate can still be unavailable (awaiting QIE's signer).
+              const unavailable = isReputation && !reputationGateAvailable;
               const disabled = loading || unavailable;
               const on = selectedGate === value;
               return (
@@ -360,9 +360,7 @@ export default function MerchantDashboardV2({
                           lineHeight: 1.5,
                         }}
                       >
-                        {isReputation
-                          ? "Not available yet — waiting on QIE to issue its reputation signing key. Selecting this would block every subscriber."
-                          : "Not available yet — QIE ID gating is not wired on this network. Selecting this would block every subscriber."}
+                        Not available yet — waiting on QIE to issue its reputation signing key. Selecting this would block every subscriber.
                       </span>
                     )}
 

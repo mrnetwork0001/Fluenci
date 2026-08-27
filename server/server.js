@@ -56,6 +56,7 @@ setInterval(() => {
 // In-memory compliance & dispute report cache
 let auditReports = {};
 let uniqueUsers = new Set();
+let streamsCreated = 0; // total SubscriptionCreated events, incl. ended streams
 let totalVolume = 0n;
 let totalSwapVolume = 0n;
 let activeStreamRisks = {};
@@ -579,6 +580,7 @@ async function syncHistoricalEvents() {
         if (type === "SubscriptionCreated") {
           const [subId, subscriber, merchant, tokenAddress, amountPerPeriod, periodSeconds, cliff, stop] = args;
           const rate = periodSeconds > 0n ? amountPerPeriod / periodSeconds : amountPerPeriod;
+          streamsCreated++;
           uniqueUsers.add(subscriber);
           uniqueUsers.add(merchant);
           
@@ -795,6 +797,7 @@ async function connectBlockchain() {
       }
 
       uniqueUsers = new Set();
+      streamsCreated = 0;
       totalVolume = 0n;
       totalSwapVolume = 0n;
       activeStreamRisks = {};
@@ -996,6 +999,7 @@ function setupEventListeners() {
         const [subId, subscriber, merchant, tokenAddress, amountPerPeriod, periodSeconds, cliff, stop] = ev.args;
         const rate = periodSeconds > 0n ? amountPerPeriod / periodSeconds : amountPerPeriod;
         console.log(`[POLLER] New SubscriptionCreated detected: ${subId} subscriber=${subscriber} rate=${rate.toString()}/s`);
+        streamsCreated++;
         uniqueUsers.add(subscriber);
         uniqueUsers.add(merchant);
         activeStreamRisks[subId] = 12;
@@ -1108,6 +1112,7 @@ app.get("/stats", (req, res) => {
   const currentRisk = risks.length > 0 ? Math.max(12, ...risks) : 12;
   res.json({
     uniqueUsersCount: uniqueUsers.size,
+    streamsCreatedCount: streamsCreated,
     totalVolumeUSD: volumeFormatted,
     totalRevenueUSD: revenueFormatted,
     totalSwapVolumeUSD: swapVolumeFormatted,

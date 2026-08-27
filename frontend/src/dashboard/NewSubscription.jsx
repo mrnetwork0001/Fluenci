@@ -90,10 +90,11 @@ export default function NewSubscription({
   defaultPeriod = "month",
   onMerchantChange = null,
   onSubmit = null,
+  initialMerchant = "",
   onBack = null,
   onBrowseMerchants = null,
 }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialMerchant || "");
   const [status, setStatus] = useState("idle"); // idle | resolving | resolved | error
   const [address, setAddress] = useState(null);
 

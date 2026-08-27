@@ -463,6 +463,11 @@ export default function App() {
   // URL-based routing: parse initial path
   const getInitialRoute = () => {
     const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
+    // Payment links: fluenci.xyz/pay/<merchant.qie> opens the subscribe form
+    // pre-filled with that merchant, which auto-resolves.
+    if (path.startsWith('pay/') && path.length > 4) {
+      return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'subscriptions', payMerchant: path.slice(4) };
+    }
     switch (path) {
       case 'blog': return { view: 'blog', tab: 'subscriber' };
       // The v2 dashboard takes over the real routes once a v4 registry is
@@ -978,6 +983,7 @@ export default function App() {
         fluenci={fluenci}
         initialRole={initialRoute.role || "subscriber"}
         initialTab={initialRoute.v2tab || "dashboard"}
+        payMerchant={initialRoute.payMerchant || ""}
         onHome={goHome}
       />
     );

@@ -25,7 +25,7 @@ import { API_BASE_URL } from "../config";
  * screens render review fixtures behind an explicit banner. That keeps the UI
  * reviewable now without ever presenting sample numbers as real.
  */
-export default function DashboardV2({ fluenci, initialRole = "subscriber", initialTab = "dashboard", onHome }) {
+export default function DashboardV2({ fluenci, initialRole = "subscriber", initialTab = "dashboard", onHome, payMerchant = "" }) {
   const [role, setRole] = useState(initialRole);
   const [active, setActive] = useState(initialTab);
   const [collapsed, setCollapsed] = useState(false);
@@ -356,6 +356,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             protocolFeeBps={v4.protocolFeeBps}
             resolveMerchant={resolveMerchant}
             onMerchantChange={handleMerchantChange}
+            initialMerchant={payMerchant}
             onSubmit={handleCreate}
             onBack={() => setActive("dashboard")}
             onBrowseMerchants={() => setActive("merchants")}

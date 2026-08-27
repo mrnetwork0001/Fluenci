@@ -48,6 +48,15 @@ export default function Protect({
     [events]
   );
 
+  // Show a page at a time rather than the whole feed.
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  // The feed refreshes on a timer; clamp the page instead of snapping back to 0.
+  const safePage = Math.min(page, pageCount - 1);
+  const start = safePage * PAGE_SIZE;
+  const pageRows = rows.slice(start, start + PAGE_SIZE);
+
   return (
     <>
       <h1 className="fl-title">Fluenci Protect</h1>
@@ -100,10 +109,10 @@ export default function Protect({
                 <div className="fl-lbl">Event</div>
                 <div className="fl-lbl">When</div>
               </div>
-              {rows.map((e, i) => {
+              {pageRows.map((e, i) => {
                 const tone = TONE[String(e.type || "").toUpperCase()] || TONE.INFO;
                 return (
-                  <div key={`ev-${i}-${e.id ?? ""}`} className="fl-trow"
+                  <div key={`ev-${start + i}-${e.id ?? ""}`} className="fl-trow"
                        style={{ gridTemplateColumns: "0.6fr 2.4fr 1fr",
                                 cursor: e.subId && onViewStream ? "pointer" : "default" }}
                        onClick={() => e.subId && onViewStream?.(e.subId)}>
@@ -115,6 +124,22 @@ export default function Protect({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {!loading && rows.length > PAGE_SIZE && (
+            <div className="fl-row--between" style={{ marginTop: 12 }}>
+              <span className="fl-mono" style={{ color: "var(--fl-fg-3)", fontSize: 11.5 }}>
+                {start + 1}-{Math.min(start + PAGE_SIZE, rows.length)} of {rows.length}
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="fl-btn fl-btn--ghost" style={{ padding: "6px 12px" }}
+                        disabled={safePage === 0}
+                        onClick={() => setPage(safePage - 1)}>Prev</button>
+                <button className="fl-btn fl-btn--ghost" style={{ padding: "6px 12px" }}
+                        disabled={safePage >= pageCount - 1}
+                        onClick={() => setPage(safePage + 1)}>Next</button>
+              </div>
             </div>
           )}
 

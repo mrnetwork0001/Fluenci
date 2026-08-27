@@ -53,6 +53,7 @@ export const REGISTRY_V4_ABI = [
   "function acceptsSubscriptionTransfers(address account) external view returns (bool)",
   "function qieReputation() external view returns (address)",
   "function qiePass() external view returns (address)",
+  "function requireMerchantKyc() external view returns (bool)",
   "function protocolFeeBps() external view returns (uint256)",
   "event SubscriptionCreated(bytes32 indexed subId, address indexed subscriber, address indexed merchant, address tokenAddress, uint256 amountPerPeriod, uint256 periodSeconds, uint256 cliffTime, uint256 stopTime)",
 ];

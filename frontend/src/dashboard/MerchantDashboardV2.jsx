@@ -71,6 +71,7 @@ export default function MerchantDashboardV2({
   onClaim = () => {},
   onVerify = () => {},
   verifying = false,
+  kycRequired = true,
   onSavePolicy = () => {},
   onCopyPaymentLink = () => {},
   onRegisterName = () => {},
@@ -98,8 +99,9 @@ export default function MerchantDashboardV2({
     claimableAmount > 0 || toNumber(settledAllTime) > 0 || Number(subscriberCount) > 0;
   const paymentLink = merchantName ? `${paymentLinkHost}/${merchantName}` : "";
 
-  const canClaim = !loading && !claiming && claimableAmount > 0 && qiePassVerified;
-  const claimNote = !qiePassVerified
+  const needsKyc = kycRequired && !qiePassVerified;
+  const canClaim = !loading && !claiming && claimableAmount > 0 && !needsKyc;
+  const claimNote = needsKyc
     ? "Withdrawing requires a verified QIE Pass. Accruals keep running whether or not you claim."
     : claimableAmount <= 0
     ? "Nothing to claim yet. Accruals keep running whether or not you claim."
@@ -197,7 +199,7 @@ export default function MerchantDashboardV2({
                   qUSDC
                 </span>
               </div>
-              {!loading && !qiePassVerified ? (
+              {!loading && needsKyc ? (
                 <button
                   className="fl-btn fl-btn--primary fl-btn--block"
                   disabled={verifying}

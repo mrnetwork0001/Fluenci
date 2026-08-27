@@ -21,6 +21,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   const [protocolFeeBps, setProtocolFeeBps] = useState(50);
   const [reputationGateAvailable, setReputationGateAvailable] = useState(false);
   const [merchantVerified, setMerchantVerified] = useState(false);
+  const [kycRequired, setKycRequired] = useState(true);
   const [claimableNet, setClaimableNet] = useState(0n);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -115,6 +116,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
           setMerchantVerified(await pass.verifyIdentity(account));
         }
       } catch { setMerchantVerified(false); }
+      try { setKycRequired(await reg.requireMerchantKyc()); } catch { setKycRequired(true); }
 
       // What can actually be withdrawn today: previewOwed is documented as being
       // BEFORE the spend cap, so showing it raw promised money the claim reverts on.
@@ -247,7 +249,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     decimals: QUSDC_DECIMALS,
     loading, busy, error, txState, resetTx,
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
-    reputationGateAvailable, claimable, claimableGross, merchantVerified,
+    reputationGateAvailable, claimable, claimableGross, merchantVerified, kycRequired,
     tokenAddress, ensureAllowance,
     refresh, fetchReputation,
     createSubscription, setSpendCap, clearSpendCap, setMerchantPolicy,

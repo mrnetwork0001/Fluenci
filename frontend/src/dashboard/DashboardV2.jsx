@@ -323,6 +323,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               subscriberCount={merchantData.subscriberCount}
               reputationScore={merchantData.reputationScore}
               qiePassVerified={usingSample ? true : Boolean(v4.merchantVerified)}
+              kycRequired={usingSample ? false : Boolean(v4.kycRequired)}
               merchantName={merchantData.merchantName}
               gate={v4.policy.gate}
               minReputation={Number(v4.policy.minReputation ?? 700n)}

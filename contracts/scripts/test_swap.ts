@@ -12,7 +12,7 @@ async function main() {
     "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5"  // QUSDC
   ];
 
-  const privateKey = process.env.PRIVATE_KEY || "0xfe3a3e160db3dd96335940f08821596df0a6ec13199568c1819a4d449b139703";
+  const privateKey = process.env.PRIVATE_KEY || process.env.PRIVATE_KEY!;
   const provider = new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
   const wallet = new ethers.Wallet(privateKey, provider);
 

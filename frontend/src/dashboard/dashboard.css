@@ -1,0 +1,255 @@
+/* Fluenci v2 dashboard design system.
+   Values lifted from the approved artboards, which in turn match the existing
+   .glass-card vocabulary in index.css (#0a0a0a on #1a1a1a, 14px radius, 24px pad).
+   The v1 dashboard rendered on #f5f5f5 while the landing page was black; this is
+   the shell that makes the product look like the brand. */
+
+:root {
+  --fl-bg: #000000;
+  --fl-card: #0a0a0a;
+  --fl-raised: #111111;
+  --fl-border: #1a1a1a;
+  --fl-border-hi: #222222;
+  --fl-fg: #ffffff;
+  --fl-fg-2: #999999;
+  --fl-fg-3: #666666;
+  --fl-accent: #079AB7;
+  --fl-accent-soft: rgba(7, 154, 183, 0.12);
+  --fl-warn: #f59e0b;
+  --fl-warn-soft: rgba(245, 158, 11, 0.12);
+  --fl-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.fl { background: var(--fl-bg); color: var(--fl-fg); font-family: 'Inter', system-ui, sans-serif;
+  height: 100vh; height: 100dvh; display: flex; overflow: hidden; }
+.fl *, .fl *::before, .fl *::after { box-sizing: border-box; }
+
+/* --- type ---------------------------------------------------------------- */
+.fl-h { font-family: 'Montserrat', sans-serif; }
+.fl-mono { font-family: var(--fl-mono); letter-spacing: 0.02em; }
+.fl-lbl { font-family: var(--fl-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fl-fg-3); }
+.fl-title { font-family: 'Montserrat', sans-serif; font-size: 27px; font-weight: 700; margin: 0 0 4px 0; color: var(--fl-fg); }
+.fl-sub { color: var(--fl-fg-3); font-size: 13.5px; margin: 0 0 26px 0; }
+.fl-h2 { font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 600; margin: 0 0 14px 0; color: var(--fl-fg); }
+
+/* --- surfaces ------------------------------------------------------------ */
+.fl-card { background: var(--fl-card); border: 1px solid var(--fl-border); border-radius: 14px; padding: 24px; }
+.fl-card--flush { padding: 0; }
+.fl-card--dashed { border-style: dashed; border-color: var(--fl-border-hi); }
+.fl-inner { background: var(--fl-card); border: 1px solid var(--fl-border); border-radius: 10px; }
+.fl-inner--accent { border-color: var(--fl-accent); }
+
+.fl-stat-value { font-family: var(--fl-mono); font-size: 27px; font-weight: 600; color: var(--fl-fg); letter-spacing: 0.02em; }
+.fl-stat-value--accent { color: var(--fl-accent); }
+.fl-stat-value--warn { color: var(--fl-warn); }
+.fl-stat-note { color: var(--fl-fg-3); font-size: 11.5px; margin-top: 6px; }
+
+/* --- layout -------------------------------------------------------------- */
+.fl-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.fl-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.fl-row { display: flex; align-items: center; gap: 12px; }
+.fl-row--between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fl-stack { display: flex; flex-direction: column; gap: 12px; }
+/* The only scrolling surface. Keeps the rail and the wallet card in place. */
+.fl-main { flex-grow: 1; padding: 34px 40px; min-width: 0; height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+
+/* --- controls ------------------------------------------------------------ */
+.fl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent;
+  border-radius: 10px; padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: opacity .15s ease, background .15s ease; }
+.fl-btn:disabled { opacity: .4; cursor: not-allowed; }
+.fl-btn--primary { background: var(--fl-fg); color: #000000; }
+.fl-btn--primary:hover:not(:disabled) { opacity: .88; }
+.fl-btn--ghost { background: var(--fl-raised); color: var(--fl-fg); border-color: var(--fl-border); }
+.fl-btn--ghost:hover:not(:disabled) { border-color: var(--fl-border-hi); }
+.fl-btn--block { width: 100%; }
+
+.fl-input { background: var(--fl-card); border: 1px solid var(--fl-border); border-radius: 10px; padding: 13px 16px;
+  color: var(--fl-fg); font-family: var(--fl-mono); font-size: 14px; width: 100%; outline: none; }
+.fl-input:focus { border-color: var(--fl-accent); }
+.fl-input::placeholder { color: var(--fl-fg-3); }
+
+.fl-pill { font-family: var(--fl-mono); font-size: 10px; letter-spacing: .08em; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
+.fl-pill--on { background: var(--fl-accent-soft); color: var(--fl-accent); }
+.fl-pill--warn { background: var(--fl-warn-soft); color: var(--fl-warn); }
+.fl-pill--off { background: var(--fl-raised); color: var(--fl-fg-3); }
+
+/* --- meter (spend caps) --------------------------------------------------- */
+.fl-meter { height: 5px; background: var(--fl-raised); border-radius: 3px; overflow: hidden; }
+.fl-meter__fill { height: 100%; background: var(--fl-accent); border-radius: 3px; transition: width .3s ease; }
+.fl-meter__fill--full { background: var(--fl-warn); }
+.fl-meter--thin { height: 3px; background: var(--fl-border); }
+
+/* --- sidebar -------------------------------------------------------------- */
+.fl-sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--fl-border);
+  display: flex; flex-direction: column; padding: 22px 16px; height: 100%; overflow: hidden; }
+.fl-sidebar--collapsed { width: 76px; }
+.fl-brand { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 22px 6px; }
+/* The mark doubles as the way back to the landing page, as it does in v1. */
+.fl-home { display: flex; align-items: center; gap: 10px; background: none; border: none; padding: 0;
+  cursor: pointer; font-family: inherit; text-align: left; min-width: 0; }
+.fl-home:hover .fl-wordmark { color: var(--fl-accent); }
+.fl-logo { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; display: block;
+  border: 1px solid var(--fl-border); }
+.fl-brand-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.fl-wordmark { font-family: 'Montserrat', sans-serif; color: var(--fl-fg); font-size: 16px; font-weight: 800;
+  line-height: 1.15; transition: color .15s ease; }
+.fl-tagline { font-family: var(--fl-mono); font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fl-fg-3); white-space: nowrap; }
+.fl-roles { display: flex; gap: 4px; padding: 4px; background: var(--fl-card); border: 1px solid var(--fl-border); border-radius: 10px; margin-bottom: 24px; }
+.fl-role { flex-grow: 1; text-align: center; padding: 7px 0; border-radius: 7px; background: transparent; color: var(--fl-fg-3);
+  font-size: 12.5px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+.fl-role.is-on { background: var(--fl-raised); color: var(--fl-fg); }
+.fl-nav { display: flex; flex-direction: column; gap: 3px; min-height: 0; overflow-y: auto;
+  scrollbar-width: thin; }
+.fl-navitem { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--fl-fg-2);
+  font-size: 13.5px; font-weight: 500; background: none; border: none; cursor: pointer; font-family: inherit; text-align: left; width: 100%; }
+.fl-navitem:hover { color: var(--fl-fg); }
+.fl-navitem.is-on { background: var(--fl-raised); color: var(--fl-fg); }
+
+/* --- table ---------------------------------------------------------------- */
+.fl-thead, .fl-trow { display: grid; gap: 16px; align-items: center; }
+.fl-thead { padding: 13px 24px; border-bottom: 1px solid var(--fl-border); }
+.fl-trow { padding: 17px 24px; border-bottom: 1px solid var(--fl-border); }
+.fl-trow:last-child { border-bottom: none; }
+.fl-avatar { width: 32px; height: 32px; border-radius: 8px; background: var(--fl-raised); border: 1px solid var(--fl-border);
+  display: flex; align-items: center; justify-content: center; font-family: var(--fl-mono); font-size: 12px; font-weight: 600; color: var(--fl-accent); flex-shrink: 0; }
+.fl-avatar--lg { width: 44px; height: 44px; border-radius: 11px; font-size: 16px; }
+
+/* --- empty state ---------------------------------------------------------- */
+.fl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 24px; text-align: center; }
+.fl-empty__title { font-family: 'Montserrat', sans-serif; color: var(--fl-fg); font-size: 15px; font-weight: 600; margin: 14px 0 7px 0; }
+.fl-empty__body { color: var(--fl-fg-3); font-size: 13px; max-width: 340px; line-height: 1.55; margin-bottom: 16px; }
+.fl-link { color: var(--fl-accent); font-size: 13px; font-weight: 600; text-decoration: none; background: none; border: none; cursor: pointer; font-family: inherit; }
+.fl-link:hover { color: #0ab6d8; }
+
+/* Desktop: the bar and scrim do not exist. */
+.fl-topbar, .fl-scrim, .fl-burger { display: none; }
+
+@media (max-width: 900px) {
+  /* The rail becomes a drawer over the content rather than a block above it -
+     stacking it full-width ate the whole screen before anything was readable. */
+  .fl { flex-direction: column; }
+
+  .fl-topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px; padding: 12px 16px;
+    background: var(--fl-bg); border-bottom: 1px solid var(--fl-border); flex-shrink: 0; }
+  .fl-topbar .fl-logo { width: 26px; height: 26px; }
+  .fl-topbar .fl-wordmark { font-size: 15px; }
+
+  .fl-burger { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+    border-radius: 10px; background: var(--fl-raised); border: 1px solid var(--fl-border);
+    color: var(--fl-fg); cursor: pointer; padding: 0; }
+  .fl-burger:hover { border-color: var(--fl-border-hi); }
+
+  .fl-sidebar { position: fixed; top: 0; left: 0; z-index: 50;
+    width: min(78vw, 320px); height: 100dvh; border-right: 1px solid var(--fl-border);
+    background: var(--fl-bg); transform: translateX(-100%);
+    transition: transform .22s cubic-bezier(.4, 0, .2, 1); }
+  .fl--drawer-open .fl-sidebar { transform: translateX(0); }
+
+  .fl-scrim { display: block; position: fixed; inset: 0; z-index: 40;
+    background: rgba(0, 0, 0, .6); opacity: 0; pointer-events: none;
+    transition: opacity .22s ease; }
+  .fl--drawer-open .fl-scrim { opacity: 1; pointer-events: auto; }
+
+  .fl-main { padding: 20px 16px; height: auto; flex-grow: 1; }
+  .fl-grid-4, .fl-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fl-title { font-size: 23px; }
+}
+
+@media (max-width: 560px) {
+  .fl-grid-4, .fl-grid-3 { grid-template-columns: 1fr; }
+  /* Tables are grids with fixed columns; let them scroll rather than crush. */
+  .fl-card--flush { overflow-x: auto; }
+  .fl-thead, .fl-trow { min-width: 560px; }
+  .fl-modal { padding: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-sidebar, .fl-scrim { transition: none; }
+}
+
+/* --- wallet modal --------------------------------------------------------- */
+.fl-modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+.fl-modal { background: var(--fl-card); border: 1px solid var(--fl-border); border-radius: 14px; padding: 26px;
+  width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;
+  font-family: 'Inter', system-ui, sans-serif; }
+
+.fl-wallet-option { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  background: var(--fl-raised); border: 1px solid var(--fl-border); border-radius: 12px; padding: 13px 15px;
+  cursor: pointer; font-family: inherit; transition: border-color .15s ease, background .15s ease; }
+.fl-wallet-option:hover:not(:disabled) { border-color: var(--fl-accent); background: #141414; }
+.fl-wallet-option:disabled { opacity: .5; cursor: not-allowed; }
+.fl-wallet-option__text { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0; }
+.fl-wallet-option__title { color: var(--fl-fg); font-size: 13.5px; font-weight: 600; }
+.fl-wallet-option__sub { color: var(--fl-fg-3); font-size: 11.5px; }
+.fl-wallet-logo { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  border: 1px solid var(--fl-border); object-fit: cover; }
+
+.fl-qr { background: #ffffff; border-radius: 12px; padding: 16px; display: flex;
+  align-items: center; justify-content: center; }
+.fl-qr--pending { background: var(--fl-raised); border: 1px dashed var(--fl-border-hi); min-height: 240px; }
+
+/* Wallet chip in the sidebar */
+.fl-wallet-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fl-wallet-name__qie { color: var(--fl-accent); font-family: var(--fl-mono); font-size: 12.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Slim scrollbar on the content pane so the rail edge stays clean. */
+.fl-main::-webkit-scrollbar, .fl-nav::-webkit-scrollbar { width: 10px; }
+.fl-main::-webkit-scrollbar-thumb, .fl-nav::-webkit-scrollbar-thumb {
+  background: var(--fl-border); border-radius: 6px; border: 3px solid var(--fl-bg); }
+.fl-main::-webkit-scrollbar-thumb:hover, .fl-nav::-webkit-scrollbar-thumb:hover { background: var(--fl-border-hi); }
+.fl-main::-webkit-scrollbar-track, .fl-nav::-webkit-scrollbar-track { background: transparent; }
+
+/* --- wallet modal chrome -------------------------------------------------- */
+.fl-modal { position: relative; }
+.fl-modal__close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--fl-raised); border: 1px solid var(--fl-border);
+  color: var(--fl-fg-2); font-size: 19px; line-height: 1; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; padding: 0; }
+.fl-modal__close:hover { color: var(--fl-fg); border-color: var(--fl-border-hi); }
+
+.fl-modal__brand { display: flex; justify-content: center; margin: 4px 0 14px; }
+.fl-modal__mark { width: 52px; height: 52px; border-radius: 13px; border: 1px solid var(--fl-border); display: block; }
+
+.fl-modal__title { font-size: 21px; font-weight: 700; margin: 0 0 5px; text-align: center; color: var(--fl-fg); }
+.fl-modal__sub { color: var(--fl-fg-3); font-size: 12.5px; margin: 0 0 20px; text-align: center; line-height: 1.55; }
+
+.fl-modal__foot { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--fl-border); }
+
+/* Recommended option gets the accent tint; everything else stays neutral so the
+   hierarchy reads at a glance. */
+.fl-wallet-option--primary { border-color: rgba(7, 154, 183, .35); background: var(--fl-accent-soft); }
+.fl-wallet-option--primary:hover:not(:disabled) { border-color: var(--fl-accent); }
+.fl-wallet-logo--glyph { display: flex; align-items: center; justify-content: center;
+  background: var(--fl-raised); color: var(--fl-fg-2); }
+
+/* --- responsive two-column page layouts ----------------------------------- */
+/* These were inline gridTemplateColumns, which no media query can reach, so the
+   form and the merchant card stayed side by side at phone width. */
+.fl-split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.fl-split--merchant { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.fl-split--protect  { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+
+@media (max-width: 900px) {
+  .fl-split, .fl-split--merchant, .fl-split--protect { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+
+/* A control with a label on the left and a switch on the right. Wraps rather
+   than letting the label run under the switch. */
+.fl-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.fl-toggle-row__main { display: flex; align-items: center; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.fl-toggle-row__unit { white-space: nowrap; }
+
+/* Amount + period sit side by side, but stack before either gets squeezed. */
+.fl-amount-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+.fl-amount-row > .fl-amount-field { flex: 1 1 150px; min-width: 0; }
+.fl-amount-row > .fl-period-field { flex: 0 1 auto; }
+
+@media (max-width: 400px) {
+  .fl-amount-row > .fl-amount-field,
+  .fl-amount-row > .fl-period-field { flex: 1 1 100%; }
+}

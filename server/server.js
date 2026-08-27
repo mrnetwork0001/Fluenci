@@ -76,7 +76,7 @@ let RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
 let REGISTRY_ADDRESS = process.env.REGISTRY_ADDRESS;
 let AUDITOR_ADDRESS = process.env.AUDITOR_ADDRESS;
 let AI_PRIVATE_KEY = process.env.AI_PRIVATE_KEY;
-let START_BLOCK = process.env.START_BLOCK || "8320000";
+let START_BLOCK = process.env.START_BLOCK || "10031934"; // FluenciRegistryV4 deploy block
 let QIEDEX_ADDRESS = process.env.QIEDEX_ADDRESS || "";
 let FLUENCI_ROUTER_ADDRESS = process.env.FLUENCI_ROUTER_ADDRESS || "";
 
@@ -577,7 +577,8 @@ async function syncHistoricalEvents() {
         const eventTimestamp = new Date(Date.now() - diffBlocks * 3000).toISOString();
 
         if (type === "SubscriptionCreated") {
-          const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = args;
+          const [subId, subscriber, merchant, tokenAddress, amountPerPeriod, periodSeconds, cliff, stop] = args;
+          const rate = periodSeconds > 0n ? amountPerPeriod / periodSeconds : amountPerPeriod;
           uniqueUsers.add(subscriber);
           uniqueUsers.add(merchant);
           
@@ -768,14 +769,14 @@ async function connectBlockchain() {
       logTelemetry("INFO", `Configuring contracts. Registry: ${REGISTRY_ADDRESS}, Auditor: ${AUDITOR_ADDRESS}`);
       
       const REGISTRY_ABI = [
-        "event SubscriptionCreated(bytes32 indexed subId, address indexed subscriber, address indexed merchant, address tokenAddress, uint256 ratePerSecond, uint256 cliffTime, uint256 stopTime)",
+        "event SubscriptionCreated(bytes32 indexed subId, address indexed subscriber, address indexed merchant, address tokenAddress, uint256 amountPerPeriod, uint256 periodSeconds, uint256 cliffTime, uint256 stopTime)",
         "event StreamPaused(bytes32 indexed subId, string reason)",
         "event StreamResumed(bytes32 indexed subId)",
         "event StreamTerminated(bytes32 indexed subId)",
         "event FundsWithdrawn(bytes32 indexed subId, address indexed merchant, uint256 amount)",
         "event DisputeOpened(bytes32 indexed subId, address indexed subscriber)",
         "event DisputeResolved(bytes32 indexed subId, uint256 subscriberRefund, uint256 merchantShare)",
-        "function getSubscriptionDetails(bytes32 subId) view returns (address subscriber, address merchant, address tokenAddress, uint256 ratePerSecond, uint256 lastClaimedTimestamp, uint256 startTime, uint256 cliffTime, uint256 stopTime, bool active, bool pausedByAI, uint8 disputeState, uint256 claimableAmount)",
+        "function getSubscriptionDetails(bytes32 subId) view returns (tuple(address subscriber, address merchant, address tokenAddress, uint256 amountPerPeriod, uint256 periodSeconds, uint256 billedSeconds, uint256 settledAmount, uint256 settledFees, uint256 feeDust, uint256 lastTickTimestamp, uint256 startTime, uint256 cliffTime, uint256 stopTime, bool active, bool pausedByAI, uint8 dispute) sub, uint256 claimableAmount)",
         "function getSubscriberSubscriptions(address subscriber) view returns (bytes32[])"
       ];
 
@@ -884,8 +885,10 @@ async function auditActiveStreams() {
 
   for (const subId of activeSubIds) {
     try {
-      const details = await registryContract.getSubscriptionDetails(subId);
-      const [subscriber, merchant, tokenAddress, ratePerSecond, , , , , active, pausedByAI, , claimableAmount] = details;
+      const [sub, claimableAmount] = await registryContract.getSubscriptionDetails(subId);
+      const subscriber = sub.subscriber, merchant = sub.merchant, tokenAddress = sub.tokenAddress;
+      const active = sub.active, pausedByAI = sub.pausedByAI;
+      const ratePerSecond = sub.periodSeconds > 0n ? sub.amountPerPeriod / sub.periodSeconds : sub.amountPerPeriod;
 
       if (!active || pausedByAI) {
         // Clean up from memory if no longer active or already paused by AI
@@ -990,8 +993,9 @@ function setupEventListeners() {
 
       // Process Registry events
       for (const ev of evCreated) {
-        const [subId, subscriber, merchant, tokenAddress, rate, cliff, stop] = ev.args;
-        console.log(`[POLLER] New SubscriptionCreated detected: ${subId} subscriber=${subscriber} rate=${rate.toString()}`);
+        const [subId, subscriber, merchant, tokenAddress, amountPerPeriod, periodSeconds, cliff, stop] = ev.args;
+        const rate = periodSeconds > 0n ? amountPerPeriod / periodSeconds : amountPerPeriod;
+        console.log(`[POLLER] New SubscriptionCreated detected: ${subId} subscriber=${subscriber} rate=${rate.toString()}/s`);
         uniqueUsers.add(subscriber);
         uniqueUsers.add(merchant);
         activeStreamRisks[subId] = 12;

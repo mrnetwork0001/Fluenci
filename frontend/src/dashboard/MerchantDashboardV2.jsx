@@ -69,6 +69,8 @@ export default function MerchantDashboardV2({
   claiming = false,
   savingPolicy = false,
   onClaim = () => {},
+  onVerify = () => {},
+  verifying = false,
   onSavePolicy = () => {},
   onCopyPaymentLink = () => {},
   onRegisterName = () => {},
@@ -195,14 +197,25 @@ export default function MerchantDashboardV2({
                   qUSDC
                 </span>
               </div>
-              <button
-                className="fl-btn fl-btn--primary fl-btn--block"
-                disabled={!canClaim}
-                onClick={() => onClaim?.()}
-                style={{ marginBottom: 12 }}
-              >
-                {claiming ? "Claiming…" : "Claim to wallet"}
-              </button>
+              {!loading && !qiePassVerified ? (
+                <button
+                  className="fl-btn fl-btn--primary fl-btn--block"
+                  disabled={verifying}
+                  onClick={() => onVerify?.()}
+                  style={{ marginBottom: 12 }}
+                >
+                  {verifying ? "Opening QIE Pass…" : "Verify with QIE Pass"}
+                </button>
+              ) : (
+                <button
+                  className="fl-btn fl-btn--primary fl-btn--block"
+                  disabled={!canClaim}
+                  onClick={() => onClaim?.()}
+                  style={{ marginBottom: 12 }}
+                >
+                  {claiming ? "Claiming…" : "Claim to wallet"}
+                </button>
+              )}
               <div style={{ color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.55 }}>
                 {loading ? "Reading your balance." : claimNote}
               </div>

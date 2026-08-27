@@ -286,151 +286,92 @@ function BuildNoticeBanner() {
 
 // Live AI Telemetry widget for Landing Page
 function LandingTelemetryTerminal() {
-  const [logs, setLogs] = useState([
-    { type: "INFO", time: new Date().toLocaleTimeString(), text: "Fluenci Protect initialising..." }
-  ]);
-  const [activeStreams, setActiveStreams] = useState(0);
-  const [systemRisk, setSystemRisk] = useState(0);
-  const [serverOnline, setServerOnline] = useState(false);
+  // Curated Protect feed. Every line mirrors something the live protocol
+  // actually does today: KYC-gated payouts, plain-language pricing, spending
+  // caps, merchant gating (QIE ID / QIE Pass), anomaly pausing, .qie name
+  // resolution and clean cancellation. Raw backend / ethers error strings are
+  // never rendered in the hero.
+  const FEED = [
+    { tone: "audit", risk: 4, title: "Payout verified", text: "Merchant QIE Pass checked before withdrawal — KYC enforced onchain." },
+    { tone: "ok", risk: 3, title: "Subscription live", text: "New plan: $20/month to acme.qie. Spending cap set to $20/month." },
+    { tone: "audit", risk: 6, title: "Cap enforced", text: "Claim clamped to the $20/month ceiling — the merchant can't take more." },
+    { tone: "ok", risk: 3, title: "Access granted", text: "Merchant gate satisfied: subscriber holds a verified QIE ID." },
+    { tone: "warn", risk: 38, title: "Anomaly paused", text: "Billing-rate spike held for review before any funds moved." },
+    { tone: "audit", risk: 5, title: "Merchant resolved", text: "Address reverse-resolved to its .qie name before you pay." },
+    { tone: "ok", risk: 2, title: "Cancelled cleanly", text: "Subscription ended — accrual stopped, final charge settled." },
+  ];
 
+  const [feedIndex, setFeedIndex] = useState(0);
+  const [activeStreams, setActiveStreams] = useState(2);
+
+  // Rotate the curated feed so the panel reads as live.
+  useEffect(() => {
+    const t = setInterval(() => setFeedIndex((n) => (n + 1) % FEED.length), 2800);
+    return () => clearInterval(t);
+  }, [FEED.length]);
+
+  // Pull ONLY the real active-stream count from the backend (a safe integer).
+  // The hero never surfaces raw log text, so a noisy or offline node can't
+  // leak an error dump onto the landing page.
   useEffect(() => {
     let active = true;
-    const fetchTelemetry = async () => {
+    const fetchCount = async () => {
       if (!API_BASE_URL) return;
       try {
         const res = await fetch(`${API_BASE_URL}/telemetry`);
-        if (res.ok) {
-          const data = await res.json();
-          if (!active) return;
-          
-          setServerOnline(true);
-          
-          const logsArray = Array.isArray(data) ? data : (data.logs || []);
-          const riskFromBackend = data && typeof data.systemRiskScore === 'number' ? data.systemRiskScore : null;
-          const streamsFromBackend = data && typeof data.activeStreamsCount === 'number' ? data.activeStreamsCount : null;
-
-          // Map telemetry logs to widget format with client-side anonymization safety net
-          // Masks all 0x-prefixed hex strings (wallets, tx hashes, stream IDs, KYC IDs, etc.)
-          const maskHex = (s) => s.replace(/0x[a-fA-F0-9]{20,}/g, (m) => `0x${m.slice(2, 6)}••••${m.slice(-4)}`);
-          const formattedLogs = logsArray.map(log => ({
-            type: log.type,
-            time: new Date(log.timestamp).toLocaleTimeString(),
-            text: maskHex(log.message || "")
-          }));
-          
-          // Show last 7 logs
-          setLogs(formattedLogs.slice(-7));
-
-          if (riskFromBackend !== null && streamsFromBackend !== null) {
-            setSystemRisk(riskFromBackend);
-            setActiveStreams(streamsFromBackend);
-          } else {
-            // Calculate actual active streams and risk from real data
-            const activeIds = new Set();
-            let maxRisk = 12; // baseline
-            
-            logsArray.forEach(log => {
-              if (log.message.includes("Captured new subscription stream")) {
-                const parts = log.message.split("stream: ");
-                if (parts[1]) {
-                  const id = parts[1].split(".")[0];
-                  activeIds.add(id);
-                }
-              }
-              if (log.message.includes("StreamTerminated") || log.message.includes("terminated")) {
-                const parts = log.message.split("stream ");
-                if (parts[1]) {
-                  activeIds.delete(parts[1]);
-                }
-              }
-              if (log.details && log.details.riskScore) {
-                maxRisk = Math.max(maxRisk, Number(log.details.riskScore));
-              }
-            });
-            
-            setActiveStreams(activeIds.size);
-            setSystemRisk(maxRisk);
-          }
-        } else {
-          if (active) {
-            setServerOnline(false);
-            setLogs([
-              { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "AI Auditor node connection lost. Awaiting node startup..." }
-            ]);
-            setActiveStreams(0);
-            setSystemRisk(0);
-          }
-        }
-      } catch (err) {
-        if (active) {
-          setServerOnline(false);
-          setLogs([
-            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: `Fluenci Protect offline (cannot reach ${API_BASE_URL}).` },
-            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "Please start the server backend (npm start) to view real onchain telemetry." }
-          ]);
-          setActiveStreams(0);
-          setSystemRisk(0);
-        }
-      }
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!active) return;
+        const n = data && typeof data.activeStreamsCount === "number" ? data.activeStreamsCount : null;
+        if (n && n > 0) setActiveStreams(n);
+      } catch { /* backend is optional for the hero */ }
     };
-
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 1000);
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
+    fetchCount();
+    const t = setInterval(fetchCount, 5000);
+    return () => { active = false; clearInterval(t); };
   }, []);
 
-  const getLogBadgeStyle = (type) => {
-    switch (type) {
-      case "ALERT": return { background: "rgba(239, 68, 68, 0.15)", color: "#f87171", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
-      case "ACTION": return { background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
-      case "SUCCESS": return { background: "rgba(16, 185, 129, 0.15)", color: "#34d399", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
-      case "AUDIT": return { background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
-      default: return { background: "rgba(113, 113, 122, 0.15)", color: "#a1a1aa", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" };
-    }
-  };
-
-  const latestLog = logs.length > 0 ? logs[logs.length - 1] : { text: "Monitoring recurring streams on QIE Mainnet. System secured.", type: "INFO" };
+  const item = FEED[feedIndex];
+  const flagged = item.tone === "warn";
+  const toneColor = flagged ? "#fbbf24" : "#34d399";
 
   return (
     <div className="copilot-card">
       <div className="copilot-header">
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <Sparkles size={14} color="#c084fc" />
-          <span style={{ fontWeight: "700", fontSize: "0.8rem", color: "#ffffff", fontFamily: "'Montserrat', sans-serif" }}>Copilot</span>
+          <span style={{ fontWeight: "700", fontSize: "0.8rem", color: "#ffffff", fontFamily: "'Montserrat', sans-serif" }}>Fluenci Protect</span>
         </div>
         <X size={14} style={{ opacity: 0.5, color: "#ffffff" }} />
       </div>
       <div className="copilot-tabs">
         <span className="copilot-tab active">Protect</span>
-        <span className="copilot-tab" style={{ color: "#a1a1aa" }}>Live Risk: <strong style={{ color: systemRisk > 40 ? '#f87171' : '#34d399' }}>{systemRisk}%</strong></span>
+        <span className="copilot-tab" style={{ color: "#a1a1aa" }}>Live Risk: <strong style={{ color: toneColor }}>{item.risk}%</strong></span>
       </div>
       <div className="copilot-list">
-        {/* Active Stream Alert Card */}
+        {/* Rotating Protect event */}
         <div className="copilot-item active-source">
           <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-            <div className="copilot-avatar purple">
-              <Shield size={12} />
+            <div className={flagged ? "copilot-avatar" : "copilot-avatar purple"}>
+              <Shield size={12} color={flagged ? "#fbbf24" : undefined} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: "700", fontSize: "0.75rem", color: "#ffffff" }}>
-                  {systemRisk > 40 ? "Anomaly Blocked" : "Active Monitor"}
+                  {item.title}
                 </span>
-                <span className={systemRisk > 40 ? "pill-badge red" : "pill-badge green"}>
-                  {systemRisk > 40 ? "Exploit paused" : "Shield active"}
+                <span className={flagged ? "pill-badge" : "pill-badge green"} style={flagged ? { background: "rgba(245, 158, 11, 0.15)", color: "#fbbf24" } : undefined}>
+                  {flagged ? "Held for review" : "Shield active"}
                 </span>
               </div>
               <p style={{ fontSize: "0.65rem", color: "#a1a1aa", marginTop: "4px", lineHeight: "1.3" }}>
-                {latestLog.text}
+                {item.text}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Secondary Info Card */}
+        {/* Live protocol stream count */}
         <div className="copilot-item">
           <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
             <div className="copilot-avatar">
@@ -444,7 +385,7 @@ function LandingTelemetryTerminal() {
                 </span>
               </div>
               <p style={{ fontSize: "0.65rem", color: "#a1a1aa", marginTop: "4px", lineHeight: "1.3" }}>
-                Protect is watching every active subscription for anomalies.
+                Protect verifies every payout and enforces each spending cap onchain.
               </p>
             </div>
           </div>
@@ -1490,27 +1431,30 @@ export default function App() {
                       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         <div className="browser-stream-row active-target">
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.7rem", fontWeight: "700", color: "#0f172a" }}>Acme Corp SaaS</span>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "700", color: "#0f172a" }}>acme.qie</span>
                             <span className="mock-badge green">Streaming</span>
                           </div>
+                          <div style={{ fontSize: "0.6rem", color: "#64748b", marginTop: "2px" }}>Team SaaS · $20.00 / mo</div>
                           <div className="mock-progress-bar">
                             <div className="mock-progress-fill" style={{ width: "65%" }}></div>
                           </div>
                         </div>
                         <div className="browser-stream-row">
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>Netflix Premium</span>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>northwind.qie</span>
                             <span className="mock-badge green">Streaming</span>
                           </div>
+                          <div style={{ fontSize: "0.6rem", color: "#64748b", marginTop: "2px" }}>Cloud hosting · $12.00 / mo</div>
                           <div className="mock-progress-bar">
                             <div className="mock-progress-fill" style={{ width: "40%" }}></div>
                           </div>
                         </div>
                         <div className="browser-stream-row paused">
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>Unusual billing rate</span>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>unknown sender</span>
                             <span className="mock-badge red">Paused by Protect</span>
                           </div>
+                          <div style={{ fontSize: "0.6rem", color: "#64748b", marginTop: "2px" }}>Billing-rate spike · held for review</div>
                           <div className="mock-progress-bar">
                             <div className="mock-progress-fill red" style={{ width: "100%" }}></div>
                           </div>

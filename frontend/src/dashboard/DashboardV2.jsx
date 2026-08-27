@@ -469,7 +469,6 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             onNewSubscription={() => setActive("subscriptions")}
             onSetLimit={() => setActive("limits")}
             onClearLimit={guard((sub) => v4.clearSpendCap(sub.merchant))}
-            onOpenDispute={guard((sub) => v4.openDispute(sub.id))}
             onCancel={guard((sub) => v4.terminateStream(sub.id))}
           />
         );

@@ -87,6 +87,12 @@ function monthlyUnits(sub) {
 /** Derive the row pill from the onchain flags, unless the caller states one. */
 function statusOf(sub) {
   if (sub.status) return sub.status;
+  // Cancelled: terminateStream stamped a stopTime in the past, so accrual is
+  // frozen. The row can linger as active===true until the merchant claims the
+  // final owed amount - label it Cancelled, not Active, so the user sees the
+  // cancel took effect.
+  const now = Math.floor(Date.now() / 1000);
+  if (Number(sub.stopTime || 0) > 0 && Number(sub.stopTime) <= now) return "ended";
   if (Number(sub.dispute || 0) === 1) return "disputed";
   if (sub.pausedByAI || sub.active === false) return "paused";
   const cap = sub.cap;
@@ -112,6 +118,7 @@ const STATUS_PILL = {
   capped: { cls: "fl-pill--warn", label: "Capped" },
   paused: { cls: "fl-pill--off", label: "Paused" },
   disputed: { cls: "fl-pill--warn", label: "Disputed" },
+  ended: { cls: "fl-pill--off", label: "Cancelled" },
 };
 
 const GATE_QIE_ID = 1;
@@ -154,13 +161,13 @@ function Skeleton({ w = "100%", h = 12 }) {
   return <div style={{ width: w, height: h, borderRadius: 4, background: "var(--fl-raised)" }} />;
 }
 
-function RowMenu({ sub, open, onToggle, onSetLimit, onClearLimit, onOpenDispute, onCancel }) {
+function RowMenu({ sub, open, onToggle, onSetLimit, onClearLimit, onCancel }) {
   const hasCap = Boolean(sub.cap && toUnits(sub.cap.maxAmount) > 0n);
+  const cancelled = Number(sub.stopTime || 0) > 0 && Number(sub.stopTime) <= Math.floor(Date.now() / 1000);
   const items = [
     { key: "limit", label: hasCap ? "Change spending limit" : "Set spending limit", run: () => onSetLimit?.(sub) },
     hasCap ? { key: "clear", label: "Remove spending limit", run: () => onClearLimit?.(sub) } : null,
-    { key: "dispute", label: "Open a dispute", run: () => onOpenDispute?.(sub) },
-    { key: "cancel", label: "Cancel subscription", run: () => onCancel?.(sub) },
+    cancelled ? null : { key: "cancel", label: "Cancel subscription", run: () => onCancel?.(sub) },
   ].filter(Boolean);
 
   return (
@@ -216,7 +223,6 @@ export default function SubscriberDashboard({
   onNewSubscription,
   onSetLimit,
   onClearLimit,
-  onOpenDispute,
   onCancel,
   onViewExplorer,
 }) {
@@ -393,8 +399,10 @@ export default function SubscriberDashboard({
                   </div>
                   {toUnits(sub.owed) > 0n && (
                     <div className="fl-mono fl-stat-value--accent" style={{ fontSize: 11, marginTop: 3 }}
-                         title="Accrued and claimable by the merchant, not yet withdrawn from your wallet">
-                      {money(sub.owed)} accruing
+                         title={status === "ended"
+                           ? "Final charge for the time already streamed, claimable by the merchant. It stopped growing when you cancelled."
+                           : "Accrued and claimable by the merchant, not yet withdrawn from your wallet"}>
+                      {money(sub.owed)} {status === "ended" ? "final charge" : "accruing"}
                     </div>
                   )}
                 </div>
@@ -422,7 +430,6 @@ export default function SubscriberDashboard({
                   onToggle={(next) => setOpenMenu(next ? rowKey : null)}
                   onSetLimit={onSetLimit}
                   onClearLimit={onClearLimit}
-                  onOpenDispute={onOpenDispute}
                   onCancel={onCancel}
                 />
               </div>

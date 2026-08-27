@@ -79,6 +79,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
           active: s.active,
           pausedByAI: s.pausedByAI,
           dispute: Number(s.dispute),
+          stopTime: Number(s.stopTime),
           settledAmount: s.settledAmount,
           owed,
         };

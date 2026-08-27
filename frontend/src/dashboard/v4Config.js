@@ -39,7 +39,7 @@ export const REGISTRY_V4_ABI = [
   "function openDispute(bytes32 subId) external",
   "function resumeStream(bytes32 subId) external",
   "function previewOwed(bytes32 subId) external view returns (uint256)",
-  "function getSubscription(bytes32 subId) external view returns (tuple(address subscriber,address merchant,address tokenAddress,uint256 amountPerPeriod,uint256 periodSeconds,uint256 billedSeconds,uint256 settledAmount,uint256 settledFees,uint256 lastTickTimestamp,uint256 startTime,uint256 cliffTime,uint256 stopTime,bool active,bool pausedByAI,uint8 dispute))",
+  "function getSubscription(bytes32 subId) external view returns (tuple(address subscriber,address merchant,address tokenAddress,uint256 amountPerPeriod,uint256 periodSeconds,uint256 billedSeconds,uint256 settledAmount,uint256 settledFees,uint256 feeDust,uint256 lastTickTimestamp,uint256 startTime,uint256 cliffTime,uint256 stopTime,bool active,bool pausedByAI,uint8 dispute))",
   "function getSubscriberSubscriptions(address subscriber) external view returns (bytes32[])",
   "function getMerchantSubscriptions(address merchant) external view returns (bytes32[])",
   "function setSpendCap(address merchant, uint256 maxAmount, uint256 periodSeconds) external",

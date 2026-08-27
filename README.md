@@ -25,9 +25,9 @@ Read this before anything else in the file.
 | | State |
 |---|---|
 | FluenciRegistry **v3** | Live on QIE mainnet. This is what `fluenci.xyz` talks to today. |
-| FluenciRegistry **v4** | Written and tested (50 passing tests). **Not yet deployed to mainnet.** |
-| FluenciReputationAttestor | Written and tested. Not deployed. Needs QIE's signing key before the reputation gate can do anything. |
-| v2 dashboard (consumer UI, Fluenci Protect, spending limits) | Built against v4, behind an env flag. Goes live with the v4 cutover. |
+| FluenciRegistry **v4** | **Live on QIE mainnet** at `0xCc92ab9B5D973ad9598C53aC28350C34895a2e33`. 66 passing tests, three adversarial audit rounds. |
+| FluenciReputationAttestor | **Live on QIE mainnet** at `0x1e89d42C5459b4E8e26b4991DA0f7E0C97CD33B7`. The reputation gate activates once QIE issues its signing key. |
+| v2 dashboard (consumer UI, Fluenci Protect, spending limits) | **Live** — the public app on `fluenci.xyz` runs v2 against the v4 contracts. |
 | No-code merchant payment links | **Not built.** Next phase. |
 | SDK / "Pay with Fluenci" embed | **Not built.** Next phase. |
 | Merchant directory / marketplace | **Not built.** Next phase. |
@@ -232,18 +232,20 @@ window. No KYC data, no documents, no underlying signals.
 
 | Contract | Address |
 |---|---|
-| FluenciRegistry (v3) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
+| **FluenciRegistryV4** (current) | [`0xCc92ab9B5D973ad9598C53aC28350C34895a2e33`](https://mainnet.qie.digital/address/0xCc92ab9B5D973ad9598C53aC28350C34895a2e33) |
+| **FluenciReputationAttestor** | [`0x1e89d42C5459b4E8e26b4991DA0f7E0C97CD33B7`](https://mainnet.qie.digital/address/0x1e89d42C5459b4E8e26b4991DA0f7E0C97CD33B7) |
+| FluenciRegistry (v3, legacy) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
 | FluenciAIAuditor | [`0xF38d9458d14d916B60026693a76FBe7cDEf651Fa`](https://mainnet.qie.digital/address/0xF38d9458d14d916B60026693a76FBe7cDEf651Fa) |
 | FluenciRouter | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
 | QIE Pass oracle bridge (Fluenci-deployed, unverified) | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
 | AI worker hot wallet (EOA) | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
 
-New stream creation against v3 is frozen in the frontend (`V3_WRITES_FROZEN`) while v4
+The public app now serves v2 against v4; the v3 dashboard remains reachable at `/v1`. Historically v3 writes were frozen (`V3_WRITES_FROZEN`) while v4
 lands. Existing v3 streams keep settling.
 
 ### Not yet deployed
 
-`FluenciRegistryV4` and `FluenciReputationAttestor` have no mainnet address. Deploy them with
+`FluenciRegistryV4` was deployed at block 10031934. The v2 frontend and the deploy record point to the addresses above; redeploy (a fresh address) is only needed for a contract-logic change, never a config one (treasury, signer, auditor and fee are all setter-adjustable).
 `contracts/scripts/deployV4.ts`; the frontend picks them up from
 `VITE_REGISTRY_V4_ADDRESS` and `VITE_REPUTATION_ATTESTOR_ADDRESS`, so cutover is an
 environment change rather than a code edit.
@@ -263,7 +265,7 @@ npx hardhat compile
 npx hardhat test
 ```
 
-50 tests cover v4 and the attestor, across `FluenciV4`, `FluenciV4.security` and
+66 tests cover v4 and the attestor, across `FluenciV4`, `FluenciV4.security` and
 `FluenciAttestation`. `test/Fluenci.test.ts` is the legacy v3 suite - a further 10 tests,
 still passing against the v3 registry.
 
@@ -320,7 +322,7 @@ React 19. A plain `npm install` fails on a clean clone.
 ```ini
 VITE_API_URL=http://127.0.0.1:5001
 VITE_REGISTRY_ADDRESS=              # v3 registry
-VITE_REGISTRY_V4_ADDRESS=           # v4 registry, once deployed
+VITE_REGISTRY_V4_ADDRESS=0xCc92ab9B5D973ad9598C53aC28350C34895a2e33   # live; also baked as the code default
 VITE_REPUTATION_ATTESTOR_ADDRESS=
 VITE_REPUTATION_API_URL=            # QIE reputation service base URL
 ```

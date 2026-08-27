@@ -1,7 +1,7 @@
 // FluenciRegistryV4 wiring. Addresses come from env so the v4 cutover is a Vercel
 // change rather than a code edit - same pattern as VITE_REGISTRY_ADDRESS for v3.
-export const V4_REGISTRY = import.meta.env.VITE_REGISTRY_V4_ADDRESS || "";
-export const V4_ATTESTOR = import.meta.env.VITE_REPUTATION_ATTESTOR_ADDRESS || "";
+export const V4_REGISTRY = import.meta.env.VITE_REGISTRY_V4_ADDRESS || "0xCc92ab9B5D973ad9598C53aC28350C34895a2e33";
+export const V4_ATTESTOR = import.meta.env.VITE_REPUTATION_ATTESTOR_ADDRESS || "0x1e89d42C5459b4E8e26b4991DA0f7E0C97CD33B7";
 
 // Reputation is an off-chain HTTP service; the base URL is injected, never hardcoded.
 export const REPUTATION_API = import.meta.env.VITE_REPUTATION_API_URL || "";

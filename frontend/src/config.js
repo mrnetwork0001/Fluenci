@@ -7,9 +7,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalDev ? "http:
 // state is greppable instead of hidden in a dashboard.
 
 // Shows the "Fluenci v2 is being built" banner on every view.
-export const V2_BUILD_NOTICE = true;
+export const V2_BUILD_NOTICE = false;
 
 // Blocks new stream creation against the v3 registry while v4 is deployed.
 // Existing streams keep settling; only createSubscription is frozen.
 // Set back to false in the same window that VITE_REGISTRY_ADDRESS moves to v4.
-export const V3_WRITES_FROZEN = true;
+export const V3_WRITES_FROZEN = false;

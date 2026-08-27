@@ -8,7 +8,7 @@ const STORAGE_KEY = "fluenci_chat_sessions";
 const AI_RESPONSES = [
   { keywords: ["fluenci", "what is", "about"], response: "Fluenci is a decentralized real-time streaming payment protocol on QIE Blockchain. Instead of monthly charges, you pay per second - and an AI Sentry Network watches every stream for anomalies." },
   { keywords: ["stream", "how", "work"], response: "Streaming payments flow continuously at a rate you set (e.g., 0.0001 QUSDC/sec). The smart contract pulls from your wallet via transferFrom - you keep full custody at all times." },
-  { keywords: ["qie", "blockchain", "chain"], response: "QIE is an EVM-compatible L1 blockchain (Chain ID 1990). It supports QIE Wallet, QIE Pass, QIEDex, QIE Domains, and QUSDC stablecoin." },
+  { keywords: ["qie", "blockchain", "chain"], response: "QIE is an EVM-compatible L1 blockchain (Chain ID 1990). It supports QIE Wallet, QIE Pass, QIEDex, QIE ID, and QUSDC stablecoin." },
   { keywords: ["ai", "sentry", "security"], response: "The AI Sentry uses multi-agent GPT-4o analysis to detect and pause suspicious streams autonomously via EIP-712 signatures." },
   { keywords: ["hello", "hi", "hey"], response: "Hey! 👋 I'm the Fluenci AI assistant powered by GPT-4o. Ask me anything about streaming payments, QIE, or DeFi!" },
   { keywords: ["help", "can you"], response: "I can help with Fluenci streaming, QIE ecosystem, AI Sentry security, QUSDC stablecoin, NFT subscriptions, and more. Just ask!" },

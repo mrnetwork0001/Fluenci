@@ -78,7 +78,7 @@ We evaluated multiple chains before committing to QIE, and the decision came dow
 
 **Negligible gas costs.** Every stream claim, every AI pause, every dispute resolution is an onchain transaction. On Ethereum, the gas costs would make micro-payment streaming economically impossible. On QIE, these operations cost fractions of a cent, making per-second streaming viable for everyday use.
 
-**Native ecosystem infrastructure.** QIE isn't just a chain - it's an ecosystem with native DID (QIE Pass), domain resolution (QIE Domains), stablecoin infrastructure (QUSDC), and DEX liquidity (QIEDex). Fluenci integrates deeply with all of these, rather than rebuilding them from scratch.
+**Native ecosystem infrastructure.** QIE isn't just a chain - it's an ecosystem with native DID (QIE Pass), domain resolution (QIE ID), stablecoin infrastructure (QUSDC), and DEX liquidity (QIEDex). Fluenci integrates deeply with all of these, rather than rebuilding them from scratch.
 
 ---
 
@@ -90,7 +90,7 @@ Fluenci doesn't just run on QIE. It's architecturally integrated with the core Q
 
 **QIEDex (Attributed Swap Routing).** Users often hold native QIE tokens but need QUSDC stablecoins for streaming. The FluenciRouter contract wraps swap interactions through QIEDex's AMM, converting QIE to QUSDC seamlessly. Every swap emits a FluenciSwap event onchain, creating a fully auditable trail of swap volume attributed to the Fluenci protocol.
 
-**QIE Domains (.qie Resolution).** Instead of displaying raw hexadecimal addresses, Fluenci resolves registered .qie domain names directly from the QIE Domain Registry. Users see human-readable names like mrnetwork.qie throughout the interface.
+**QIE ID (.qie Resolution).** Instead of displaying raw hexadecimal addresses, Fluenci resolves registered .qie domain names directly from the QIE Domain Registry. Users see human-readable names like mrnetwork.qie throughout the interface.
 
 **QUSDC (Stablecoin Streaming).** All payment streams are denominated in QUSDC to ensure merchants receive stable, predictable value regardless of native token price volatility.
 

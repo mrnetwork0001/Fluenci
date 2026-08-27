@@ -374,7 +374,7 @@ export default function FluenciDocs() {
                   <li>Click the <strong>Verify QIE Pass</strong> button in the Subscriber Panel.</li>
                   <li>When prompted, <strong>switch your wallet network to QIE Testnet</strong> (RPC URL: <code>https://rpc4testnet.qie.digital/</code>). This network is used specifically for the signature KYC authorization registry steps.</li>
                   <li>Complete the registration and sign the consent payload inside the redirect interface.</li>
-                  <li>Once completed, <strong>switch your wallet network back to QIE Mainnet</strong> (RPC URL: <code>https://rpc1mainnet.qie.digital</code>). Your verified status will automatically resolve on-chain.</li>
+                  <li>Once completed, <strong>switch your wallet network back to QIE Mainnet</strong> (RPC URL: <code>https://rpc1mainnet.qie.digital</code>). Your verified status will automatically resolve onchain.</li>
                 </ol>
               </div>
 
@@ -449,7 +449,7 @@ export default function FluenciDocs() {
               />
               <ContractCard 
                 name="QIE Domain Registry" 
-                description="Official name service. Resolves human-readable '.qie' domains to standard hex wallet addresses directly on-chain."
+                description="Official name service. Resolves human-readable '.qie' domains to standard hex wallet addresses directly onchain."
                 address="0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed"
                 isVerified={true}
               />

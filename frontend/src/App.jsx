@@ -14,8 +14,11 @@ import QiePassLogo from "./assets/qiepass.png";
 import QieWalletLogo from "./assets/qiewallet.png";
 import QieStableCoinLogo from "./assets/qusdc.png";
 import QieDexLogo from "./assets/qiedex.png";
-import QieDomainsLogo from "./assets/qiedomains.png";
+import QieIdLogo from "./assets/qie-id.svg";
+import QieLogoImage from "./assets/qie-logo.png";
 import "./App.css";
+import DashboardV2 from "./dashboard/DashboardV2";
+import { V4_CONFIGURED } from "./dashboard/v4Config";
 import { API_BASE_URL, V2_BUILD_NOTICE } from "./config";
 
 // Default deployment addresses
@@ -94,7 +97,16 @@ function FAQItem({ question, answer, index, isOpen, onToggle }) {
   );
 }
 // Typewriter effect component - cycles through words with type-in / delete animation
-const HERO_TYPEWRITER_WORDS = ["Blind", "Rogue", "Unaudited"];
+const QIE_ECOSYSTEM = [
+                  { logo: QiePassLogo, name: "QIE Pass", desc: "QIE's identity system. Merchants need a verified Pass to withdraw; subscribers do not need one to subscribe. Fluenci records Pass status through an oracle it operates.", accent: "0, 242, 254" },
+                  { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
+                  { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
+                  { logo: QieLogoImage, name: "QIE Reputation", desc: "Wallet scores computed offchain by QIE. Fluenci verifies a signed score and stores only the result, never KYC data. Awaiting QIE's signing key.", accent: "245, 158, 11" },
+                  { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
+                  { logo: QieIdLogo, name: "QIE ID", desc: "Human-readable identity for a wallet. Fluenci resolves a .qie name to an address, and an address back to its primary name, in one call.", accent: "236, 72, 153" }
+];
+
+const HERO_TYPEWRITER_WORDS = ["Read", "Cap", "Cancel"];
 
 function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, deletingSpeed = 80, holdDuration = 2000 }) {
   const wordsRef = useRef(words);
@@ -161,7 +173,7 @@ function TypewriterWord({ words = HERO_TYPEWRITER_WORDS, typingSpeed = 120, dele
   );
 }
 
-// v2 build notice — restored from 38f4c60 (CSS for .qie-upgrade-* is still in index.css),
+// v2 build notice - restored from 38f4c60 (CSS for .qie-upgrade-* is still in index.css),
 // recolored from outage-amber to brand cyan and rewritten for the v2 rebuild.
 function BuildNoticeBanner() {
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -224,7 +236,7 @@ function BuildNoticeBanner() {
                 <span className="pill-badge" style={{ padding: "2px 8px", fontSize: "0.68rem", background: "rgba(7, 154, 183, 0.15)", color: "#079AB7", border: "1px solid rgba(7, 154, 183, 0.3)", borderRadius: "20px", fontWeight: "700", marginLeft: "8px" }}>V2 IN PROGRESS</span>
               </div>
               <div className="qie-upgrade-desc">
-                v1 is live on this site and settling real streams on QIE mainnet — we're rebuilding the streaming registry and dashboard against a new integration spec, and v2 deploys to this domain the day the contracts land.
+                v1 is live on this site and settling real streams on QIE mainnet - we're rebuilding the streaming registry and dashboard against a new integration spec, and v2 deploys to this domain the day the contracts land.
               </div>
             </div>
           </div>
@@ -275,7 +287,7 @@ function BuildNoticeBanner() {
 // Live AI Telemetry widget for Landing Page
 function LandingTelemetryTerminal() {
   const [logs, setLogs] = useState([
-    { type: "INFO", time: new Date().toLocaleTimeString(), text: "Fluenci AI Sentry Node Initializing..." }
+    { type: "INFO", time: new Date().toLocaleTimeString(), text: "Fluenci Protect initialising..." }
   ]);
   const [activeStreams, setActiveStreams] = useState(0);
   const [systemRisk, setSystemRisk] = useState(0);
@@ -353,7 +365,7 @@ function LandingTelemetryTerminal() {
         if (active) {
           setServerOnline(false);
           setLogs([
-            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: `AI Sentry Node offline (Cannot fetch from ${API_BASE_URL}).` },
+            { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: `Fluenci Protect offline (cannot reach ${API_BASE_URL}).` },
             { type: "SYSTEM", time: new Date().toLocaleTimeString(), text: "Please start the server backend (npm start) to view real onchain telemetry." }
           ]);
           setActiveStreams(0);
@@ -392,7 +404,7 @@ function LandingTelemetryTerminal() {
         <X size={14} style={{ opacity: 0.5, color: "#ffffff" }} />
       </div>
       <div className="copilot-tabs">
-        <span className="copilot-tab active">Sentry Node</span>
+        <span className="copilot-tab active">Protect</span>
         <span className="copilot-tab" style={{ color: "#a1a1aa" }}>Live Risk: <strong style={{ color: systemRisk > 40 ? '#f87171' : '#34d399' }}>{systemRisk}%</strong></span>
       </div>
       <div className="copilot-list">
@@ -432,7 +444,7 @@ function LandingTelemetryTerminal() {
                 </span>
               </div>
               <p style={{ fontSize: "0.65rem", color: "#a1a1aa", marginTop: "4px", lineHeight: "1.3" }}>
-                AI Sentry agent continuously auditing stream velocities.
+                Protect is watching every active subscription for anomalies.
               </p>
             </div>
           </div>
@@ -453,11 +465,27 @@ export default function App() {
     const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
     switch (path) {
       case 'blog': return { view: 'blog', tab: 'subscriber' };
-      case 'subscription': return { view: 'dashboard', tab: 'subscriber' };
-      case 'merchants': return { view: 'dashboard', tab: 'merchant' };
-      case 'security': return { view: 'dashboard', tab: 'security' };
+      // The v2 dashboard takes over the real routes once a v4 registry is
+      // configured. Until then production keeps serving v1, which is the UI
+      // that actually reads the deployed v3 contracts. Cutover is one env var.
+      case 'subscription': return V4_CONFIGURED
+        ? { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'dashboard' }
+        : { view: 'dashboard', tab: 'subscriber' };
+      case 'merchants': return V4_CONFIGURED
+        ? { view: 'v2', tab: 'merchant', role: 'merchant', v2tab: 'dashboard' }
+        : { view: 'dashboard', tab: 'merchant' };
+      case 'security': return V4_CONFIGURED
+        ? { view: 'v2', tab: 'security', role: 'subscriber', v2tab: 'protect' }
+        : { view: 'dashboard', tab: 'security' };
+      case 'dashboard': return V4_CONFIGURED
+        ? { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'dashboard' }
+        : { view: 'dashboard', tab: 'subscriber' };
+      case 'swap': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'swap' };
+      case 'limits': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'limits' };
       case 'docs': return { view: 'dashboard', tab: 'docs' };
-      case 'dashboard': return { view: 'dashboard', tab: 'subscriber' };
+      // Escape hatches: /v1 always the old dashboard, /v2 always the new one.
+      case 'v1': return { view: 'dashboard', tab: 'subscriber' };
+      case 'v2': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'dashboard' };
       default: return { view: 'landing', tab: 'subscriber' };
     }
   };
@@ -465,6 +493,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(initialRoute.tab);
   const [viewMode, setViewMode] = useState(initialRoute.view);
   const [activeFaqIndex, setActiveFaqIndex] = useState(null);
+  // On mobile the marquee stops animating and becomes a real scroller, so the
+  // arrows move it by one card rather than fighting a CSS animation.
+  const ecosystemTrackRef = useRef(null);
+  const scrollEcosystem = (dir) => {
+    const el = ecosystemTrackRef.current;
+    if (!el) return;
+    const card = el.querySelector(".ecosystem-card");
+    const step = card ? card.getBoundingClientRect().width + 20 : 300;
+    el.scrollBy({ left: dir * step, behavior: "smooth" });
+  };
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDashMenuOpen, setDashMenuOpen] = useState(false);
@@ -497,6 +535,12 @@ export default function App() {
     let targetPath = '/';
     if (viewMode === 'blog') {
       targetPath = '/blog';
+    } else if (viewMode === 'v2') {
+      // v2 owns its own sub-navigation and pushes its own paths; only the
+      // entry path is set here, and anything under it is left alone.
+      const entry = activeTab === 'merchant' ? '/merchants' : '/subscription';
+      targetPath = ['/subscription', '/merchants', '/security', '/swap', '/limits', '/v2']
+        .includes(window.location.pathname) ? window.location.pathname : entry;
     } else if (viewMode === 'dashboard') {
       switch (activeTab) {
         case 'subscriber': targetPath = '/subscription'; break;
@@ -569,7 +613,7 @@ export default function App() {
   };
 
   // Typewriter effect for hero title
-  const heroWords = ["Blind", "Rogue", "Risky"];
+  const heroWords = ["Read", "Cap", "Cancel"];
   const [heroWordIndex, setHeroWordIndex] = useState(0);
   const [heroDisplay, setHeroDisplay] = useState("");
   const [heroTyping, setHeroTyping] = useState(true); // true = typing, false = deleting
@@ -704,7 +748,7 @@ export default function App() {
   // Auto-redirect to dashboard when wallet connects
   useEffect(() => {
     if (!prevAccountRef.current && fluenci.account && (IS_LAUNCHED || isBypassed)) {
-      setViewMode("dashboard");
+      setViewMode(V4_CONFIGURED ? "v2" : "dashboard");
     }
     prevAccountRef.current = fluenci.account;
   }, [fluenci.account, isBypassed]);
@@ -830,6 +874,24 @@ export default function App() {
     );
   };
 
+  // Every "Launch App" affordance goes through here, so the landing page can
+  // never disagree with the URL router about which dashboard is current.
+  const launchApp = (tab = "subscriber") => {
+    if (V4_CONFIGURED) {
+      setViewMode("v2");
+      setActiveTab(tab);
+      window.history.pushState({}, "", tab === "merchant" ? "/merchants" : "/subscription");
+    } else {
+      setViewMode("dashboard");
+      setActiveTab(tab);
+    }
+  };
+
+  const goHome = () => {
+    setViewMode("landing");
+    window.history.pushState({}, "", "/");
+  };
+
   const isSupportedNetwork = fluenci.chainId === 1990;
 
   if (!IS_LAUNCHED && !isBypassed) {
@@ -882,7 +944,7 @@ export default function App() {
         }}>
           <img src={LogoImage} alt="Fluenci" style={{ width: "64px", height: "64px", borderRadius: "16px", marginBottom: "20px" }} />
           <h1 style={{ fontSize: "2.5rem", fontWeight: "900", margin: "0 0 10px 0", letterSpacing: "-0.03em", fontFamily: "'Montserrat', sans-serif" }}>Fluenci</h1>
-          <p style={{ color: "#888888", fontSize: "0.95rem", margin: "0 0 40px 0" }}>AI-Shielded Streaming Payments on QIE Blockchain</p>
+          <p style={{ color: "#888888", fontSize: "0.95rem", margin: "0 0 40px 0" }}>Stripe-style subscriptions for Web3, on QIE Blockchain</p>
           
           <div style={{ fontSize: "0.75rem", color: "#079AB7", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: "700", marginBottom: "16px" }}>
             Public Launch In
@@ -907,6 +969,17 @@ export default function App() {
           © 2026 Fluenci Protocol. All rights reserved.
         </div>
       </div>
+    );
+  }
+
+  if (viewMode === "v2") {
+    return (
+      <DashboardV2
+        fluenci={fluenci}
+        initialRole={initialRoute.role || "subscriber"}
+        initialTab={initialRoute.v2tab || "dashboard"}
+        onHome={goHome}
+      />
     );
   }
 
@@ -966,7 +1039,7 @@ export default function App() {
             </h1>
             {viewMode !== "landing" && (
               <span className="dashboard-subtitle" style={{ fontSize: "0.72rem", color: "#888888", fontWeight: "600", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                AI-Shielded Payment Streams
+                Subscriptions on QIE Blockchain
               </span>
             )}
           </div>
@@ -978,7 +1051,7 @@ export default function App() {
             <nav className="landing-nav">
               <a href="#features" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Features</a>
               <a href="#how-it-works" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>How it works</a>
-              <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>AI Arbitration</a>
+              <a href="#arbitration" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Protect</a>
               <a href="#comparison" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Comparison</a>
               <a href="#faq" style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>FAQ</a>
               <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); }} style={{ color: "#111111", textDecoration: "none", fontWeight: "600", fontSize: "0.9rem", fontFamily: "'Montserrat', sans-serif" }}>Blog</a>
@@ -997,7 +1070,7 @@ export default function App() {
             <div className={`mobile-nav-overlay ${isMobileMenuOpen ? "open" : ""}`}>
               <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
               <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it works</a>
-              <a href="#arbitration" onClick={() => setMobileMenuOpen(false)}>AI Arbitration</a>
+              <a href="#arbitration" onClick={() => setMobileMenuOpen(false)}>Protect</a>
               <a href="#comparison" onClick={() => setMobileMenuOpen(false)}>Comparison</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
               <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('blog'); setMobileMenuOpen(false); }}>Blog</a>
@@ -1142,7 +1215,7 @@ export default function App() {
                 loading={fluenci.loading}
                 switchToQieMainnet={fluenci.switchToQieMainnet}
                 showDashboard={viewMode === "dashboard"}
-                onLaunchApp={() => setViewMode("dashboard")}
+                onLaunchApp={() => launchApp()}
                 announcedProviders={fluenci.announcedProviders}
                 isOpen={isWalletModalOpen}
                 setIsOpen={setWalletModalOpen}
@@ -1306,13 +1379,14 @@ export default function App() {
 
                   {/* Title + Subtitle */}
                   <div className="hero-heading-block">
-                    <h1 className="gradient-title" style={{ fontSize: "3rem", color: "#000000", fontWeight: "900" }}>
-                      <span style={{ fontSize: "3.8rem", whiteSpace: "nowrap" }}>Stop <span style={{ color: "#079AB7", borderRight: "3px solid #079AB7", paddingRight: "2px" }}>{heroDisplay}</span> Streams</span>
-                      <br />
-                      <span style={{ color: "#555555" }}>AI-Shielded Payments.</span>
+                    <h1 className="gradient-title" style={{ color: "#000000", fontWeight: "900", lineHeight: 1.12 }}>
+                      <span className="hero-headline__line1">
+                        Payments you can <span className="hero-typeword">{heroDisplay}</span>
+                      </span>
+                      <span className="hero-headline__line2">Stripe-style subscriptions for Web3.</span>
                     </h1>
                     <p className="hero-subtitle">
-                      Fluenci is an AI-enabled recurring billing platform that empowers Web3 teams to secure transaction streams and block billing exploits in the optimal moment.
+                      Fluenci is recurring billing for Web3. A merchant charges $20 a month, not tokens per second. You see who you are paying, cap what that merchant can take, and cancel whenever you want. The streaming, the stablecoin and the DEX routing run underneath.
                     </p>
                   </div>
 
@@ -1320,7 +1394,7 @@ export default function App() {
                   <div className="hero-cta-stats-block">
                     <div className="hero-cta-buttons" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
                       {(IS_LAUNCHED || isBypassed) ? (
-                        <button className="btn btn-primary" onClick={() => setViewMode("dashboard")}>
+                        <button className="btn btn-primary" onClick={() => launchApp()}>
                           Launch App
                         </button>
                       ) : (
@@ -1427,8 +1501,8 @@ export default function App() {
                         </div>
                         <div className="browser-stream-row paused">
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>Rogue Hacker Node</span>
-                            <span className="mock-badge red">Sentry Paused</span>
+                            <span style={{ fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>Unusual billing rate</span>
+                            <span className="mock-badge red">Paused by Protect</span>
                           </div>
                           <div className="mock-progress-bar">
                             <div className="mock-progress-fill red" style={{ width: "100%" }}></div>
@@ -1469,7 +1543,7 @@ export default function App() {
             <section className="home-text-highlight-section">
               <div className="home-text-highlight-container">
                 <p className="split-lines home">
-                  At Fluenci, we believe real-time payment streams are the heartbeat of the modern Web3 economy. That's why we built an AI-shielded protocol to protect transactions at the optimal moment-guiding every subscription stream with clarity and confidence.
+                  Most people have never cancelled a crypto subscription, because most people have never been able to read one. Fluenci prices a subscription the way the rest of the internet does: an amount, a period, and a merchant you can name. The cap on what that merchant can take sits onchain, and only you can raise it.
                 </p>
               </div>
             </section>
@@ -1478,9 +1552,9 @@ export default function App() {
             <section id="how-it-works" className="home-fixing-section">
               <div className="home-fixing-container">
                 <div className="track">
-                  <h2>Fixing the Hidden Gaps in Web3 Billing</h2>
+                  <h2>What Web3 Billing Gets Wrong</h2>
                   <p>
-                    When streaming subscriptions go unmonitored, exploiters drain balances. Fluenci's platform bridges the gap between static blockchain addresses and automated security monitoring to ensure smooth, safe transitions.
+                    Three things break recurring payments onchain: a price quoted per second that never adds up to the number you agreed, an approval with no ceiling, and a merchant who is only an address. Fluenci fixes those three.
                   </p>
                 </div>
                 <div className="benefit-stack">
@@ -1488,27 +1562,27 @@ export default function App() {
                     <div className="benefit-card-icon">
                       <Shield size={24} />
                     </div>
-                    <h3>Reduced Exploit Losses</h3>
+                    <h3>$20 a Month Means $20</h3>
                     <p>
-                      The autonomous AI sentry flags abnormal transaction telemetry early, pausing compromised streams onchain before assets drain.
+                      A subscription is stored as an amount and a period, not a rate. The earlier per-second design billed $20 a month as $18.14, and could not price $1 a month at all.
                     </p>
                   </div>
                   <div className="benefit-card">
                     <div className="benefit-card-icon">
                       <UserCircle size={24} />
                     </div>
-                    <h3>Verified Sybil-Proof DIDs</h3>
+                    <h3>A Merchant With a Name</h3>
                     <p>
-                      Integrating QIE Pass DIDs ensures both subscribers and merchants are verified onchain, preventing identity-spoofing and sybil attacks.
+                      QIE's reverse resolver turns a merchant address into its primary .qie name in one call, so you see a name before you agree to pay. Merchants may also require QIE ID or QIE Pass of their subscribers - the default is open, and subscribing needs no KYC.
                     </p>
                   </div>
                   <div className="benefit-card">
                     <div className="benefit-card-icon">
                       <Activity size={24} />
                     </div>
-                    <h3>Zero Volatility Slashes</h3>
+                    <h3>A Cap Only You Can Raise</h3>
                     <p>
-                      Streams are settled in qUSD stablecoins alongside automated dual-direction conversions via QIE DEX, preventing price volatility.
+                      Set a merchant's ceiling at, say, $20 per month. The contract enforces it per merchant, clamps any claim above it down to the cap rather than reverting, and will not raise it for anyone but you.
                     </p>
                   </div>
                 </div>
@@ -1524,32 +1598,32 @@ export default function App() {
                   </div>
                 </div>
                 <div className="ai-first-description">
-                  <h2>AI-First. Shielded-by-Design. Empathetically Built.</h2>
+                  <h2>Fluenci Protect</h2>
                   <p>
-                    Fluenci is not another protocol that requires continuous manual checks. Our autonomous AI Sentry agents integrate directly into the transaction layer, dynamically adapting based on stream flow rates and KYC credentials.
+                    One system watches subscriptions for anomalies, raises alerts, and can pause a stream onchain. That is the whole of its power. Protect holds no funds and custodies nothing - creating a subscription locks nothing up in the first place.
                   </p>
                 </div>
               </div>
               <div className="ai-features-grid">
                 <div className="ai-feature-cell">
                   <Shield className="ai-feature-cell-icon" />
-                  <h3>Adaptive Sentry Nodes</h3>
+                  <h3>Anomaly Detection</h3>
                   <p>
-                    Surfaces only verified transaction signals and pauses rogue stream creators at the protocol level.
+                    Reads claim timing and amounts across the registry and flags subscriptions that have stopped behaving like subscriptions.
                   </p>
                 </div>
                 <div className="ai-feature-cell">
                   <Activity className="ai-feature-cell-icon" />
-                  <h3>Dynamic Real-Time Claims</h3>
+                  <h3>Alerts, Not Autopilot</h3>
                   <p>
-                    Allows merchants to pull accrued stablecoin balances continuously without manual withdrawal overhead.
+                    Says what changed and who it affects, so the subscriber or the merchant can decide before the next claim lands.
                   </p>
                 </div>
                 <div className="ai-feature-cell">
                   <Sparkles className="ai-feature-cell-icon" />
-                  <h3>Moment-Driven Arbitration</h3>
+                  <h3>Pause, Never Custody</h3>
                   <p>
-                    Resolves billing disputes autonomously onchain utilizing EIP-712 cryptographic signatures.
+                    Protect can pause a stream. Only the subscriber can resume it, and nothing in the system escrows or holds a subscriber's balance.
                   </p>
                 </div>
               </div>
@@ -1558,18 +1632,32 @@ export default function App() {
             {/* QIE Ecosystem Integrations - Static Grid */}
             <section className="landing-section marquee-section">
               <div className="section-header">
-                <h2>Native QIE Ecosystem Integrations</h2>
-                <p>Fluenci leverages the power of QIE blockchain's core components to build a seamless and secure billing protocol.</p>
+                <h2>Built on QIE</h2>
+                <p>Fluenci settles in QIE's stablecoin, routes swaps through QIE DEX, and resolves .qie names onchain. Identity and reputation reach the contracts through adapters Fluenci built and runs - each is labelled below for what it is.</p>
               </div>
 
-              <div className="ecosystem-grid">
-                {[
-                  { logo: QiePassLogo, name: "QIE Pass", desc: "Digital identity and access management. Verifies users via DID to prevent sybil attacks and enforce compliance.", accent: "0, 242, 254" },
-                  { logo: QieWalletLogo, name: "QIE Wallet", desc: "Secure, user-friendly wallet for managing native tokens. Integrated with gas overrides and smooth signatures.", accent: "167, 139, 250" },
-                  { logo: QieStableCoinLogo, name: "QIE Stable Coin", desc: "Stable digital currency backed by the QIE ecosystem. Settles payment streams in real-time to eliminate price volatility.", accent: "244, 63, 94" },
-                  { logo: QieDexLogo, name: "QIE Dex", desc: "Decentralized exchange for trading tokens. Integrated dual-direction swaps for continuous QIE to qUSDC conversion.", accent: "16, 185, 129" },
-                  { logo: QieDomainsLogo, name: "QIE Domains", desc: "Onchain domain name service for human-readable wallet identities. Resolves .qie names to wallet addresses.", accent: "236, 72, 153" }
-                ].map((item, i) => (
+              <div className="ecosystem-marquee">
+
+
+                <button type="button" className="ecosystem-nav ecosystem-nav--prev"
+
+
+                        onClick={() => scrollEcosystem(-1)} aria-label="Previous integrations">
+
+
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"
+
+
+                       strokeLinecap="round" strokeLinejoin="round"><path d="M12 4l-6 6 6 6" /></svg>
+
+
+                </button>
+
+
+                <div className="ecosystem-track" ref={ecosystemTrackRef}>
+
+
+                  {[...QIE_ECOSYSTEM, ...QIE_ECOSYSTEM].map((item, i) => (
                   <div key={i} className="ecosystem-card" style={{
                     borderColor: `rgba(${item.accent}, 0.15)`
                   }}>
@@ -1589,15 +1677,37 @@ export default function App() {
                       ✓ Integrated
                     </div>
                   </div>
-                ))}
+
+
+                  ))}
+
+
+                
+
+
+                <button type="button" className="ecosystem-nav ecosystem-nav--next"
+
+
+                        onClick={() => scrollEcosystem(1)} aria-label="Next integrations">
+
+
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8"
+
+
+                       strokeLinecap="round" strokeLinejoin="round"><path d="M8 4l6 6-6 6" /></svg>
+
+
+                </button></div>
+
+
               </div>
             </section>
 
             {/* Feature Comparison Matrix */}
             <section id="comparison" className="landing-section matrix-section">
               <div className="section-header">
-                <h2>Standard Payments vs. Fluenci AI-Shield</h2>
-                <p>Why Fluenci represents the next generation of trustless Web3 subscriptions.</p>
+                <h2>Token Approvals vs. Fluenci</h2>
+                <p>The difference is what a merchant can take from you, and whether you can read the price before you agree to it.</p>
               </div>
 
               <div className="matrix-card">
@@ -1606,16 +1716,16 @@ export default function App() {
                     <tr>
                       <th>Feature</th>
                       <th>Standard Web3</th>
-                      <th className="matrix-fluenci-col">Fluenci AI-Shield</th>
+                      <th className="matrix-fluenci-col">Fluenci</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
-                      ["Exploit / Rate Spike Protection", "None - streams drain completely", "Instant onchain AI Safety Pause"],
-                      ["KYC / Identity Gating", "Address only - anonymity issues", "QIE Pass DID Verification"],
-                      ["Dispute Resolution", "Manual arbitration or legal action", "AI-Arbitrated EIP-712 Signatures"],
-                      ["Token Volatility Protection", "Exposed to market fluctuations", "Stablecoin (QUSDC) + DEX Swaps"],
-                      ["Subscription Model", "Basic push transactions", "Transferable Subscription NFT Streams"]
+                      ["What you agree to pay", "A rate per second", "An amount and a period: $20 per month"],
+                      ["The merchant's ceiling", "An open-ended approval", "A cap per merchant that only you can raise"],
+                      ["A claim above the ceiling", "Takes whatever the approval allows", "Clamped down to the cap, not reverted"],
+                      ["Who you are paying", "An address", "The merchant's primary .qie name, resolved onchain"],
+                      ["Receiving a subscription NFT", "Pushed to you, bill included", "Opt-in, because receiving one makes you the payer"]
                     ].map(([feature, standard, fluenci], i) => (
                       <tr key={i}>
                         <td className="matrix-feature-name">{feature}</td>
@@ -1632,7 +1742,7 @@ export default function App() {
             <section id="faq" className="landing-section faq-section">
               <div className="section-header">
                 <h2>Frequently Asked Questions</h2>
-                <p>Everything you need to know about the Fluenci protocol and how the AI sentries protect your assets.</p>
+                <p>How the contracts behave, and what is not built yet.</p>
               </div>
 
               <div style={{ width: "100%", maxWidth: "720px" }}>
@@ -1640,50 +1750,57 @@ export default function App() {
                   index={1}
                   isOpen={activeFaqIndex === 1}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 1 ? null : 1)}
-                  question="How does the autonomous AI Sentry Node pause streaming exploits?"
-                  answer="The offchain Sentry Agent continuously monitors the blockchain for new stream creations. When a stream is detected, the Analyst Agent uses reputation checkers and heuristics to determine if the rate is safe. If the velocity is dangerously high (e.g. attempting to drain the subscriber's balance), the Decision Agent signs a safety-pause transaction and broadcasts it to lock the stream onchain until it is verified."
+                  question="What is Fluenci Protect and what can it do?"
+                  answer="Fluenci Protect is one monitoring system, not four agents. It watches active subscriptions for anomalies - an unexpected billing rate, a sudden change in claim behaviour - raises an alert, and in the worst case pauses the stream onchain so nothing further accrues. It never holds your funds; a subscription locks nothing up. The one case where its key moves money is settling a dispute you opened, capped at what has already accrued and clamped by your spending limit. Only you can resume a paused stream."
                 />
                 <FAQItem 
                   index={2}
                   isOpen={activeFaqIndex === 2}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 2 ? null : 2)}
-                  question="Why are payment streams minted as transferable NFTs?"
-                  answer="Fluenci represents each streaming payment agreement as an ERC-721 Subscription NFT. This allows users to trade, gift, or delegate their subscriptions. When the NFT is transferred, the smart contract automatically shifts the billing obligation to the new owner's wallet address, enabling tradeable recurring memberships."
+                  question="Can I transfer a subscription to someone else?"
+                  answer="Yes. Each subscription is an ERC-721 token and can still be transferred, but receiving one is opt-in: the recipient wallet must first accept subscription transfers. Owning the token makes you the payer, and an audit showed the old design let an attacker push an uncapped billing obligation onto any wallet with a standing allowance. The sender must also clear arrears before transferring."
                 />
                 <FAQItem 
                   index={3}
                   isOpen={activeFaqIndex === 3}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 3 ? null : 3)}
-                  question="How does AI-arbitrated dispute resolution work?"
-                  answer="If a subscriber opens a dispute, the stream is paused. The offchain Arbitrator Agent evaluates the text evidence provided by both parties, determines a fair split of the accrued tokens, and signs an EIP-712 cryptographic message containing the resolution. The smart contract validates the AI's signature onchain to unlock and distribute the funds securely."
+                  question="How do programmable spending limits work?"
+                  answer="You set a cap on each merchant - for example $20 every 30 days - enforced onchain against the (subscriber, merchant) pair rather than per subscription, so a merchant opening three streams cannot take three times the cap. A claim above the remaining allowance is clamped to what is left, not reverted. Only you can raise or clear your own cap."
                 />
                 <FAQItem 
                   index={4}
                   isOpen={activeFaqIndex === 4}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 4 ? null : 4)}
                   question="Do I need to deposit all my subscription funds upfront?"
-                  answer="No. Fluenci uses a pull-based payment model. Creating a subscription stream does not lock up your funds. Instead, it authorizes the merchant to pull accrued funds from your wallet in real-time. You only need to maintain a balance of QUSDC in your wallet to cover the continuous claims."
+                  answer="No. Creating a subscription locks nothing. It authorises the merchant to pull funds as they accrue, so your qUSDC stays in your wallet until it is earned. A merchant can never claim more than has accrued so far, and never more than your cap for that merchant allows. The protocol fee is 0.5%, taken at claim time."
                 />
                 <FAQItem 
                   index={5}
                   isOpen={activeFaqIndex === 5}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 5 ? null : 5)}
                   question="How does the built-in DEX swap integration work?"
-                  answer="Fluenci integrates directly with QieDex through a dedicated FluenciRouter contract. You can swap between QIE and qUSDC without leaving the app. Every swap routed through Fluenci emits an onchain FluenciSwap event, providing transparent attribution and real-time volume tracking on the QIE blockchain explorer."
+                  answer="Fluenci routes swaps to QIEDex through its own FluenciRouter contract, so you can move between QIE and qUSDC without leaving the app. Every routed swap emits a FluenciSwap event onchain recording the direction and the amounts in and out. That makes swap volume originating from Fluenci verifiable by anyone on the QIE block explorer."
                 />
                 <FAQItem 
                   index={6}
                   isOpen={activeFaqIndex === 6}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 6 ? null : 6)}
-                  question="What is QIE Pass and why is identity verification important?"
-                  answer="QIE Pass is QIE blockchain's native decentralized identity (DID) system. Fluenci gates merchant registrations through QIE Pass verification to prevent sybil attacks and anonymous fraud. This ensures that every merchant accepting payments through Fluenci has a verified onchain identity, adding a layer of trust for subscribers."
+                  question="Do I need to pass KYC to subscribe?"
+                  answer="No. Each merchant chooses the access rule for their own subscriptions - Open, QIE ID, verified QIE Pass, or a minimum reputation score - and the default is Open, so most subscriptions require no verification at all. Merchants do need a verified QIE Pass to withdraw. Fluenci checks Pass status against QIE's API and writes only the result to an oracle contract it deployed itself."
                 />
                 <FAQItem 
                   index={7}
                   isOpen={activeFaqIndex === 7}
                   onToggle={() => setActiveFaqIndex(activeFaqIndex === 7 ? null : 7)}
                   question="Are the Fluenci smart contracts auditable and open-source?"
-                  answer="Yes. All Fluenci smart contracts are deployed on QIE Mainnet with verified source code. The Subscription Registry, AI Auditor, and FluenciRouter contracts are fully transparent and can be inspected on the QIE block explorer. The contract addresses are listed in the app footer for easy reference and independent verification."
+                  answer="The Solidity source is public on GitHub. What is live on QIE mainnet today is v3: the registry at 0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9, qUSDC, and the FluenciRouter, each linked from the footer straight to the QIE explorer - check each one's verification status yourself. Two things to know first: the QIE Pass oracle Fluenci operates is not verified, and FluenciRegistryV4 is not deployed yet."
+                />
+                <FAQItem 
+                  index={8}
+                  isOpen={activeFaqIndex === 8}
+                  onToggle={() => setActiveFaqIndex(activeFaqIndex === 8 ? null : 8)}
+                  question="What does the reputation score mean, and where does it come from?"
+                  answer="QIE computes reputation off-chain from signals such as wallet age and transaction history; there is no onchain reputation registry. QIE's service would sign a score with a tier, a model version and an expiry, and Fluenci's attestor contract verifies that signature before a merchant's minimum-score rule can use it. Only the result is stored onchain - never KYC data. This gate is built and tested, but waits on QIE issuing its signing key."
                 />
               </div>
             </section>
@@ -1691,10 +1808,10 @@ export default function App() {
             {/* Explore the Platform CTA */}
             <section className="landing-section cta-section">
               <div className="section-header">
-                <h2>Explore the Platform</h2>
-                <p style={{ marginBottom: "28px" }}>See how Fluenci bridges gaps, aligns protocols, and protects stream transitions-without disrupting your flow.</p>
+                <h2>See What the Contract Does</h2>
+                <p style={{ marginBottom: "28px" }}>Registry v3 is live on QIE mainnet; new subscriptions against it are frozen while v4 lands. v4 - period pricing, spend caps, opt-in transfers - has 50 passing tests and is not deployed yet. The contracts are on GitHub. Read them before you take our word for any of this.</p>
                 {(IS_LAUNCHED || isBypassed) ? (
-                  <button className="btn btn-primary btn-cta-pulse" onClick={() => setViewMode("dashboard")}>
+                  <button className="btn btn-primary btn-cta-pulse" onClick={() => launchApp()}>
                     Launch App
                   </button>
                 ) : (
@@ -1732,7 +1849,7 @@ export default function App() {
               <img src={LogoImage} alt="Fluenci" style={{ width: "32px", height: "32px", borderRadius: "8px" }} />
               <span>Fluenci</span>
             </div>
-            <p className="footer-tagline">AI-shielded subscription streams and real-time billing on QIE Blockchain.</p>
+            <p className="footer-tagline">Stripe-style subscriptions for Web3. Priced by the month, settled on QIE Blockchain.</p>
             <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
               <a href="https://x.com/fluenciAI" target="_blank" rel="noopener noreferrer" style={{ color: "#888", transition: "color 0.2s" }} onMouseOver={e => e.currentTarget.style.color = "#fff"} onMouseOut={e => e.currentTarget.style.color = "#888"} aria-label="X (Twitter)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -1749,7 +1866,7 @@ export default function App() {
             <a href="#features" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>Features</a>
             <a href="#comparison" onClick={(e) => { e.preventDefault(); if(viewMode !== 'landing') setViewMode('landing'); }}>AI-Shield</a>
             {(IS_LAUNCHED || isBypassed) && (
-              <a href="#" onClick={(e) => { e.preventDefault(); setViewMode('dashboard'); }}>Launch App</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); launchApp(); }}>Launch App</a>
             )}
           </div>
 

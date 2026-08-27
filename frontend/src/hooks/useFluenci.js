@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import EthereumProvider from "@walletconnect/ethereum-provider";
 import { API_BASE_URL } from "../config";
+import { resolveQieAddress, resolveQieName } from "../dashboard/qieName";
 
 // ABI definitions
 const REGISTRY_ABI = [
@@ -304,11 +305,23 @@ export function useFluenci() {
         }
       }
 
-      // Fetch Connected Account's .qie Domain Name via QIE Explorer API
-      // The official QIE Domain registry (0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed) does not expose
-      // a reverse lookup function. We resolve domains by querying the wallet's onchain tx history for
-      // domain registration transactions (function selector 0xf2101e95) and decoding the domain name.
-      {
+      // Fetch the connected account's primary .qie name.
+      // QIE ships a reverse resolver at 0x76ec8ed3… (deployed by QIE's core
+      // deployer), so this is one eth_call. The old comment here claimed no
+      // reverse lookup existed, which is why this used to scan the wallet's
+      // whole transaction history; that scan is kept below only as a fallback,
+      // and it reports the original registrant rather than the current owner.
+      let primaryName = null;
+      try {
+        primaryName = await resolveQieName(account, getReadProvider());
+        if (primaryName) setAccountDomain(primaryName);
+      } catch (e) {
+        console.warn("Reverse .qie resolution failed, falling back to history scan:", e.message);
+      }
+
+      // Only scan history when the resolver had no answer - otherwise the scan's
+      // (possibly stale) result would overwrite the authoritative one.
+      if (!primaryName) {
         const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
         const REGISTER_SELECTOR = "0xf2101e95";
         try {
@@ -663,10 +676,22 @@ export function useFluenci() {
   // so we scan registration transactions (selector 0xf2101e95) to the registry
   // and find the one that registered the requested domain name.
   const resolveQieDomain = async (domainName) => {
+    // Fast path: QIE's own registries expose resolver(string) -> (node, owner),
+    // so this is one eth_call per registry. A name lives in exactly one of the
+    // two, and the answer is the CURRENT owner - unlike the calldata scan below,
+    // which returns whoever originally registered the name even after a transfer.
+    try {
+      const onChain = await resolveQieAddress(domainName, getReadProvider());
+      if (onChain) return onChain;
+    } catch (e) {
+      console.warn("Onchain domain resolution failed, falling back:", e.message);
+    }
+
+    // Fallback: scan the legacy registry's registration calldata. Slow and
+    // transfer-blind, but it still covers names the two registries do not answer for.
     const QIE_DOMAIN_REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
     const REGISTER_SELECTOR = "0xf2101e95";
     try {
-      // Query all txs to the domain registry contract
       const explorerUrl = `https://mainnet.qie.digital/api?module=account&action=txlist&address=${QIE_DOMAIN_REGISTRY}&startblock=0&endblock=99999999&sort=desc`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -675,7 +700,6 @@ export function useFluenci() {
       const txData = await resp.json();
 
       if (txData.status === "1" && txData.result) {
-        // Find the registration tx that matches the requested domain name
         for (const tx of txData.result) {
           if (
             tx.to?.toLowerCase() === QIE_DOMAIN_REGISTRY.toLowerCase() &&
@@ -688,26 +712,57 @@ export function useFluenci() {
                 ["string", "string[]", "string[]"],
                 params
               );
-              const registeredDomain = decoded[0]; // e.g. "mrnetwork.qie"
-              if (registeredDomain.toLowerCase() === domainName.toLowerCase()) {
-                // The sender of the registration tx is the domain owner
-                return tx.from;
-              }
+              if (decoded[0].toLowerCase() === domainName.toLowerCase()) return tx.from;
             } catch (decodeErr) {
               // Skip malformed tx inputs
             }
           }
         }
       }
-      console.warn("Domain not found in registry txs:", domainName);
+      console.warn("Domain not found in either registry or registry txs:", domainName);
       return ethers.ZeroAddress;
     } catch (err) {
-      console.warn("Domain resolution via Explorer API failed for", domainName, err.message);
+      console.warn("Domain resolution fallback failed for", domainName, err.message);
       return ethers.ZeroAddress;
     }
   };
 
+
   // Generalized Swap (QIE ⇄ QUSDC) via Qiedex
+  // Live quote for the swap panel. Deliberately mirrors swapQieForTokens: same
+  // WQIE <-> qUSDC path, same read against the QieDex router (quotes are
+  // read-only, so they skip FluenciRouter's attribution wrapper), same 5s cap
+  // and 5% slippage. Returns null rather than throwing so the UI can just show
+  // no quote when the pool is unreachable.
+  const quoteSwap = async (fromToken, amount) => {
+    try {
+      if (!amount || Number(amount) <= 0) return null;
+      const isReverse = fromToken === "QUSDC";
+      const path = isReverse
+        ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"]
+        : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc];
+
+      const decimalsIn = isReverse ? 6 : 18;
+      const decimalsOut = isReverse ? 18 : 6;
+      const parsedAmount = ethers.parseUnits(String(amount), decimalsIn);
+
+      const readDex = new ethers.Contract(contracts.qiedex, DEX_ABI, getReadProvider());
+      const amounts = await Promise.race([
+        readDex.getAmountsOut(parsedAmount, path),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Quote timeout")), 5000))
+      ]);
+
+      const out = amounts[1];
+      const amountOut = ethers.formatUnits(out, decimalsOut);
+      const amountOutMin = ethers.formatUnits((out * 95n) / 100n, decimalsOut);
+      const rate = Number(amountOut) / Number(amount);
+      return { amountOut, amountOutMin, rate: String(rate) };
+    } catch (e) {
+      console.warn("quoteSwap failed:", e.message);
+      return null;
+    }
+  };
+
   const swapQieForTokens = async (fromToken, toToken, amount) => {
     setError("");
     setLoading(true);
@@ -1417,6 +1472,7 @@ export function useFluenci() {
     kycState,
     resolveQieDomain,
     swapQieForTokens,
+    quoteSwap,
     createSubscription,
     claimStream,
     openDispute,

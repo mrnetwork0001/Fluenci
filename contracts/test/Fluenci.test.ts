@@ -24,13 +24,15 @@ describe("Fluenci Integration Test Suite", function () {
   let merchant: any;
   let aiWorker: any;
   let buyer: any;
+  let treasury: any;
 
   const DECIMALS_USDC = 6;
   const DECIMALS_WETH = 18;
   const RATE_USDC = 100; // 100 units per second
+  const PROTOCOL_FEE_BPS = 50n; // v3 default: 0.5%
 
   beforeEach(async function () {
-    [owner, subscriber, merchant, aiWorker, buyer] = await ethers.getSigners();
+    [owner, subscriber, merchant, aiWorker, buyer, treasury] = await ethers.getSigners();
 
     // 1. Deploy Mock Qie Pass
     const MockQiePassFactory = await ethers.getContractFactory("MockQiePass");
@@ -49,7 +51,10 @@ describe("Fluenci Integration Test Suite", function () {
 
     // 4. Deploy Registry
     const FluenciRegistryFactory = await ethers.getContractFactory("FluenciRegistry");
-    registry = await FluenciRegistryFactory.deploy(await qiePass.getAddress()) as FluenciRegistry;
+    registry = await FluenciRegistryFactory.deploy(
+      await qiePass.getAddress(),
+      treasury.address
+    ) as FluenciRegistry;
     await registry.waitForDeployment();
 
     // 5. Deploy AI Auditor
@@ -81,9 +86,12 @@ describe("Fluenci Integration Test Suite", function () {
     await qusdc.connect(subscriber).approve(await registry.getAddress(), ethers.MaxUint256);
     await weth.connect(subscriber).approve(await registry.getAddress(), ethers.MaxUint256);
 
-    // Verify subscriber in QIE Pass
+    // Verify subscriber in QIE Pass.
+    // v3's claimStream() also gates the *merchant* on a verified QIE Pass, so
+    // the merchant has to be registered too or every claim reverts.
     await qiePass.registerIdentity(subscriber.address, true);
     await qiePass.registerIdentity(buyer.address, true);
+    await qiePass.registerIdentity(merchant.address, true);
   });
 
   describe("Deployment & Configuration", function () {
@@ -91,6 +99,8 @@ describe("Fluenci Integration Test Suite", function () {
       expect(await registry.qiePass()).to.equal(await qiePass.getAddress());
       expect(await registry.aiAuditor()).to.equal(await auditor.getAddress());
       expect(await auditor.trustedAiWorker()).to.equal(aiWorker.address);
+      expect(await registry.treasury()).to.equal(treasury.address);
+      expect(await registry.protocolFeeBps()).to.equal(PROTOCOL_FEE_BPS);
     });
   });
 
@@ -158,12 +168,85 @@ describe("Fluenci Integration Test Suite", function () {
       await ethers.provider.send("evm_increaseTime", [100]);
       await ethers.provider.send("evm_mine", []);
 
+      const pre = await registry.getSubscriptionDetails(subId);
+      const lastClaimed = pre[4];
+      const actualStopTime = pre[7];
+      const merchantBefore = await qusdc.balanceOf(merchant.address);
+
       // Claim stream
       const tx = await registry.connect(merchant).claimStream(subId);
       await expect(tx).to.emit(registry, "StreamTerminated").withArgs(subId);
 
+      // Accrual is capped at stopTime even though ~100s of wall clock elapsed.
+      const gross = (actualStopTime - lastClaimed) * BigInt(RATE_USDC);
+      const fee = (gross * PROTOCOL_FEE_BPS) / 10000n;
+      const merchantAfter = await qusdc.balanceOf(merchant.address);
+      expect(merchantAfter - merchantBefore).to.equal(gross - fee);
+
       const details = await registry.getSubscriptionDetails(subId);
       expect(details[8]).to.be.false; // active is false
+      expect(details[11]).to.equal(0); // nothing further claimable
+
+      // Stream is terminated, so no further claims are possible.
+      await expect(
+        registry.connect(merchant).claimStream(subId)
+      ).to.be.revertedWith("Subscription is not active");
+    });
+
+    it("Should split the protocol fee between merchant and treasury on claim", async function () {
+      await registry.connect(subscriber).createSubscription(
+        merchant.address,
+        await qusdc.getAddress(),
+        RATE_USDC,
+        0,
+        0
+      );
+      const subIds = await registry.getSubscriberSubscriptions(subscriber.address);
+      const subId = subIds[0];
+
+      const pre = await registry.getSubscriptionDetails(subId);
+      const lastClaimed = pre[4];
+      const merchantBefore = await qusdc.balanceOf(merchant.address);
+      const treasuryBefore = await qusdc.balanceOf(treasury.address);
+
+      await ethers.provider.send("evm_increaseTime", [60]);
+      const tx = await registry.connect(merchant).claimStream(subId);
+      const receipt = await tx.wait();
+      const claimBlock = await ethers.provider.getBlock(receipt!.blockNumber);
+
+      const gross = BigInt(claimBlock!.timestamp) - lastClaimed;
+      const claimable = gross * BigInt(RATE_USDC);
+      const fee = (claimable * PROTOCOL_FEE_BPS) / 10000n;
+
+      expect(fee).to.be.greaterThan(0n);
+      await expect(tx)
+        .to.emit(registry, "ProtocolFeeCollected")
+        .withArgs(subId, treasury.address, fee);
+      await expect(tx)
+        .to.emit(registry, "FundsWithdrawn")
+        .withArgs(subId, merchant.address, claimable - fee);
+
+      expect(await qusdc.balanceOf(treasury.address) - treasuryBefore).to.equal(fee);
+      expect(await qusdc.balanceOf(merchant.address) - merchantBefore).to.equal(claimable - fee);
+    });
+
+    it("Should block claims from a merchant without a verified QIE Pass", async function () {
+      await registry.connect(subscriber).createSubscription(
+        merchant.address,
+        await qusdc.getAddress(),
+        RATE_USDC,
+        0,
+        0
+      );
+      const subIds = await registry.getSubscriberSubscriptions(subscriber.address);
+      const subId = subIds[0];
+
+      await qiePass.registerIdentity(merchant.address, false);
+      await ethers.provider.send("evm_increaseTime", [10]);
+
+      await expect(
+        registry.connect(merchant).claimStream(subId)
+      ).to.be.revertedWith("Merchant must hold verified QIE Pass to withdraw");
     });
   });
 

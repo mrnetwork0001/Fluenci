@@ -80,3 +80,45 @@ export async function resolveQieAddress(name, provider) {
   const results = await Promise.all(attempts);
   return results.find(Boolean) ?? null;
 }
+
+/*
+ * Fallback reverse lookup by transaction history.
+ *
+ * QIE's reverse resolver only answers for a wallet that has set a PRIMARY .qie
+ * name. Many wallets register a name without setting it primary, so the resolver
+ * returns "". This scans the wallet's own txs for its .qie registration
+ * (selector 0xf2101e95 to the domain registry) and decodes the name — the same
+ * method useFluenci uses for the connected account. Returns null on any miss.
+ */
+export async function resolveQieNameByHistory(address) {
+  if (!address) return null;
+  const REGISTRY = "0xcfbcbca93c607590b211c81c7dbcdbd7ed6cc6ed";
+  const SELECTOR = "0xf2101e95";
+  try {
+    const url = `https://mainnet.qie.digital/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    const data = await res.json();
+    if (data.status !== "1" || !Array.isArray(data.result)) return null;
+    for (const tx of data.result) {
+      if (
+        tx.from?.toLowerCase() === address.toLowerCase() &&
+        tx.to?.toLowerCase() === REGISTRY.toLowerCase() &&
+        tx.input?.startsWith(SELECTOR) &&
+        tx.isError === "0"
+      ) {
+        try {
+          const decoded = ethers.AbiCoder.defaultAbiCoder().decode(
+            ["string", "string[]", "string[]"], "0x" + tx.input.slice(10)
+          );
+          if (decoded[0]) return decoded[0];
+        } catch { /* skip malformed */ }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

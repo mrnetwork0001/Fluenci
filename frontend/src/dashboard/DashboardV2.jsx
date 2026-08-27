@@ -11,7 +11,7 @@ import { IconStore } from "./icons";
 import { useFluenciV4 } from "./useFluenciV4";
 import ConnectWalletV2 from "./ConnectWalletV2";
 import TransactionModal from "../components/TransactionModal";
-import { resolveQieName } from "./qieName";
+import { resolveQieName, resolveQieNameByHistory } from "./qieName";
 import { GATE, QUSDC_DECIMALS, MAINNET_RPC, QIE_PASS, QIE_PASS_ABI, V4_TOKEN } from "./v4Config";
 import { sampleSubscriptions, sampleLimits, sampleActivity, sampleMerchant } from "./sampleData";
 import { ethers } from "ethers";
@@ -102,7 +102,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
     const pending = addrs.filter((a) => subNames[a] === undefined);
     if (pending.length === 0) return;
     const provider = new ethers.JsonRpcProvider(MAINNET_RPC);
-    Promise.all(pending.map(async (a) => [a, await resolveQieName(a, provider)])).then((pairs) => {
+    Promise.all(pending.map(async (a) => [a, (await resolveQieName(a, provider)) || (await resolveQieNameByHistory(a))])).then((pairs) => {
       if (!live) return;
       setSubNames((m) => ({ ...m, ...Object.fromEntries(pairs.map(([a, n]) => [a, n || null])) }));
     });

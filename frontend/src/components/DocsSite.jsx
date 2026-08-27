@@ -187,8 +187,8 @@ export default function DocsSite({ onHome, onApp }) {
             <h1 className="fdoc-h1">Welcome to Fluenci</h1>
             <p className="fdoc-lead">
               <strong>Fluenci is Stripe-style subscriptions for Web3, live on QIE Blockchain.</strong>{" "}
-              Merchants price a plan in plain language &mdash; <em>$20/month</em>, not tokens per
-              second &mdash; and subscribers approve once, set a spending cap only they can raise, and
+              Merchants price a plan in plain language - <em>$20/month</em>, not tokens per
+              second - and subscribers approve once, set a spending cap only they can raise, and
               cancel any time.
             </p>
             <p className="fdoc-p">
@@ -199,16 +199,16 @@ export default function DocsSite({ onHome, onApp }) {
               {" "}watches every active stream for anomalies before any funds move.
             </p>
             <ul className="fdoc-bullets">
-              <li><strong>A price you can read</strong> &mdash; $20 a month means $20.</li>
-              <li><strong>A cap only you can raise</strong> &mdash; approvals with a ceiling, enforced onchain.</li>
-              <li><strong>A merchant with a name</strong> &mdash; addresses resolve to their <code>.qie</code> name before you agree to pay.</li>
+              <li><strong>A price you can read</strong> - $20 a month means $20.</li>
+              <li><strong>A cap only you can raise</strong> - approvals with a ceiling, enforced onchain.</li>
+              <li><strong>A merchant with a name</strong> - addresses resolve to their <code>.qie</code> name before you agree to pay.</li>
             </ul>
           </section>
 
           {/* HOW IT WORKS */}
           <section id="how" className="fdoc-section">
             <h2 className="fdoc-h2">How It Works</h2>
-            <p className="fdoc-p">Four steps, start to finish &mdash; the whole lifecycle of a subscription.</p>
+            <p className="fdoc-p">Four steps, start to finish - the whole lifecycle of a subscription.</p>
             <ol className="fdoc-steps">
               <li>
                 <span className="fdoc-step-n">1</span>
@@ -221,7 +221,7 @@ export default function DocsSite({ onHome, onApp }) {
                 <span className="fdoc-step-n">2</span>
                 <div>
                   <strong>Stream.</strong> Time accrues by the second against the plan&rsquo;s amount and
-                  period. Nothing leaves your wallet yet &mdash; the balance owed is simply tracked onchain.
+                  period. Nothing leaves your wallet yet - the balance owed is simply tracked onchain.
                 </div>
               </li>
               <li>
@@ -235,7 +235,7 @@ export default function DocsSite({ onHome, onApp }) {
                 <span className="fdoc-step-n">4</span>
                 <div>
                   <strong>Cancel.</strong> Cancelling freezes accrual instantly. You owe only the final
-                  settled amount for time already streamed &mdash; never a second more.
+                  settled amount for time already streamed - never a second more.
                 </div>
               </li>
             </ol>
@@ -246,8 +246,8 @@ export default function DocsSite({ onHome, onApp }) {
             <span className="fdoc-eyebrow">Protocol</span>
             <h2 className="fdoc-h2">Subscriptions & Pricing</h2>
             <p className="fdoc-p">
-              A Fluenci plan is stored as an <strong>amount</strong> and a <strong>period</strong> &mdash;
-              for example, $20.00 every 30 days &mdash; not as a rate per second. The subscription accrues
+              A Fluenci plan is stored as an <strong>amount</strong> and a <strong>period</strong> -
+              for example, $20.00 every 30 days - not as a rate per second. The subscription accrues
               continuously between claims, but the number you agree to is the number you pay.
             </p>
             <p className="fdoc-p">
@@ -265,14 +265,14 @@ export default function DocsSite({ onHome, onApp }) {
           <section id="caps" className="fdoc-section">
             <h2 className="fdoc-h2">Spending Caps</h2>
             <p className="fdoc-p">
-              Every subscriber can set a ceiling on what a given merchant is allowed to draw &mdash; say
+              Every subscriber can set a ceiling on what a given merchant is allowed to draw - say
               <strong> $20 per month</strong>. The cap is enforced onchain, per merchant, and shared across
               all of your streams to that merchant.
             </p>
             <p className="fdoc-p">
               A claim above the cap is <strong>clamped down to the cap, never reverted</strong>. The merchant
               simply receives up to the ceiling for the window; the remainder waits for the next window. And
-              the contract will not raise a cap for anyone but you &mdash; not the merchant, not the protocol.
+              the contract will not raise a cap for anyone but you - not the merchant, not the protocol.
             </p>
           </section>
 
@@ -298,7 +298,7 @@ export default function DocsSite({ onHome, onApp }) {
             <h2 className="fdoc-h2">Merchant Gating</h2>
             <p className="fdoc-p">
               Each merchant chooses a single access policy for their plans. The gate is checked before a
-              subscription is created &mdash; and it only ever returns a pass/fail, never any underlying
+              subscription is created - and it only ever returns a pass/fail, never any underlying
               identity data.
             </p>
             <div className="fdoc-table">
@@ -327,8 +327,8 @@ export default function DocsSite({ onHome, onApp }) {
               </div>
             </div>
             <p className="fdoc-note">
-              Reputation gating is fully built &mdash; a signed attestation verified against an upgradeable
-              authorised signer &mdash; and switches on the moment QIE&rsquo;s reputation signing key is live.
+              Reputation gating is fully built - a signed attestation verified against an upgradeable
+              authorised signer - and switches on the moment QIE&rsquo;s reputation signing key is live.
             </p>
           </section>
 
@@ -337,7 +337,7 @@ export default function DocsSite({ onHome, onApp }) {
             <h2 className="fdoc-h2">Fluenci Protect</h2>
             <p className="fdoc-p">
               Protect is the safety layer that watches every active subscription. It flags anomalous billing
-              behaviour and can pause a suspicious stream <strong>before any funds move</strong> &mdash; a
+              behaviour and can pause a suspicious stream <strong>before any funds move</strong> - a
               pause blocks payout, it never seizes a subscriber&rsquo;s balance.
             </p>
             <p className="fdoc-p">
@@ -425,7 +425,7 @@ export default function DocsSite({ onHome, onApp }) {
               </div>
               <div className="fdoc-qa">
                 <div className="fdoc-q">Is my identity exposed by a gate?</div>
-                <div className="fdoc-p">No. A gate returns only pass or fail &mdash; never KYC data, a score, or any underlying record.</div>
+                <div className="fdoc-p">No. A gate returns only pass or fail - never KYC data, a score, or any underlying record.</div>
               </div>
               <div className="fdoc-qa">
                 <div className="fdoc-q">Where is the money actually held?</div>

@@ -149,19 +149,34 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   }, []);
 
   // --- writes --------------------------------------------------------------
-  const run = useCallback(async (key, fn, action = "Onchain transaction") => {
+  // QIE's RPC mis-reports gas, so ethers' estimation/fee pipeline stalls after
+  // the wallet signs. v1 works around this by sending eth_sendTransaction
+  // directly with an explicit gas limit and letting the wallet set gas price;
+  // v4 writes now do the same.
+  const registryIface = useMemo(() => new ethers.Interface(REGISTRY_V4_ABI), []);
+  const erc20Iface = useMemo(() => new ethers.Interface(ERC20_ABI), []);
+
+  const sendDirect = useCallback(async (to, iface, method, args, gasLimit) => {
+    const injected = window.ethereum;
+    if (!injected) throw new Error("No wallet found");
+    const data = iface.encodeFunctionData(method, args);
+    const hash = await injected.request({
+      method: "eth_sendTransaction",
+      params: [{ from: account, to, data, gas: "0x" + BigInt(gasLimit).toString(16) }],
+    });
+    if (!hash) throw new Error("Wallet did not return a transaction hash");
+    return hash;
+  }, [account]);
+
+  const run = useCallback(async (key, action, fn) => {
     setBusy(key);
     setError(null);
-    setTxState({ status: "preparing", action, hash: "", error: "" });
+    setTxState({ status: "awaiting_signature", action, hash: "", error: "" });
     try {
-      const c = await writeRegistry();
-      // The wallet prompt(s) happen inside fn — approve then the write itself.
-      setTxState({ status: "awaiting_signature", action, hash: "", error: "" });
-      const tx = await fn(c);
-      setTxState({ status: "broadcasting", action, hash: tx?.hash || "", error: "" });
-      setTxState((s) => ({ ...s, status: "confirming" }));
-      await tx.wait();
-      setTxState({ status: "confirmed", action, hash: tx?.hash || "", error: "" });
+      const hash = await fn();
+      setTxState({ status: "confirming", action, hash, error: "" });
+      await readProvider().waitForTransaction(hash);
+      setTxState({ status: "confirmed", action, hash, error: "" });
       await refresh();
       return true;
     } catch (e) {
@@ -172,45 +187,51 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     } finally {
       setBusy(null);
     }
-  }, [writeRegistry, refresh]);
+  }, [readProvider, refresh]);
 
-  /** Ensure the V4 registry can pull `needed` of the streaming token. */
-  const ensureAllowance = useCallback(async (signer, needed) => {
-    const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-    const owner = await signer.getAddress();
-    const current = await token.allowance(owner, V4_REGISTRY);
-    if (current >= needed) return true;
-    const tx = await token.approve(V4_REGISTRY, needed);
-    await tx.wait();
-    return true;
-  }, [tokenAddress]);
+  /** Approve the registry to pull `needed` of the token, if the allowance is short. */
+  const ensureAllowance = useCallback(async (needed) => {
+    const token = new ethers.Contract(tokenAddress, ERC20_ABI, readProvider());
+    const current = await token.allowance(account, V4_REGISTRY);
+    if (current >= needed) return;
+    const hash = await sendDirect(tokenAddress, erc20Iface, "approve", [V4_REGISTRY, needed], 80000n);
+    await readProvider().waitForTransaction(hash);
+  }, [account, tokenAddress, erc20Iface, sendDirect, readProvider]);
 
   const createSubscription = useCallback(
     ({ merchant, amountPerPeriod, periodSeconds, cliffTime = 0, stopTime = 0, token }) =>
-      run("create", async (c) => {
-        // The button says "Approve and start streaming"; it has to actually approve.
-        // A year of the agreed price is a sane default headroom.
-        const runner = c.runner;
-        // Form values arrive as strings; coerce before BigInt math, or
-        // `"100000" * 31_536_000n` throws "invalid numeric value" before send.
+      run("create", "Approve and start subscription", async () => {
         const amt = BigInt(amountPerPeriod);
         const per = BigInt(periodSeconds);
         const headroom = (amt * 31_536_000n) / (per > 0n ? per : 1n);
-        await ensureAllowance(runner, headroom > 0n ? headroom : amt);
-        return c.createSubscription(merchant, token || tokenAddress, amt, per, BigInt(cliffTime || 0), BigInt(stopTime || 0));
-      }, "Approve and start subscription"),
-    [run, tokenAddress, ensureAllowance]
+        await ensureAllowance(headroom > 0n ? headroom : amt);
+        return sendDirect(V4_REGISTRY, registryIface, "createSubscription",
+          [merchant, token || tokenAddress, amt, per, BigInt(cliffTime || 0), BigInt(stopTime || 0)], 400000n);
+      }),
+    [run, tokenAddress, ensureAllowance, sendDirect, registryIface]
   );
 
   const setSpendCap = useCallback(
-    (merchant, maxAmount, periodSeconds) => run(`cap:${merchant}`, (c) => c.setSpendCap(merchant, BigInt(maxAmount), BigInt(periodSeconds)), "Set spending limit"),
-    [run]
+    (merchant, maxAmount, periodSeconds) =>
+      run(`cap:${merchant}`, "Set spending limit", () =>
+        sendDirect(V4_REGISTRY, registryIface, "setSpendCap", [merchant, BigInt(maxAmount), BigInt(periodSeconds)], 150000n)),
+    [run, sendDirect, registryIface]
   );
-  const clearSpendCap = useCallback((merchant) => run(`cap:${merchant}`, (c) => c.clearSpendCap(merchant), "Remove spending limit"), [run]);
-  const setMerchantPolicy = useCallback((gate, minRep) => run("policy", (c) => c.setMerchantPolicy(gate, minRep), "Save access policy"), [run]);
-  const claimStream = useCallback((subId) => run("claim", (c) => c.claimStream(subId), "Claim earnings"), [run]);
-  const terminateStream = useCallback((subId) => run("terminate", (c) => c.terminateStream(subId), "Cancel subscription"), [run]);
-  const openDispute = useCallback((subId) => run("dispute", (c) => c.openDispute(subId), "Open dispute"), [run]);
+  const clearSpendCap = useCallback((merchant) =>
+    run(`cap:${merchant}`, "Remove spending limit", () =>
+      sendDirect(V4_REGISTRY, registryIface, "clearSpendCap", [merchant], 100000n)), [run, sendDirect, registryIface]);
+  const setMerchantPolicy = useCallback((gate, minRep) =>
+    run("policy", "Save access policy", () =>
+      sendDirect(V4_REGISTRY, registryIface, "setMerchantPolicy", [gate, BigInt(minRep || 0)], 120000n)), [run, sendDirect, registryIface]);
+  const claimStream = useCallback((subId) =>
+    run("claim", "Claim earnings", () =>
+      sendDirect(V4_REGISTRY, registryIface, "claimStream", [subId], 300000n)), [run, sendDirect, registryIface]);
+  const terminateStream = useCallback((subId) =>
+    run("terminate", "Cancel subscription", () =>
+      sendDirect(V4_REGISTRY, registryIface, "terminateStream", [subId], 300000n)), [run, sendDirect, registryIface]);
+  const openDispute = useCallback((subId) =>
+    run("dispute", "Open dispute", () =>
+      sendDirect(V4_REGISTRY, registryIface, "openDispute", [subId], 200000n)), [run, sendDirect, registryIface]);
 
   // Gross accrued, and what is actually withdrawable once caps are applied.
   const claimableGross = useMemo(

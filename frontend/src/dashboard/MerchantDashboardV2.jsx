@@ -66,6 +66,7 @@ export default function MerchantDashboardV2({
   gate = 0,
   minReputation = 700,
   reputationGateAvailable = false,
+  idGateAvailable = false,
   claiming = false,
   savingPolicy = false,
   onClaim = () => {},
@@ -285,7 +286,10 @@ export default function MerchantDashboardV2({
           <div className="fl-stack" style={{ gap: 9 }} role="radiogroup" aria-label="Access policy">
             {GATES.map(({ value, label, help }) => {
               const isReputation = value === 3;
-              const disabled = loading || (isReputation && !reputationGateAvailable);
+              const isQieId = value === 1;
+              const unavailable =
+                (isReputation && !reputationGateAvailable) || (isQieId && !idGateAvailable);
+              const disabled = loading || unavailable;
               const on = selectedGate === value;
               return (
                 <label
@@ -329,7 +333,12 @@ export default function MerchantDashboardV2({
                     }}
                   />
                   <span style={{ flexGrow: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 500 }}>{label}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500 }}>
+                      {label}
+                      {value === gate && (
+                        <span className="fl-pill fl-pill--on" style={{ flexShrink: 0 }}>Active</span>
+                      )}
+                    </span>
                     <span
                       style={{
                         display: "block",
@@ -341,17 +350,19 @@ export default function MerchantDashboardV2({
                       {help}
                     </span>
 
-                    {isReputation && !reputationGateAvailable && (
+                    {unavailable && (
                       <span
                         style={{
                           display: "block",
-                          color: "var(--fl-fg-3)",
+                          color: "var(--fl-warn)",
                           fontSize: 11.5,
                           marginTop: 8,
                           lineHeight: 1.5,
                         }}
                       >
-                        Not available until QIE publishes a verifiable score.
+                        {isReputation
+                          ? "Not available yet — waiting on QIE to issue its reputation signing key. Selecting this would block every subscriber."
+                          : "Not available yet — QIE ID gating is not wired on this network. Selecting this would block every subscriber."}
                       </span>
                     )}
 

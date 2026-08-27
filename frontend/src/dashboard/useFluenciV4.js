@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ethers } from "ethers";
 import {
   REGISTRY_V4_ABI, ATTESTOR_ABI, ERC20_ABI, V4_REGISTRY, V4_ATTESTOR, V4_TOKEN,
-  V4_CONFIGURED, REPUTATION_API, QUSDC_DECIMALS, QIE_PASS_ABI,
+  V4_CONFIGURED, REPUTATION_API, REPUTATION_LIVE, QUSDC_DECIMALS, QIE_PASS_ABI,
 } from "./v4Config";
 
 const RPC = import.meta.env.VITE_V4_RPC_URL || "https://rpc1mainnet.qie.digital";
@@ -20,6 +20,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   const [policy, setPolicy] = useState({ gate: 0, minReputation: 700n });
   const [protocolFeeBps, setProtocolFeeBps] = useState(50);
   const [reputationGateAvailable, setReputationGateAvailable] = useState(false);
+  const [idGateAvailable, setIdGateAvailable] = useState(false);
   const [merchantVerified, setMerchantVerified] = useState(false);
   const [kycRequired, setKycRequired] = useState(true);
   const [claimableNet, setClaimableNet] = useState(0n);
@@ -54,14 +55,17 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     setLoading(true);
     setError(null);
     try {
-      const [mineIds, merchantIds, feeBps, repAddr] = await Promise.all([
+      const [mineIds, merchantIds, feeBps, repAddr, idAddr] = await Promise.all([
         reg.getSubscriberSubscriptions(account),
         reg.getMerchantSubscriptions(account),
         reg.protocolFeeBps().catch(() => 50n),
         reg.qieReputation().catch(() => ethers.ZeroAddress),
+        reg.qieIdentity().catch(() => ethers.ZeroAddress),
       ]);
       setProtocolFeeBps(Number(feeBps));
-      setReputationGateAvailable(repAddr && repAddr !== ethers.ZeroAddress);
+      // Adapter wired AND scores actually flowing (QIE's signer live).
+      setReputationGateAvailable(repAddr && repAddr !== ethers.ZeroAddress && REPUTATION_LIVE);
+      setIdGateAvailable(idAddr && idAddr !== ethers.ZeroAddress);
 
       const hydrate = async (id) => {
         const [s, owed] = await Promise.all([reg.getSubscription(id), reg.previewOwed(id).catch(() => 0n)]);
@@ -235,6 +239,20 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     run("dispute", "Open dispute", () =>
       sendDirect(V4_REGISTRY, registryIface, "openDispute", [subId], 200000n)), [run, sendDirect, registryIface]);
 
+  // Does `account` satisfy `merchant`'s access policy? Used to pre-gate the
+  // subscribe button instead of letting createSubscription revert.
+  const checkMerchantPolicy = useCallback(async (merchant) => {
+    const reg = readRegistry();
+    if (!reg || !merchant || !account) return { gate: 0, meets: true };
+    try {
+      const [g] = await reg.getMerchantGate(merchant);
+      const meets = await reg.meetsMerchantPolicy(merchant, account);
+      return { gate: Number(g), meets };
+    } catch {
+      return { gate: 0, meets: true };
+    }
+  }, [readRegistry, account]);
+
   // Gross accrued, and what is actually withdrawable once caps are applied.
   const claimableGross = useMemo(
     () => merchantStreams.reduce((acc, s) => acc + (s.owed ?? 0n), 0n),
@@ -249,7 +267,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     decimals: QUSDC_DECIMALS,
     loading, busy, error, txState, resetTx,
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
-    reputationGateAvailable, claimable, claimableGross, merchantVerified, kycRequired,
+    reputationGateAvailable, idGateAvailable, checkMerchantPolicy, claimable, claimableGross, merchantVerified, kycRequired,
     tokenAddress, ensureAllowance,
     refresh, fetchReputation,
     createSubscription, setSpendCap, clearSpendCap, setMerchantPolicy,

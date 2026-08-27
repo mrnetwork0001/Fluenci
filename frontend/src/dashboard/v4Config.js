@@ -13,6 +13,11 @@ export const V4_TOKEN = import.meta.env.VITE_QUSDC_ADDRESS || "0x3F43DA82eC9A4f5
 
 export const V4_CONFIGURED = Boolean(V4_REGISTRY);
 
+// Reputation gating goes live once QIE issues its attestation signing key and
+// scores start flowing. Until then the attestor returns 0 for everyone, so the
+// merchant option is shown as "not available yet". Flip via env when QIE is live.
+export const REPUTATION_LIVE = import.meta.env.VITE_REPUTATION_LIVE === "true";
+
 export const QUSDC_DECIMALS = 6;
 
 /** Gate enum, mirrored from FluenciRegistryV4. */
@@ -48,6 +53,7 @@ export const REGISTRY_V4_ABI = [
   "function spendCaps(address subscriber, address merchant) external view returns (uint256 maxAmount, uint256 periodSeconds, uint256 windowStart, uint256 spentInWindow, bool set)",
   "function setMerchantPolicy(uint8 gate, uint256 minReputation) external",
   "function getMerchantGate(address merchant) external view returns (uint8 gate, uint256 minReputation)",
+  "function qieIdentity() external view returns (address)",
   "function meetsMerchantPolicy(address merchant, address subscriber) external view returns (bool)",
   "function setAcceptsSubscriptionTransfers(bool accepts) external",
   "function acceptsSubscriptionTransfers(address account) external view returns (bool)",

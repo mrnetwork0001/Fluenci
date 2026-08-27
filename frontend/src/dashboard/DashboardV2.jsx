@@ -188,8 +188,16 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
       reputation: null,
       tier: null,
       streamingSince: null,
+      gate: 0,
+      meetsPolicy: true,
     };
     setMerchantPreview(base);
+
+    // Pre-check the merchant's access policy against the connected wallet, so we
+    // can block and explain up front rather than let createSubscription revert.
+    v4.checkMerchantPolicy(address).then(({ gate, meets }) => {
+      setMerchantPreview((m) => (m && m.address === address ? { ...m, gate, meetsPolicy: meets } : m));
+    });
 
     const identityProvider = new ethers.JsonRpcProvider(MAINNET_RPC);
 
@@ -328,6 +336,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               gate={v4.policy.gate}
               minReputation={Number(v4.policy.minReputation ?? 700n)}
               reputationGateAvailable={v4.reputationGateAvailable}
+              idGateAvailable={v4.idGateAvailable}
               claiming={v4.busy === "claim"}
               savingPolicy={v4.busy === "policy"}
               // Sequential, and awaited. useFluenciV4 has one busy/error slot, so

@@ -154,7 +154,15 @@ export default function NewSubscription({
 
   const identityReady = status === "resolved" && !loading;
   const capReady = !capOn || capUnits !== null;
-  const canConfirm = identityReady && amountUnits !== null && capReady && !submitting;
+  // The merchant's access policy: block up front rather than revert on-chain.
+  const GATE_MSG = {
+    1: "This merchant only accepts subscribers with a registered QIE ID. Your wallet does not have one.",
+    2: "This merchant only accepts QIE Pass–verified subscribers. Verify your identity with QIE Pass to subscribe.",
+    3: "This merchant requires a minimum reputation score. Your wallet does not meet it yet.",
+  };
+  const policyBlocked = identityReady && merchant && merchant.meetsPolicy === false;
+  const policyMessage = policyBlocked ? (GATE_MSG[merchant.gate] || "You do not meet this merchant's access policy.") : null;
+  const canConfirm = identityReady && amountUnits !== null && capReady && !submitting && !policyBlocked;
 
   const name = merchant?.name || (status === "resolved" && query.trim().toLowerCase().endsWith(".qie") ? query.trim() : null);
   const displayName = name || shortAddr(address);
@@ -301,9 +309,14 @@ export default function NewSubscription({
             <div style={{ color: "var(--fl-warn)", fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>{error}</div>
           )}
 
+          {policyMessage && (
+            <div className="fl-inner" style={{ padding: "12px 14px", marginBottom: 12, borderColor: "var(--fl-warn)" }}>
+              <span style={{ color: "var(--fl-warn)", fontSize: 12.5, lineHeight: 1.5 }}>{policyMessage}</span>
+            </div>
+          )}
           <button type="submit" className="fl-btn fl-btn--primary fl-btn--block" disabled={!canConfirm}
                   style={{ padding: "13px 0", fontSize: 13.5 }}>
-            {submitting ? "Confirm in your wallet…" : "Approve and start streaming"}
+            {submitting ? "Confirm in your wallet…" : policyBlocked ? "You don't meet this merchant's policy" : "Approve and start streaming"}
           </button>
           <div className="fl-row--between" style={{ marginTop: 14 }}>
             <span style={{ color: "var(--fl-fg-3)", fontSize: 12 }}>Settles per second &middot; cancel anytime</span>

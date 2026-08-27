@@ -336,6 +336,8 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               onClaim={guard(async () => {
                 for (const s of v4.merchantStreams) await v4.claimStream(s.id);
               })}
+              onVerify={() => fluenci?.startKycVerification?.()}
+              verifying={["creating", "pending_kyc", "pending_consent", "claiming"].includes(fluenci?.kycState?.status)}
               onSavePolicy={guard((gate, minRep) => v4.setMerchantPolicy(gate, minRep ?? 0))}
               // Copy what the screen displayed and handed over, rather than
               // rebuilding a second URL here that can differ from it.

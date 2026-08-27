@@ -25,6 +25,8 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
+  const [txState, setTxState] = useState({ status: "idle", action: "", hash: "", error: "" });
+  const resetTx = useCallback(() => setTxState({ status: "idle", action: "", hash: "", error: "" }), []);
   const providerRef = useRef(null);
 
   const readProvider = useCallback(() => {
@@ -147,16 +149,25 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   }, []);
 
   // --- writes --------------------------------------------------------------
-  const run = useCallback(async (key, fn) => {
+  const run = useCallback(async (key, fn, action = "Onchain transaction") => {
     setBusy(key);
     setError(null);
+    setTxState({ status: "preparing", action, hash: "", error: "" });
     try {
-      const tx = await fn(await writeRegistry());
+      const c = await writeRegistry();
+      // The wallet prompt(s) happen inside fn — approve then the write itself.
+      setTxState({ status: "awaiting_signature", action, hash: "", error: "" });
+      const tx = await fn(c);
+      setTxState({ status: "broadcasting", action, hash: tx?.hash || "", error: "" });
+      setTxState((s) => ({ ...s, status: "confirming" }));
       await tx.wait();
+      setTxState({ status: "confirmed", action, hash: tx?.hash || "", error: "" });
       await refresh();
       return true;
     } catch (e) {
-      setError(e?.shortMessage || e?.reason || e?.message || String(e));
+      const msg = e?.shortMessage || e?.reason || e?.message || String(e);
+      setError(msg);
+      setTxState({ status: "error", action, hash: "", error: msg });
       return false;
     } finally {
       setBusy(null);
@@ -183,19 +194,19 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
         const headroom = (amountPerPeriod * 31_536_000n) / BigInt(periodSeconds || 1);
         await ensureAllowance(runner, headroom > 0n ? headroom : amountPerPeriod);
         return c.createSubscription(merchant, token || tokenAddress, amountPerPeriod, periodSeconds, cliffTime, stopTime);
-      }),
+      }, "Approve and start subscription"),
     [run, tokenAddress, ensureAllowance]
   );
 
   const setSpendCap = useCallback(
-    (merchant, maxAmount, periodSeconds) => run(`cap:${merchant}`, (c) => c.setSpendCap(merchant, maxAmount, periodSeconds)),
+    (merchant, maxAmount, periodSeconds) => run(`cap:${merchant}`, (c) => c.setSpendCap(merchant, maxAmount, periodSeconds), "Set spending limit"),
     [run]
   );
-  const clearSpendCap = useCallback((merchant) => run(`cap:${merchant}`, (c) => c.clearSpendCap(merchant)), [run]);
-  const setMerchantPolicy = useCallback((gate, minRep) => run("policy", (c) => c.setMerchantPolicy(gate, minRep)), [run]);
-  const claimStream = useCallback((subId) => run("claim", (c) => c.claimStream(subId)), [run]);
-  const terminateStream = useCallback((subId) => run("terminate", (c) => c.terminateStream(subId)), [run]);
-  const openDispute = useCallback((subId) => run("dispute", (c) => c.openDispute(subId)), [run]);
+  const clearSpendCap = useCallback((merchant) => run(`cap:${merchant}`, (c) => c.clearSpendCap(merchant), "Remove spending limit"), [run]);
+  const setMerchantPolicy = useCallback((gate, minRep) => run("policy", (c) => c.setMerchantPolicy(gate, minRep), "Save access policy"), [run]);
+  const claimStream = useCallback((subId) => run("claim", (c) => c.claimStream(subId), "Claim earnings"), [run]);
+  const terminateStream = useCallback((subId) => run("terminate", (c) => c.terminateStream(subId), "Cancel subscription"), [run]);
+  const openDispute = useCallback((subId) => run("dispute", (c) => c.openDispute(subId), "Open dispute"), [run]);
 
   // Gross accrued, and what is actually withdrawable once caps are applied.
   const claimableGross = useMemo(
@@ -209,7 +220,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     attestorConfigured: Boolean(V4_ATTESTOR),
     reputationApiConfigured: Boolean(REPUTATION_API),
     decimals: QUSDC_DECIMALS,
-    loading, busy, error,
+    loading, busy, error, txState, resetTx,
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
     reputationGateAvailable, claimable, claimableGross, merchantVerified,
     tokenAddress, ensureAllowance,

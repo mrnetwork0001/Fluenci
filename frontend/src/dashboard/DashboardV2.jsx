@@ -414,7 +414,10 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
         connectWalletConnect={fluenci?.connectWalletConnect}
         loading={fluenci?.loading}
       />
-      <TransactionModal txState={fluenci?.txState} onClose={fluenci?.resetTx} />
+      <TransactionModal
+        txState={v4.txState && v4.txState.status !== "idle" ? v4.txState : fluenci?.txState}
+        onClose={v4.txState && v4.txState.status !== "idle" ? v4.resetTx : fluenci?.resetTx}
+      />
     </>
   );
 }

@@ -87,6 +87,16 @@ const QIEPASS_PUBLIC_KEY = process.env.QIEPASS_PUBLIC_KEY || "";
 const QIEPASS_SECRET_KEY = process.env.QIEPASS_SECRET_KEY || "";
 const QIEPASS_CLAIMS = (process.env.QIEPASS_CLAIMS || "firstName,country").split(",").map(c => c.trim());
 
+// QIE Reputation (DRS) API + on-chain attestation signer. The api-key is a
+// secret and lives ONLY here (never in the frontend bundle). The signer key
+// must be the attestor's authorised signer.
+const DRS_API_URL = process.env.DRS_API_URL || "https://reputation.qie.digital";
+const DRS_API_KEY = process.env.DRS_API_KEY || "";
+const REPUTATION_SIGNER_KEY = process.env.REPUTATION_SIGNER_KEY || "";
+const REPUTATION_ATTESTOR_ADDRESS = process.env.REPUTATION_ATTESTOR_ADDRESS || "";
+const REPUTATION_CHAIN_ID = Number(process.env.REPUTATION_CHAIN_ID || 1990);
+const REPUTATION_TTL_DAYS = Number(process.env.REPUTATION_TTL_DAYS || 7);
+
 // HMAC-SHA256 Signature generator for QIE Pass API authentication
 function generateQiePassHeaders() {
   const timestamp = Date.now().toString();
@@ -1510,6 +1520,108 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // Start Express Server and Connect
+// ============================================================================
+// QIE Reputation (DRS)
+// Reads a wallet's reputation from QIE's DRS API (key stays server-side), and
+// for the gate, signs an EIP-712 attestation the on-chain attestor accepts.
+// ============================================================================
+
+const REP_DOMAIN = {
+  name: "Fluenci Reputation Attestor",
+  version: "1",
+  chainId: REPUTATION_CHAIN_ID,
+  verifyingContract: REPUTATION_ATTESTOR_ADDRESS,
+};
+const REP_TYPES = {
+  ReputationAttestation: [
+    { name: "wallet", type: "address" },
+    { name: "score", type: "uint256" },
+    { name: "tier", type: "string" },
+    { name: "modelVersion", type: "string" },
+    { name: "issuedAt", type: "uint256" },
+    { name: "expiresAt", type: "uint256" },
+    { name: "chainId", type: "uint256" },
+  ],
+};
+
+// Accepts a wallet address or a .qie name; DRS resolves a name to its owner.
+async function fetchDrsReputation(addressOrName) {
+  if (!DRS_API_KEY) throw Object.assign(new Error("Reputation API key not configured"), { status: 503 });
+  const url = `${DRS_API_URL.replace(/\/$/, "")}/api/reputation/${encodeURIComponent(addressOrName)}/factors`;
+  const res = await fetch(url, { headers: { "api-key": DRS_API_KEY } });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw Object.assign(new Error(`DRS API returned ${res.status}`), { status: res.status, detail });
+  }
+  const body = await res.json();
+  const d = body?.data ?? body;
+  return {
+    address: (d.address || "").toLowerCase(),
+    score: d.score,
+    tier: d.tier,
+    modelVersion: d.modelVersion,
+    penalty: d.penalty,
+    factors: d.factors,
+    resolvedFrom: body?.resolvedFrom ?? null,
+  };
+}
+
+// Display-only reputation (no signature). Safe to expose to the frontend.
+app.get("/reputation/public/:address", async (req, res) => {
+  try {
+    const r = await fetchDrsReputation(req.params.address);
+    res.json({
+      data: {
+        score: r.score, tier: r.tier, modelVersion: r.modelVersion,
+        penalty: r.penalty, factors: r.factors, resolvedFrom: r.resolvedFrom,
+      },
+    });
+  } catch (e) {
+    res.status(e.status || 502).json({ error: { message: e.message } });
+  }
+});
+
+// Signed attestation for the on-chain gate. Score is stored as a rounded 0-100
+// integer (the DRS scale), which is what the merchant's minReputation compares to.
+app.get("/reputation/attest/:address", async (req, res) => {
+  try {
+    if (!REPUTATION_SIGNER_KEY || !REPUTATION_ATTESTOR_ADDRESS) {
+      return res.status(503).json({ error: { message: "Attestation signer not configured" } });
+    }
+    const r = await fetchDrsReputation(req.params.address);
+    const wallet = ethers.getAddress(r.address);
+
+    // Base issuedAt on chain time so a fast local clock can't push it into the
+    // future (the attestor rejects issuedAt > block.timestamp).
+    let chainNow = Math.floor(Date.now() / 1000);
+    try {
+      const repProvider = new ethers.JsonRpcProvider(process.env.RPC_URL || "https://rpc1mainnet.qie.digital");
+      const block = await repProvider.getBlock("latest");
+      if (block?.timestamp) chainNow = Number(block.timestamp);
+    } catch { /* fall back to system time */ }
+
+    const issuedAt = chainNow - 120;
+    const expiresAt = issuedAt + REPUTATION_TTL_DAYS * 86400;
+    const score = Math.round(Number(r.score));
+    const attestation = { wallet, score, tier: r.tier, modelVersion: r.modelVersion, issuedAt, expiresAt, chainId: REPUTATION_CHAIN_ID };
+
+    const signer = new ethers.Wallet(REPUTATION_SIGNER_KEY);
+    const signature = await signer.signTypedData(REP_DOMAIN, REP_TYPES, {
+      wallet,
+      score: BigInt(score),
+      tier: r.tier,
+      modelVersion: r.modelVersion,
+      issuedAt: BigInt(issuedAt),
+      expiresAt: BigInt(expiresAt),
+      chainId: BigInt(REPUTATION_CHAIN_ID),
+    });
+
+    res.json({ ok: true, address: wallet, score: r.score, tier: r.tier, attestation, signature });
+  } catch (e) {
+    res.status(e.status || 502).json({ error: { message: e.message } });
+  }
+});
+
 app.listen(PORT, async () => {
   console.log(`AI Auditor API Server running on port ${PORT}`);
   await connectBlockchain();

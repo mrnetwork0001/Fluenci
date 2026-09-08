@@ -322,13 +322,14 @@ export default function DocsSite({ onHome, onApp }) {
               </div>
               <div className="fdoc-tr">
                 <div><strong>Minimum reputation</strong></div>
-                <div>Signed reputation attestation above a threshold.</div>
-                <div><span className="fdoc-pill wait">Pending signer</span></div>
+                <div>QIE reputation score at or above a merchant-set threshold (0-100).</div>
+                <div><span className="fdoc-pill on">Live</span></div>
               </div>
             </div>
             <p className="fdoc-note">
-              Reputation gating is fully built - a signed attestation verified against an upgradeable
-              authorised signer - and switches on the moment QIE&rsquo;s reputation signing key is live.
+              Reputation reads come from QIE&rsquo;s Reputation Score API; Fluenci signs the result into a
+              short-lived attestation the onchain attestor verifies against an upgradeable authorised
+              signer. Only the score is ever exposed - never the underlying signals.
             </p>
           </section>
 

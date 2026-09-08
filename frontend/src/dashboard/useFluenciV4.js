@@ -17,7 +17,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   const [subscriptions, setSubscriptions] = useState([]);
   const [merchantStreams, setMerchantStreams] = useState([]);
   const [limits, setLimits] = useState([]);
-  const [policy, setPolicy] = useState({ gate: 0, minReputation: 700n });
+  const [policy, setPolicy] = useState({ gate: 0, minReputation: 50n });
   const [protocolFeeBps, setProtocolFeeBps] = useState(50);
   const [reputationGateAvailable, setReputationGateAvailable] = useState(false);
   const [idGateAvailable, setIdGateAvailable] = useState(false);
@@ -141,7 +141,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  /** Off-chain reputation. Endpoint is injected, never hardcoded - returns null when unconfigured. */
+  /** Off-chain reputation, display only. Endpoint is injected, never hardcoded - returns null when unconfigured. */
   const fetchReputation = useCallback(async (address) => {
     if (!REPUTATION_API || !address) return null;
     try {
@@ -155,6 +155,48 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     }
   }, []);
 
+  /**
+   * Ask the backend for a signed reputation attestation for `address`. The
+   * backend holds the DRS api-key and the authorised signer; it returns the
+   * attestation tuple + signature that submitAttestation() takes.
+   */
+  const fetchReputationAttestation = useCallback(async (address) => {
+    if (!REPUTATION_API || !address) return null;
+    try {
+      const res = await fetch(`${REPUTATION_API.replace(/\/$/, "")}/reputation/attest/${address}`);
+      if (!res.ok) return null;
+      const body = await res.json();
+      if (!body?.attestation || !body?.signature) return null;
+      return body; // { ok, address, score, tier, attestation, signature }
+    } catch {
+      return null;
+    }
+  }, []);
+
+  /** Record a signed attestation on-chain so the reputation gate can read the score. */
+  const submitAttestation = useCallback((attestation, signature) => {
+    const a = [
+      attestation.wallet,
+      BigInt(attestation.score),
+      attestation.tier,
+      attestation.modelVersion,
+      BigInt(attestation.issuedAt),
+      BigInt(attestation.expiresAt),
+      BigInt(attestation.chainId),
+    ];
+    return run("submitAttestation", "Recording reputation",
+      () => sendDirect(V4_ATTESTOR, attestorIface, "submitAttestation", [a, signature], 250000n));
+  }, [run, sendDirect, attestorIface]);
+
+  /** Fetch a fresh attestation for the connected wallet and record it on-chain. */
+  const verifyReputation = useCallback(async () => {
+    if (!account) return null;
+    const att = await fetchReputationAttestation(account);
+    if (!att) throw new Error("Could not retrieve a reputation attestation. Check that the reputation service is reachable.");
+    await submitAttestation(att.attestation, att.signature);
+    return att;
+  }, [account, fetchReputationAttestation, submitAttestation]);
+
   // --- writes --------------------------------------------------------------
   // QIE's RPC mis-reports gas, so ethers' estimation/fee pipeline stalls after
   // the wallet signs. v1 works around this by sending eth_sendTransaction
@@ -162,6 +204,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   // v4 writes now do the same.
   const registryIface = useMemo(() => new ethers.Interface(REGISTRY_V4_ABI), []);
   const erc20Iface = useMemo(() => new ethers.Interface(ERC20_ABI), []);
+  const attestorIface = useMemo(() => new ethers.Interface(ATTESTOR_ABI), []);
 
   const sendDirect = useCallback(async (to, iface, method, args, gasLimit) => {
     const injected = window.ethereum;
@@ -270,7 +313,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
     reputationGateAvailable, idGateAvailable, checkMerchantPolicy, claimable, claimableGross, merchantVerified, kycRequired,
     tokenAddress, ensureAllowance,
-    refresh, fetchReputation,
+    refresh, fetchReputation, fetchReputationAttestation, submitAttestation, verifyReputation,
     createSubscription, setSpendCap, clearSpendCap, setMerchantPolicy,
     claimStream, terminateStream, openDispute,
   };

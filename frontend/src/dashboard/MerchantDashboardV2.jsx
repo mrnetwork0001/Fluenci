@@ -44,8 +44,10 @@ const GATES = [
   { value: 3, label: "Minimum reputation", help: "Reputation score at or above" },
 ];
 
-/* Display ceiling for the threshold meter only - the contract sets no upper bound. */
-const REPUTATION_MAX = 1000;
+/* QIE reputation is scored 0-100 (tiers: New 0-29, Active 30-49, Trusted 50-69,
+   Strong 70-84, Elite 85-100). The threshold meter uses the same scale. */
+const REPUTATION_MAX = 100;
+const REPUTATION_DEFAULT = 50; // "Trusted" — a sensible starting gate
 
 /**
  * Merchant home. Presentational: every chain value and every action arrives as a
@@ -64,7 +66,7 @@ export default function MerchantDashboardV2({
   merchantName = "",
   paymentLinkHost = "fluenci.xyz/pay",
   gate = 0,
-  minReputation = 700,
+  minReputation = REPUTATION_DEFAULT,
   reputationGateAvailable = false,
   idGateAvailable = false,
   claiming = false,
@@ -78,7 +80,7 @@ export default function MerchantDashboardV2({
   onRegisterName = () => {},
 }) {
   const [selectedGate, setSelectedGate] = useState(gate);
-  const [threshold, setThreshold] = useState(String(minReputation ?? 700));
+  const [threshold, setThreshold] = useState(String(minReputation ?? REPUTATION_DEFAULT));
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function MerchantDashboardV2({
   }, [gate]);
 
   useEffect(() => {
-    setThreshold(String(minReputation ?? 700));
+    setThreshold(String(minReputation ?? REPUTATION_DEFAULT));
   }, [minReputation]);
 
   useEffect(() => {

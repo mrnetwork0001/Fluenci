@@ -81,7 +81,9 @@ export default function NewSubscription({
   error = null,
   merchant = null,
   reputation = null,
-  reputationMax = 1000,
+  reputationMax = 100,
+  onVerifyReputation = null,
+  verifyingReputation = false,
   walletFlags = null,
   resolveMerchant = null,
   tokenAddress = ZERO,
@@ -312,6 +314,13 @@ export default function NewSubscription({
           {policyMessage && (
             <div className="fl-inner" style={{ padding: "12px 14px", marginBottom: 12, borderColor: "var(--fl-warn)" }}>
               <span style={{ color: "var(--fl-warn)", fontSize: 12.5, lineHeight: 1.5 }}>{policyMessage}</span>
+              {policyBlocked && Number(merchant?.gate) === 3 && onVerifyReputation && (
+                <button type="button" className="fl-btn fl-btn--ghost" disabled={verifyingReputation}
+                        onClick={() => onVerifyReputation()}
+                        style={{ marginTop: 10, padding: "9px 14px", fontSize: 12.5 }}>
+                  {verifyingReputation ? "Recording your score…" : "Verify my reputation"}
+                </button>
+              )}
             </div>
           )}
           <button type="submit" className="fl-btn fl-btn--primary fl-btn--block" disabled={!canConfirm}

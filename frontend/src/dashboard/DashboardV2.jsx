@@ -222,6 +222,20 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
       ? { ...m, reputation: rep.score ?? null, tier: rep.tier ?? null } : m));
   }, [v4]);
 
+  // Reputation gate: fetch a signed attestation for the connected wallet, record
+  // it on-chain, then re-check the merchant's policy so the block clears.
+  const handleVerifyReputation = useCallback(async () => {
+    const addr = merchantPreview?.address;
+    if (!addr) return;
+    try {
+      await v4.verifyReputation();
+      const { gate, meets } = await v4.checkMerchantPolicy(addr);
+      setMerchantPreview((m) => (m && m.address === addr ? { ...m, gate, meetsPolicy: meets } : m));
+    } catch {
+      // Errors surface through v4.txState / v4.error; nothing to do here.
+    }
+  }, [v4, merchantPreview]);
+
   // --- actions -------------------------------------------------------------
   const handleCreate = useCallback(async ({ merchant, amountPerPeriod, periodSeconds, spendCap }) => {
     if (usingSample) return;
@@ -334,7 +348,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               kycRequired={usingSample ? false : Boolean(v4.kycRequired)}
               merchantName={merchantData.merchantName}
               gate={v4.policy.gate}
-              minReputation={Number(v4.policy.minReputation ?? 700n)}
+              minReputation={Number(v4.policy.minReputation ?? 50n)}
               reputationGateAvailable={v4.reputationGateAvailable}
               idGateAvailable={v4.idGateAvailable}
               claiming={v4.busy === "claim"}
@@ -428,6 +442,8 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             error={v4.error}
             merchant={merchantPreview}
             reputation={merchantPreview?.reputation ?? null}
+            onVerifyReputation={handleVerifyReputation}
+            verifyingReputation={v4.busy === "submitAttestation"}
             tokenAddress={tokenAddress}
             protocolFeeBps={v4.protocolFeeBps}
             resolveMerchant={resolveMerchant}

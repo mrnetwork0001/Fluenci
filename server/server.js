@@ -60,6 +60,7 @@ let streamsCreated = 0; // total SubscriptionCreated events, incl. ended streams
 let totalVolume = 0n;
 let totalSwapVolume = 0n;
 let activeStreamRisks = {};
+let unpausableStreams = new Set(); // streams whose pause reverts "Stream not active" — stop re-auditing/retrying them
 let processedTxHashes = new Set();
 let pollIntervalId = null;
 
@@ -378,15 +379,27 @@ const DecisionAgent = {
           logTelemetry("DECISION_AGENT", `onchain safety pause tx broadcasted. Hash: ${tx.hash}`);
           const receipt = await tx.wait();
           logTelemetry("DECISION_AGENT", `Safety pause confirmed in block ${receipt.blockNumber}. Stream has been locked onchain.`);
+          return "paused";
         } catch (err) {
-          logTelemetry("DECISION_AGENT", `FAILED to execute safety pause: ${err.message}`);
+          const reason = err.reason || err.shortMessage || err.message || String(err);
+          // A terminated/settled stream cannot be paused — the registry reverts
+          // "Stream not active". Don't dump the full ethers CALL_EXCEPTION, and
+          // tell the caller to stop retrying this stream every tick.
+          if (reason.includes("Stream not active")) {
+            logTelemetry("DECISION_AGENT", `Stream ${subId} is no longer pausable (terminated/inactive); dropping from monitoring.`);
+            return "unpausable";
+          }
+          logTelemetry("DECISION_AGENT", `FAILED to execute safety pause for ${subId}: ${reason}`);
+          return "failed";
         }
       } else {
         logTelemetry("DECISION_AGENT", `[SIMULATION] Safety pause triggered. Report CID ${ipfsCID} stored in memory.`);
+        return "simulated";
       }
     } else {
       logTelemetry("DECISION_AGENT", `Stream ${subId} passed safety threshold. Monitoring active.`);
     }
+    return "ok";
   }
 };
 
@@ -811,6 +824,7 @@ async function connectBlockchain() {
       totalVolume = 0n;
       totalSwapVolume = 0n;
       activeStreamRisks = {};
+      unpausableStreams = new Set();
       processedTxHashes = new Set();
       telemetryLogs = [
         {
@@ -897,6 +911,7 @@ async function auditActiveStreams() {
   console.log(`[AUDIT] Auditing ${activeSubIds.length} active streams...`);
 
   for (const subId of activeSubIds) {
+    if (unpausableStreams.has(subId)) continue; // terminated/inactive — already given up on
     try {
       const [sub, claimableAmount] = await registryContract.getSubscriptionDetails(subId);
       const subscriber = sub.subscriber, merchant = sub.merchant, tokenAddress = sub.tokenAddress;
@@ -916,6 +931,9 @@ async function auditActiveStreams() {
       const requiredBuffer = claimableAmount + (ratePerSecond * 10n);
 
       if (balanceVal < requiredBuffer) {
+        // Flag + attempt the pause ONCE. Re-flagging the same stream every tick
+        // is just log noise.
+        if (activeStreamRisks[subId] === 99) continue;
         logTelemetry("ANALYST_AGENT", `CRITICAL: Active stream ${subId} subscriber ${subscriber} has insufficient balance (${balanceVal.toString()} < required ${requiredBuffer.toString()})! Triggering safety pause...`);
         activeStreamRisks[subId] = 99;
 
@@ -944,10 +962,14 @@ async function auditActiveStreams() {
         };
 
         // Hand-off to Decision Agent
-        await DecisionAgent.evaluateReport(subId, report, ipfsCID);
+        const outcome = await DecisionAgent.evaluateReport(subId, report, ipfsCID);
+        if (outcome === "unpausable") {
+          unpausableStreams.add(subId);
+          delete activeStreamRisks[subId];
+        }
       }
     } catch (err) {
-      logTelemetry("WARNING", `Failed to audit active stream ${subId} balance: ${err.message}`);
+      logTelemetry("WARNING", `Failed to audit active stream ${subId} balance: ${err.reason || err.shortMessage || err.message}`);
     }
   }
 }

@@ -30,6 +30,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
   const [active, setActive] = useState(initialTab);
   const [collapsed, setCollapsed] = useState(false);
   const [merchantPreview, setMerchantPreview] = useState(null);
+  const [myReputation, setMyReputation] = useState(null);
 
   const account = fluenci?.account ?? null;
   // Deliberately NOT fluenci.contracts.qusdc: that map falls back to the
@@ -113,6 +114,17 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
 
   // Close the picker as soon as a wallet actually lands.
   useEffect(() => { if (account) setWalletOpen(false); }, [account]);
+
+  // Fetch the connected wallet's own reputation for the "Your reputation" card.
+  // fetchReputation is a stable useCallback, so this runs once per account.
+  useEffect(() => {
+    let alive = true;
+    if (!account) { setMyReputation(null); return; }
+    v4.fetchReputation(account)
+      .then((rep) => { if (alive) setMyReputation(rep); })
+      .catch(() => { if (alive) setMyReputation(null); });
+    return () => { alive = false; };
+  }, [account, v4.fetchReputation]);
 
   // Keep the address bar in step with the sidebar, so tabs are linkable and
   // the back button behaves.
@@ -286,7 +298,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
           (a, s) => a + (s.periodSeconds ? (s.amountPerPeriod * 2592000n) / BigInt(s.periodSeconds) : 0n), 0n),
         settledAllTime: v4.merchantStreams.reduce((a, s) => a + (s.settledAmount ?? 0n), 0n),
         subscriberCount: new Set(v4.merchantStreams.map((s) => s.subscriber)).size,
-        reputationScore: null,
+        reputationScore: myReputation?.score != null ? Math.round(Number(myReputation.score)) : null,
         merchantName: fluenci?.accountDomain ?? "",
       };
 

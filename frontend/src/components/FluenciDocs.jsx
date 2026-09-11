@@ -445,7 +445,7 @@ export default function FluenciDocs() {
               <ContractCard 
                 name="QIE Pass DID Registry" 
                 description="Decentralized Identity registry. Verifies subscriber and merchant identity status to ensure compliance and prevent Sybil stream creation."
-                address="0x0766Ff824376CEf38CFa5C155A51E90578096e38"
+                address="0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE"
               />
               <ContractCard 
                 name="QIE Domain Registry" 

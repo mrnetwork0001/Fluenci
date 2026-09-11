@@ -74,5 +74,5 @@ export const ATTESTOR_ABI = [
 /// QIE Pass and the registry live on mainnet regardless of where v4 is pointed,
 /// so identity reads always go to mainnet RPC.
 export const MAINNET_RPC = "https://rpc1mainnet.qie.digital";
-export const QIE_PASS = "0x0766Ff824376CEf38CFa5C155A51E90578096e38";
+export const QIE_PASS = "0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE";
 export const QIE_PASS_ABI = ["function verifyIdentity(address user) external view returns (bool)"];

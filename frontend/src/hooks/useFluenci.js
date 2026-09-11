@@ -55,7 +55,7 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
     // The v3 literal stays as the fallback, so behaviour is identical while it is unset.
     registry: import.meta.env.VITE_REGISTRY_ADDRESS || "0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9",
     qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5", // Official QUSDC
-    qiepass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
+    qiepass: "0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE",
     auditor: "0xF38d9458d14d916B60026693a76FBe7cDEf651Fa",
     qiedex: "0x08cd2e72e156D8563B4351eb4065C262A9f553Ef", // Official QIEDex Router
     fluenciRouter: "0x75475647f52531D4086296415392E4AA94b92de7", // FluenciRouter (wraps QieDex with onchain attribution)

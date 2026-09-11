@@ -1366,44 +1366,29 @@ export default function App() {
                     </div>
 
                     {/* Real-time Protocol Stats Row */}
-                    <div className="hero-stats-row" style={{ 
-                      display: "flex", 
-                      gap: "0", 
-                      marginTop: "40px", 
-                      padding: "16px 0", 
-                      background: "#f8fafc", 
+                    {/* Capability strip (replaces live usage stats — those return as the
+                        public traction dashboard once real merchants are onboarded). */}
+                    <div className="hero-stats-row" style={{
+                      display: "flex",
+                      gap: "0",
+                      marginTop: "40px",
+                      padding: "14px 0",
+                      background: "#f8fafc",
                       border: "1px solid #e2e8f0",
                       borderRadius: "12px",
                       maxWidth: "680px",
                       flexWrap: "wrap"
                     }}>
-                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Active Users</div>
-                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#0f172a", fontFamily: "monospace" }}>
-                          {stats.uniqueUsersCount}
+                      {["Live on QIE Mainnet", "4 access gates", "Non-custodial", "Audited"].map((label, i) => (
+                        <div key={label} style={{
+                          flex: 1, minWidth: "150px", textAlign: "center", padding: "8px 12px",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                          borderLeft: i > 0 ? "1px solid #e2e8f0" : "none"
+                        }}>
+                          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#079AB7", flexShrink: 0 }} />
+                          <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "#0f172a", fontFamily: "'Montserrat', sans-serif", whiteSpace: "nowrap" }}>{label}</span>
                         </div>
-                      </div>
-                      <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
-                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Settled Volume</div>
-                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                          ${stats.totalVolumeUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                      </div>
-                      <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
-                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Swap Volume (DEX)</div>
-                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                          ${(stats.totalSwapVolumeUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                      </div>
-                      <div style={{ width: "1px", background: "#e2e8f0", alignSelf: "stretch" }} />
-                      <div style={{ flex: 1, textAlign: "center", padding: "8px 12px" }}>
-                        <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", marginBottom: "6px" }}>Streams Created</div>
-                        <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#000000", fontFamily: "monospace" }}>
-                          {(stats.streamsCreatedCount || 0).toLocaleString()}
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>

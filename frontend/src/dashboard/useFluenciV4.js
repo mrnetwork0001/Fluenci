@@ -173,30 +173,6 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     }
   }, []);
 
-  /** Record a signed attestation on-chain so the reputation gate can read the score. */
-  const submitAttestation = useCallback((attestation, signature) => {
-    const a = [
-      attestation.wallet,
-      BigInt(attestation.score),
-      attestation.tier,
-      attestation.modelVersion,
-      BigInt(attestation.issuedAt),
-      BigInt(attestation.expiresAt),
-      BigInt(attestation.chainId),
-    ];
-    return run("submitAttestation", "Recording reputation",
-      () => sendDirect(V4_ATTESTOR, attestorIface, "submitAttestation", [a, signature], 250000n));
-  }, [run, sendDirect, attestorIface]);
-
-  /** Fetch a fresh attestation for the connected wallet and record it on-chain. */
-  const verifyReputation = useCallback(async () => {
-    if (!account) return null;
-    const att = await fetchReputationAttestation(account);
-    if (!att) throw new Error("Could not retrieve a reputation attestation. Check that the reputation service is reachable.");
-    await submitAttestation(att.attestation, att.signature);
-    return att;
-  }, [account, fetchReputationAttestation, submitAttestation]);
-
   // --- writes --------------------------------------------------------------
   // QIE's RPC mis-reports gas, so ethers' estimation/fee pipeline stalls after
   // the wallet signs. v1 works around this by sending eth_sendTransaction
@@ -238,6 +214,33 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
       setBusy(null);
     }
   }, [readProvider, refresh]);
+
+  // Reputation attestation writes. Declared AFTER run/sendDirect/attestorIface:
+  // a useCallback dep array is read during render, so referencing a const that
+  // is declared later would hit the temporal dead zone and crash the dashboard.
+  /** Record a signed attestation on-chain so the reputation gate can read the score. */
+  const submitAttestation = useCallback((attestation, signature) => {
+    const a = [
+      attestation.wallet,
+      BigInt(attestation.score),
+      attestation.tier,
+      attestation.modelVersion,
+      BigInt(attestation.issuedAt),
+      BigInt(attestation.expiresAt),
+      BigInt(attestation.chainId),
+    ];
+    return run("submitAttestation", "Recording reputation",
+      () => sendDirect(V4_ATTESTOR, attestorIface, "submitAttestation", [a, signature], 250000n));
+  }, [run, sendDirect, attestorIface]);
+
+  /** Fetch a fresh attestation for the connected wallet and record it on-chain. */
+  const verifyReputation = useCallback(async () => {
+    if (!account) return null;
+    const att = await fetchReputationAttestation(account);
+    if (!att) throw new Error("Could not retrieve a reputation attestation. Check that the reputation service is reachable.");
+    await submitAttestation(att.attestation, att.signature);
+    return att;
+  }, [account, fetchReputationAttestation, submitAttestation]);
 
   /** Approve the registry to pull `needed` of the token, if the allowance is short. */
   const ensureAllowance = useCallback(async (needed) => {

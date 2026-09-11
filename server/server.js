@@ -88,6 +88,19 @@ const QIEPASS_PUBLIC_KEY = process.env.QIEPASS_PUBLIC_KEY || "";
 const QIEPASS_SECRET_KEY = process.env.QIEPASS_SECRET_KEY || "";
 const QIEPASS_CLAIMS = (process.env.QIEPASS_CLAIMS || "firstName,country").split(",").map(c => c.trim());
 
+// Admin-only gate for the dangerous control endpoints (/configure,
+// /trigger-anomaly, /arbitrate-dispute). Fail-closed: with no ADMIN_SECRET set
+// the endpoints are locked entirely, so an unauthenticated caller can never
+// reconfigure the node, inject a key, or force an on-chain safety pause.
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "";
+function requireAdmin(req, res) {
+  if (!ADMIN_SECRET || req.get("x-admin-secret") !== ADMIN_SECRET) {
+    res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+  return true;
+}
+
 // QIE Reputation (DRS) API + on-chain attestation signer. The api-key is a
 // secret and lives ONLY here (never in the frontend bundle). The signer key
 // must be the attestor's authorised signer.
@@ -1273,6 +1286,7 @@ app.get("/audit-report/:subId", (req, res) => {
 
 // AI Dispute Arbitration endpoint (Delegates to ArbitratorAgent)
 app.post("/arbitrate-dispute", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { subId, evidence, merchantShare, subscriberRefund } = req.body;
   if (!subId) {
     return res.status(400).json({ error: "Missing subId" });
@@ -1284,12 +1298,14 @@ app.post("/arbitrate-dispute", async (req, res) => {
 
 // Configure contract addresses dynamically from the UI
 app.post("/configure", async (req, res) => {
-  const { rpcUrl, registryAddress, auditorAddress, aiPrivateKey } = req.body;
-  
+  if (!requireAdmin(req, res)) return;
+  const { rpcUrl, registryAddress, auditorAddress } = req.body;
+
   if (rpcUrl) RPC_URL = rpcUrl;
   if (registryAddress) REGISTRY_ADDRESS = registryAddress;
   if (auditorAddress) AUDITOR_ADDRESS = auditorAddress;
-  if (aiPrivateKey) AI_PRIVATE_KEY = aiPrivateKey;
+  // aiPrivateKey injection removed: the signer key is taken from env only and
+  // can never be swapped in at runtime.
 
   logTelemetry("INFO", "Configuration updated via API. Reconnecting to blockchain...");
   
@@ -1306,6 +1322,7 @@ app.post("/configure", async (req, res) => {
 
 // Manually trigger a safety pause via REST API
 app.post("/trigger-anomaly", async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { subId, reason } = req.body;
   if (!subId) {
     return res.status(400).json({ error: "Missing subId" });

@@ -62,3 +62,5 @@ What actually requires Phase 2 infrastructure:
 - `frontend/src/dashboard/MerchantDashboardV2.jsx` — a "customise payment page" editor.
 - `server/server.js` + a new DB module — config storage + endpoints.
 - A new `PayPage` component for the branded standalone view.
+
+> **Review note (Triadr):** these branded payment pages are under pre-release review. This pull request exercises the audit → approval → payout workflow and is intentionally left open.

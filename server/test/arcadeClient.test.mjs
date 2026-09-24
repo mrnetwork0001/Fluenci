@@ -24,7 +24,7 @@ const esmCore = await load("snakeCore.js");
 const express = require("express");
 const { ethers } = require("ethers");
 const cjsCore = require("../arcade/snakeCore.js");
-const { createAuth, signInMessage } = require("../auth.js");
+const { createAuth, signInMessage, parseSignInMessage, DEFAULT_SIGN_IN_DOMAIN } = require("../auth.js");
 const { mountArcade } = require("../arcade/routes.js");
 const { createSnakeService } = require("../arcade/snake.js");
 const { createLeaderboard, isoWeek } = require("../arcade/leaderboard.js");
@@ -157,16 +157,31 @@ test("the UI's round logic: buffered turns, a real-turns-only log, same game as 
   }
 });
 
-test("isSignInMessage: only the server's sign-in text for this exact wallet", () => {
+test("F4: isSignInMessage - only the server's EIP-4361 sign-in, for this exact wallet and nonce", () => {
   const w = ethers.Wallet.createRandom();
   const other = ethers.Wallet.createRandom();
-  const msg = signInMessage({ address: w.address, nonce: "ab".repeat(16), issuedAt: new Date(T0).toISOString(), expiresAt: new Date(T0 + 300000).toISOString() });
+  const nonce = "ab".repeat(16);
+  const msg = signInMessage({ address: w.address, nonce, issuedAt: new Date(T0).toISOString(), expiresAt: new Date(T0 + 300000).toISOString() });
+  assert.ok(parseSignInMessage(msg), "the server's own parser reads it as EIP-4361");
+  assert.ok(msg.startsWith("www.fluenci.xyz wants you to sign in with your Ethereum account:\n"));
+  assert.equal(api.SIGN_IN_DOMAIN, DEFAULT_SIGN_IN_DOMAIN, "the app and the server default to the same domain");
   assert.equal(api.isSignInMessage(msg, w.address), true);
-  assert.equal(api.isSignInMessage(msg, w.address.toLowerCase()), true, "a lowercase account (as MetaMask reports it) still matches");
+  assert.equal(api.isSignInMessage(msg, w.address, { nonce }), true);
+  assert.equal(api.isSignInMessage(msg, w.address.toLowerCase(), { nonce }), true, "a lowercase account (as MetaMask reports it) still matches");
+  assert.equal(api.isSignInMessage(msg, w.address, { nonce: "cd".repeat(16) }), false, "a different nonce than the server sent");
   assert.equal(api.isSignInMessage(msg, other.address), false);
-  assert.equal(api.isSignInMessage(msg.replace("fluenci.xyz", "evil.example"), w.address), false);
+  assert.equal(api.isSignInMessage(msg.replaceAll("www.fluenci.xyz", "evil.example"), w.address), false, "another site's sign-in");
+  assert.equal(api.isSignInMessage(msg.replace("URI: https://www.fluenci.xyz", "URI: https://evil.example"), w.address), false, "URI for another site");
+  assert.equal(api.isSignInMessage(msg.replace("Chain ID: 1990", "Chain ID: 1"), w.address), false);
+  assert.equal(api.isSignInMessage(msg.replace("Version: 1", "Version: 2"), w.address), false);
+  assert.equal(api.isSignInMessage(`${msg}\nResources:\n- https://evil.example`, w.address), false, "nothing extra");
+  assert.equal(api.isSignInMessage(msg.replace("your Ethereum account", "your wallet"), w.address), false, "the old, non-EIP-4361 wording");
   assert.equal(api.isSignInMessage("Transfer everything", w.address), false);
   assert.equal(api.isSignInMessage(msg, "not-an-address"), false);
+  // A local server's SIGNIN_DOMAIN is accepted when it is the page's own host.
+  const local = signInMessage({ domain: "localhost:5173", address: w.address, nonce, issuedAt: new Date(T0).toISOString(), expiresAt: new Date(T0 + 300000).toISOString() });
+  assert.equal(api.isSignInMessage(local, w.address), false, "not by default");
+  assert.equal(api.isSignInMessage(local, w.address, { domains: ["www.fluenci.xyz", "localhost:5173"] }), true);
 });
 
 test("sign-in from the app: one personal_sign, a token for that wallet; refusals are worded", async () => {
@@ -197,6 +212,70 @@ test("sign-in from the app: one personal_sign, a token for that wallet; refusals
     const down = await api.signInToArcade({ apiBase: "http://127.0.0.1:9", address: account, sign: signWith(provider, account) });
     assert.equal(down.ok, false);
     assert.match(down.message, /Couldn't reach the Fluenci server/);
+  } finally { await app.close(); }
+});
+
+test("F3: the app sends back the nonce it signed, so others asking for nonces can't cancel its sign-in", async () => {
+  const wallet = ethers.Wallet.createRandom();
+  const app = await startApp({ holders: [wallet] });
+  try {
+    const account = wallet.address.toLowerCase();
+    // What the app sends to /auth/verify.
+    const sent = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (url, init) => {
+      if (String(url).endsWith("/auth/verify")) sent.push(JSON.parse(init.body));
+      return realFetch(url, init);
+    };
+    let flooded = [];
+    try {
+      const provider = eip1193(wallet);
+      const sign = signWith(provider, account);
+      // While the wallet prompt is open, someone else asks for nonces for this wallet.
+      const r = await api.signInToArcade({
+        apiBase: app.apiBase, address: account,
+        sign: async (message) => {
+          for (let i = 0; i < 6; i++) {
+            flooded.push(await api.requestJson(app.apiBase, "/auth/nonce", { method: "POST", body: { address: wallet.address } }));
+          }
+          return sign(message);
+        },
+      });
+      assert.equal(r.ok, true, r.message);
+      assert.equal(r.address, wallet.address);
+    } finally { globalThis.fetch = realFetch; }
+    assert.deepEqual(flooded.map((f) => f.status), [200, 200, 200, 200, 429, 429]);
+    assert.equal(sent.length, 1);
+    assert.deepEqual(Object.keys(sent[0]).sort(), ["address", "message", "nonce", "signature"]);
+    assert.equal(parseSignInMessage(sent[0].message).nonce, sent[0].nonce, "the nonce and the exact message that were signed");
+
+    // Four of the flood's nonces are still pending; one more fills the wallet's five,
+    // and the app words the server's 429.
+    assert.equal((await api.requestJson(app.apiBase, "/auth/nonce", { method: "POST", body: { address: wallet.address } })).status, 200);
+    const full = await api.signInToArcade({ apiBase: app.apiBase, address: account, sign: signWith(eip1193(wallet), account) });
+    assert.deepEqual([full.ok, full.status, full.code], [false, 429, "rate_address"]);
+    assert.match(full.message, /already has 5 sign-in requests waiting/);
+  } finally { await app.close(); }
+});
+
+test("F7: a token the leaderboard won't accept comes back as unauthorized, never as a board without 'you'", async () => {
+  const wallet = ethers.Wallet.createRandom();
+  const app = await startApp({ holders: [wallet] });
+  try {
+    const s = await api.signInToArcade({ apiBase: app.apiBase, address: wallet.address, sign: signWith(eip1193(wallet), wallet.address) });
+    assert.equal(s.ok, true, s.message);
+    const good = await api.fetchLeaderboard({ apiBase: app.apiBase, token: s.token });
+    assert.equal(good.ok, true);
+    // A token signed with another secret (SESSION_SECRET rotated), and a broken one.
+    const rotated = createAuth({ secret: `${SECRET}-rotated` });
+    const n = rotated.issueNonce(wallet.address);
+    const other = rotated.verify({ address: wallet.address, nonce: n.nonce, signature: await wallet.signMessage(n.message) });
+    for (const token of [other.token, `${s.token}x`]) {
+      const r = await api.fetchLeaderboard({ apiBase: app.apiBase, token });
+      assert.deepEqual([r.ok, r.status, r.unauthorized, r.you], [false, 401, true, undefined]);
+    }
+    const anon = await api.fetchLeaderboard({ apiBase: app.apiBase });
+    assert.deepEqual([anon.ok, anon.you], [true, null], "without a token the board is public");
   } finally { await app.close(); }
 });
 
@@ -245,6 +324,7 @@ test("scored rounds from the app: the exact log the UI records is accepted with 
     assert.match(fast.message, /faster than it can be played/);
     const again = await api.finishSnakeRound({ apiBase: app.apiBase, token, ticket: s1.ticket, inputs: r1.inputs, score: r1.game.score, durationMs: 1 });
     assert.equal(again.code, "bad_ticket");
+    assert.equal(again.message, "The server no longer has this round's ticket (already used, expired, or the server restarted), so the score wasn't recorded.");
 
     const s2 = await api.startSnakeRound({ apiBase: app.apiBase, token });
     const r2 = playLikeTheUi(s2.seed, 78, { stopPressingAt: 40 });

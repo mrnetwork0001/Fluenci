@@ -29,6 +29,7 @@ const ui = await import(pathToFileURL(path.join(FRONT, "snakeRound.js")).href);
 const esmCore = await import(pathToFileURL(path.join(FRONT, "snakeCore.js")).href);
 const { ethers } = require("ethers");
 const { chooseDir } = require("../helpers/snakeBot.js");
+const { parseSignInMessage } = require("../../auth.js");
 
 const RPC = process.env.RPC_URL || "http://127.0.0.1:8599";
 const PORT = process.env.PORT || "5198";
@@ -50,10 +51,12 @@ function expect(name, cond, got) {
 }
 
 /** The connected wallet as the browser sees it; personal_sign as useFluenciV4.signMessage sends it. */
+const signed = []; // every text a wallet was asked to sign
 const signerFor = (wallet, account) => async (message) => {
   const provider = {
     async request({ method, params }) {
       if (method !== "personal_sign" || !api.sameAddress(params[1], wallet.address)) throw new Error("unexpected wallet request");
+      signed.push(ethers.toUtf8String(params[0]));
       return wallet.signMessage(ethers.getBytes(params[0]));
     },
   };
@@ -152,6 +155,10 @@ try {
   const session = await api.signInToArcade({ apiBase: API, address: account, sign: signerFor(player, account) });
   expect("sign-in: one personal_sign from the app gives a 12-hour token for the checksummed wallet",
     session.ok && session.address === player.address && Date.parse(session.expiresAt) - Date.now() > 11 * 3600 * 1000, session);
+  const siwe = signed.length === 1 ? parseSignInMessage(signed[0]) : null;
+  expect("the wallet was asked to sign an EIP-4361 message for www.fluenci.xyz, chain 1990, this wallet",
+    siwe && siwe.domain === "www.fluenci.xyz" && siwe.uri === "https://www.fluenci.xyz" && siwe.version === "1" && siwe.chainId === 1990 &&
+      siwe.address === player.address, signed);
 
   const pass = await api.requestJson(API, "/arcade/pass", { token: session.token });
   expect("the server sees the pass on chain for the signed-in wallet", pass.status === 200 && pass.data?.valid === true, pass);
@@ -200,6 +207,9 @@ try {
 
   const dead = await api.startSnakeRound({ apiBase: API, token: `${session.token}x` });
   expect("a broken token is 401 (the app signs out)", !dead.ok && dead.unauthorized === true, dead);
+  const staleBoard = await api.fetchLeaderboard({ apiBase: API, token: `${session.token}x` });
+  expect("the leaderboard with a broken token is 401 too (the app signs out, never shows a stale 'you')",
+    !staleBoard.ok && staleBoard.status === 401 && staleBoard.unauthorized === true, staleBoard);
 
   expect("server stayed up with no unhandled errors", srv.exitCode === null && !/Unhandled|UnhandledPromiseRejection|TypeError/.test(log), log.slice(-800));
 } catch (err) {

@@ -331,6 +331,7 @@ QIEPASS_CLAIMS=firstName
 START_BLOCK=10031934
 SESSION_SECRET=      # 32+ characters (openssl rand -hex 32); signs Arcade sign-in tokens
 ARCADE_MERCHANT=0x07F3D74e8BC5fdbfc02a3187DbD6cd08E96C05a8   # same as the frontend's VITE_ARCADE_MERCHANT
+# SIGNIN_DOMAIN=www.fluenci.xyz   # optional; the site named in the sign-in message (this is the default)
 ```
 
 The QIE Pass adapter is read from the registry (`registry.qiePass()`), so there is no
@@ -350,21 +351,27 @@ server reads its pass from the registry at `REGISTRY_ADDRESS` with the same rule
 
 | Variable | |
 |---|---|
-| `SESSION_SECRET` | Required, 32+ characters. Signs session tokens (HMAC-SHA256, 12 hours). Without it every route below and `/api/chat` answer `503 not_configured`. Changing it signs everyone out. |
+| `SESSION_SECRET` | Required, 32+ characters. Signs session tokens (HMAC-SHA256, 12 hours). Without it `/api/chat` and every route below except `GET /arcade/leaderboard` answer `503 not_configured`; the leaderboard stays public, without `you`. Changing it signs everyone out. |
 | `ARCADE_MERCHANT` | The Arcade merchant wallet (same as `VITE_ARCADE_MERCHANT`). Unset: no pass is valid, and `/api/chat` and Snake scores answer `503 not_configured`. |
+| `SIGNIN_DOMAIN` | Optional, default `www.fluenci.xyz`. The site the sign-in message names (EIP-4361 `domain`, and `URI: https://<domain>`). Wallets compare it with the page asking for the signature, so it must be the host the app is served from. A plain host name (no `https://`, no path); anything else logs a warning at boot and the default is used. |
 | `ARCADE_STABLECOINS` | Tests only. Token addresses that replace the pass's stablecoin allowlist on a local chain. Ignored on QIE mainnet (1990) and while the chain id is unknown. |
 
 Routes (CORS: the same origin allowlist as `/api/chat`; every error body is `{error, code}`):
 
 | Route | |
 |---|---|
-| `POST /auth/nonce {address}` | `{message, nonce, expiresAt}`. The message to sign with `personal_sign`; single-use, 5 minutes. |
-| `POST /auth/verify {address, signature}` | `{token, address, expiresAt}`, or `401` `bad_signature` / `expired_nonce`. Plain wallets (EOAs) only. |
-| `GET /arcade/pass` | `{valid, reason}` for the signed-in wallet, cached about 60 s (a missing or lapsed pass 15 s). A failed chain read is `{valid: false, reason: "unavailable"}`. |
-| `POST /api/chat` | Now needs `Authorization: Bearer <token>` (`401 unauthorized`) and a valid pass (`403 no_pass`, with `reason`), plus a per-wallet limit (`429 rate_address`: 20 per 10 minutes, 100 per UTC day) on top of the per-IP and global ones. |
-| `POST /arcade/snake/start` | Needs a valid pass. `{ticket, seed, issuedAt}`: a single-use ticket for this wallet (30 minutes; 60 starts per wallet per hour). |
-| `POST /arcade/snake/finish {ticket, inputs, score, durationMs}` | `inputs` is `[[step, dir], ...]`. The server replays the game from the seed with `server/arcade/snakeCore.js` and records only a score the replay reaches, no faster than the steps can be played: `{accepted: true, score, best, rank, week}` or `400 {accepted: false, code}` with `bad_ticket`, `mismatch`, `too_fast` or `too_long`. |
-| `GET /arcade/leaderboard` | `{week, entries, you}`: this ISO week's (UTC) top 20 best scores, and with a token the caller's own `{best, rank}`. Kept in `server/data/arcade.json`, last 8 weeks. No prizes. |
+| `POST /auth/nonce {address}` | `{message, nonce, expiresAt}`. An EIP-4361 (Sign-In with Ethereum) message to sign with `personal_sign`; single-use, 5 minutes. A request never displaces a pending one: with 5 live for the wallet it is `429 rate_address` until one is used or expires. |
+| `POST /auth/verify {address, nonce, message?, signature}` | The nonce (or the exact message) the client was given, and its signature. `{token, address, expiresAt}`, or `401` `bad_signature` / `expired_nonce`, or `400` `bad_message` when `message` isn't the one issued. Plain wallets (EOAs) only. |
+| `GET /arcade/pass` | `{valid, reason}` for the signed-in wallet, cached about 60 s (a missing or lapsed pass 15 s). A failed chain read is `{valid: false, reason: "unavailable"}`. Each subscription's merchant is read once and remembered, so only live Arcade subscriptions are re-read. At most 50 subscriptions the server hasn't seen before are read per check, newest first; while some are still unread, and no valid pass is among those read, the answer is `unavailable`. More than 20 live Arcade subscriptions on one wallet is `unavailable` too. |
+| `POST /api/chat` | Now needs `Authorization: Bearer <token>` (`401 unauthorized`) and a valid pass (`403 no_pass`, with `reason`). Limits: 20 per 10 minutes per IP (`429 rate_ip`), 20 per 10 minutes and 30 per UTC day per wallet (`429 rate_address`), and 2,000 per UTC day for the whole server (`429 rate_daily`). The daily counts only include calls that reach OpenAI, so no wallet can use more than 30 of the 2,000; it takes 67 wallets with a pass to use up the day. |
+| `POST /arcade/snake/start` | Needs a valid pass. `{ticket, seed, issuedAt}`: a single-use ticket for this wallet (30 minutes). 60 starts per IP per 10 minutes (`429 rate_ip`) and 60 per wallet per hour (`429 rate_address`), both checked before the pass is read from the chain. |
+| `POST /arcade/snake/finish {ticket, inputs, score, durationMs}` | `inputs` is `[[step, dir], ...]`. The server replays the game from the seed with `server/arcade/snakeCore.js` and records only a score the replay reaches, no faster than the steps can be played: `{accepted: true, score, best, rank, week}` or `400 {accepted: false, code}` with `bad_ticket`, `mismatch`, `too_fast` or `too_long`. Tickets live in memory, so a restart ends the rounds in progress (`bad_ticket`). |
+| `GET /arcade/leaderboard` | `{week, entries, you}`: this ISO week's (UTC) top 20 best scores. Public; with a valid token also the caller's own `{best, rank}`, and a token that is sent but can't be accepted gets `401 unauthorized`. Kept in `server/data/arcade.json`, last 8 weeks. No prizes. |
+
+What the replay check does and doesn't do: it rejects scores that weren't reached by the rules
+of the game or were played faster than real time (with a 10% allowance for clock and network
+differences), but it can't tell a person from a script. A bot that plays the server's seed at
+game speed gets its score recorded like anyone else's.
 
 The Snake rules live in one file, `frontend/src/dashboard/arcade/snakeCore.js`. The server's
 CommonJS copy is generated from it: after editing the frontend file, run
@@ -375,8 +382,12 @@ flow against a local Hardhat node (instructions at the top of
 
 In the app (`frontend/src/dashboard/Arcade.jsx` and `dashboard/arcade/`), only a wallet whose
 pass is valid is offered "Sign in to the Arcade": one `personal_sign` through the connected
-wallet, from a click. The token is kept in memory and in `sessionStorage` for that wallet
-(this tab only), and dropped on a wallet switch, at expiry or on any `401`. Signed in, the
+wallet, from a click. Before asking the wallet, the app checks the server's message is a
+sign-in for this wallet on chain 1990 naming `www.fluenci.xyz` (or the host the app is running
+on) with the nonce the server sent, and it sends that nonce and message back with the
+signature. The token is kept in memory and in `sessionStorage` for that wallet
+(this tab only), and dropped on a wallet switch, at expiry or on any `401` (the leaderboard's
+included). Signed in, the
 AI assistant sends it, and each Snake round asks for a ticket first, plays the server's seed and
 sends its turn log at the end. Free rounds, and rounds by a pass holder who never signs in,
 never talk to the server. `arcadeApi.js` (requests and wording) and `snakeRound.js` (turn

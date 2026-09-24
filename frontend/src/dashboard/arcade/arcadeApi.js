@@ -19,8 +19,13 @@ const SIGN_TIMEOUT_MS = 120000;     // time to open the wallet (or a phone) and 
 const NETWORK = "Couldn't reach the Fluenci server. Check your connection and try again.";
 const WALLET_SILENT = "Your wallet didn't respond. Open it, approve or reject any pending request, then try again.";
 
-/** First lines of the server's sign-in message (server/auth.js), up to the wallet address. */
-export const SIGN_IN_HEADER = "fluenci.xyz wants you to sign in with your wallet:";
+/**
+ * The site the server's sign-in message names (server/auth.js, SIGNIN_DOMAIN).
+ * The app also accepts a message for the host it is running on (a local
+ * server's SIGNIN_DOMAIN); anything else is refused before the wallet is asked.
+ */
+export const SIGN_IN_DOMAIN = "www.fluenci.xyz";
+export const SIGN_IN_CHAIN_ID = 1990;
 
 export const sameAddress = (a, b) => Boolean(a) && Boolean(b) && String(a).toLowerCase() === String(b).toLowerCase();
 export const shortAddress = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -72,22 +77,51 @@ function failure(r, copy, fallback) {
 
 // --- sign-in ------------------------------------------------------------------
 
+const SIGN_IN_FIELDS = ["URI", "Version", "Chain ID", "Nonce", "Issued At", "Expiration Time"];
+const DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/** The domains a sign-in message may name: Fluenci's, and the host this page runs on. */
+function signInDomains() {
+  const host = typeof globalThis.location?.host === "string" ? globalThis.location.host.toLowerCase() : "";
+  return host ? [SIGN_IN_DOMAIN, host] : [SIGN_IN_DOMAIN];
+}
+
 /**
- * Is `message` Fluenci's sign-in text for exactly this wallet? Checked before
- * the wallet is asked to sign anything the server sent.
+ * Is `message` a Fluenci Arcade sign-in (EIP-4361, as server/auth.js writes it)
+ * for exactly this wallet? It must name an allowed domain with the matching
+ * "URI: https://<domain>", Version 1, Chain ID 1990 and - when given - the
+ * `nonce` the server sent with it. Checked before the wallet is asked to sign
+ * anything the server sent.
  */
-export function isSignInMessage(message, address) {
+export function isSignInMessage(message, address, { nonce = null, domains = signInDomains() } = {}) {
   if (typeof message !== "string" || message.length > 2000) return false;
   let wallet;
   try { wallet = getAddress(String(address).toLowerCase()); } catch { return false; }
-  return message.startsWith(`${SIGN_IN_HEADER}\n${wallet}\n\n`);
+  const lines = message.split("\n");
+  if (lines.length !== 5 + SIGN_IN_FIELDS.length) return false;
+  const head = /^(\S+) wants you to sign in with your Ethereum account:$/.exec(lines[0]);
+  const domain = head ? head[1].toLowerCase() : "";
+  if (!domain || !domains.map((d) => String(d).toLowerCase()).includes(domain)) return false;
+  if (lines[1] !== wallet || lines[2] !== "" || !lines[3].trim() || lines[4] !== "") return false;
+  const f = {};
+  for (const [i, tag] of SIGN_IN_FIELDS.entries()) {
+    const line = lines[5 + i];
+    if (!line.startsWith(`${tag}: `)) return false;
+    f[tag] = line.slice(tag.length + 2);
+  }
+  if (f.URI.toLowerCase() !== `https://${domain}` || f.Version !== "1" || f["Chain ID"] !== String(SIGN_IN_CHAIN_ID)) return false;
+  if (!/^[A-Za-z0-9]{8,}$/.test(f.Nonce) || (nonce !== null && f.Nonce !== nonce)) return false;
+  return DATE_TIME_RE.test(f["Issued At"]) && DATE_TIME_RE.test(f["Expiration Time"]);
 }
 
 const SIGN_IN_COPY = {
   not_configured: "Sign-in isn't set up on the Fluenci server yet.",
-  expired_nonce: "The sign-in request expired before it was signed. Try again.",
+  expired_nonce: "The server no longer has this sign-in request (it expired, was already used, or the server restarted). Try again.",
   bad_signature: "The server couldn't match the signature to this wallet. Try again. Smart-contract wallets can't sign in to the Arcade.",
+  bad_message: "The server didn't accept the signed sign-in message. Try again.",
   bad_request: "Sign-in didn't work for this wallet. Reconnect it and try again.",
+  rate_address: (d) => serverText(d) || "This wallet already has several sign-in requests waiting. Wait a few minutes and try again.",
+  busy: (d) => serverText(d) || "Too many sign-ins are in progress on the Fluenci server. Try again in a few minutes.",
   rate_ip: (d) => serverText(d) || "Too many sign-ins from your network. Wait a few minutes and try again.",
 };
 
@@ -104,14 +138,17 @@ function withTimeout(promise, ms) {
 
 /**
  * The whole sign-in: a one-time message from the server, ONE signature from the
- * wallet (`sign(message)` resolves to the signature), then a session token.
+ * wallet (`sign(message)` resolves to the signature), then a session token. The
+ * nonce and the exact message that were signed go back with the signature, so
+ * the server checks it against that very request.
  * -> { ok: true, token, address, expiresAt } | { ok: false, message, rejected? }
  */
-export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = SIGN_TIMEOUT_MS }) {
+export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = SIGN_TIMEOUT_MS, domains }) {
   const n = await requestJson(apiBase, "/auth/nonce", { method: "POST", body: { address } });
   if (n.status !== 200) return failure(n, SIGN_IN_COPY, "Sign-in didn't work. Try again in a moment.");
   const message = n.data?.message;
-  if (!isSignInMessage(message, address)) {
+  const nonce = n.data?.nonce;
+  if (typeof nonce !== "string" || !isSignInMessage(message, address, { nonce, ...(domains ? { domains } : {}) })) {
     return { ok: false, message: "The server sent an unexpected sign-in message, so nothing was signed." };
   }
 
@@ -136,7 +173,7 @@ export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = S
     };
   }
 
-  const v = await requestJson(apiBase, "/auth/verify", { method: "POST", body: { address, signature } });
+  const v = await requestJson(apiBase, "/auth/verify", { method: "POST", body: { address, nonce, message, signature } });
   if (v.status !== 200) return failure(v, SIGN_IN_COPY, "Sign-in didn't work. Try again in a moment.");
   const { token, expiresAt } = v.data || {};
   if (typeof token !== "string" || !token || !sameAddress(v.data?.address, address) || !Number.isFinite(Date.parse(expiresAt))) {
@@ -170,7 +207,7 @@ export async function startSnakeRound({ apiBase, token }) {
 }
 
 const FINISH_COPY = {
-  bad_ticket: "The server didn't accept this round's ticket (already used, expired or not yours), so the score wasn't recorded.",
+  bad_ticket: "The server no longer has this round's ticket (already used, expired, or the server restarted), so the score wasn't recorded.",
   mismatch: "The server's replay of this round came out differently, so the score wasn't recorded.",
   too_fast: "The server's replay says this round ended faster than it can be played, so the score wasn't recorded.",
   too_long: "This round ran past the 30-minute limit for scored rounds, so it wasn't recorded.",
@@ -206,7 +243,8 @@ export async function finishSnakeRound({ apiBase, token, ticket, inputs, score, 
 
 /**
  * This week's board. With a token the server adds the caller's own standing
- * (`you`); an invalid token just reads as signed out.
+ * (`you`). A token the server no longer accepts is a 401 (`unauthorized` in the
+ * failure): the caller drops the sign-in and reads the public board.
  * -> { ok: true, week, entries: [{ address, score }], you: { best, rank } | null } | failure
  */
 export async function fetchLeaderboard({ apiBase, token = null }) {

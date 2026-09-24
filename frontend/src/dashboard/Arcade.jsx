@@ -183,7 +183,8 @@ export default function Arcade({
   // Only a pass holder is ever asked to sign in.
   const canSignIn = configured && passValid && session.available;
   const scored = canSignIn && session.signedIn;
-  const board = useLeaderboard({ apiBase, token: session.token, enabled: configured && tab === "snake" });
+  // A 401 on the board means the server no longer takes this sign-in: drop it.
+  const board = useLeaderboard({ apiBase, token: session.token, enabled: configured && tab === "snake", onUnauthorized: session.expire });
   const refreshBoard = board.refresh;
 
   const startRound = useCallback(async () => {
@@ -196,8 +197,12 @@ export default function Arcade({
 
   const finishRound = useCallback(async ({ ticket, owner, inputs, score, durationMs }) => {
     const s = sessionRef.current;
-    if (!s.signedIn || !sameAddress(s.address, owner)) {
-      return { ok: false, message: "You signed out or switched wallets during this round, so the score wasn't sent." };
+    // No sign-in any more: it expired, was dropped (401, sign out) or went with a wallet switch.
+    if (!s.signedIn) {
+      return { ok: false, message: "Your Arcade sign-in ended during this round, so the score wasn't sent. Sign in again to keep playing scored rounds." };
+    }
+    if (!sameAddress(s.address, owner)) {
+      return { ok: false, message: "You switched wallets during this round, so the score wasn't sent." };
     }
     const r = await finishSnakeRound({ apiBase, token: s.token, ticket, inputs, score, durationMs });
     if (r.unauthorized) s.expire(s.token);

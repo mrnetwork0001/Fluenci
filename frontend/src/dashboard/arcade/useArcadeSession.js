@@ -5,9 +5,11 @@ import { sameAddress, signInToArcade } from "./arcadeApi";
  * Fluenci Arcade sign-in for the connected wallet.
  *
  * signIn() asks the wallet for ONE personal_sign of the server's one-time
- * message (no transaction, no gas) and trades it for a session token (12 hours)
- * that the Arcade routes take as "Authorization: Bearer <token>". It only ever
- * runs from a click - nothing here prompts the wallet on its own.
+ * sign-in message (EIP-4361; no transaction, no gas) and trades the signature -
+ * sent back with that message's nonce and text (signInToArcade) - for a session
+ * token (12 hours) that the Arcade routes take as "Authorization: Bearer
+ * <token>". It only ever runs from a click - nothing here prompts the wallet on
+ * its own.
  *
  * The token is kept in memory and in sessionStorage under the wallet's address,
  * so a reload of this tab doesn't ask again. It is dropped when the wallet
@@ -21,7 +23,7 @@ import { sameAddress, signInToArcade } from "./arcadeApi";
 const STORAGE_PREFIX = "fluenci_arcade_session:";
 // Treated as expired a minute early, so a request never races the server's clock.
 const EXPIRY_MARGIN_MS = 60 * 1000;
-const EXPIRED = "Your Arcade sign-in has expired. Sign in again to keep going.";
+const EXPIRED = "Your Arcade sign-in has run out (a sign-in lasts up to 12 hours). Sign in again to keep going.";
 // A 401: expired, or the server no longer accepts it (e.g. its signing secret changed).
 const ENDED = "Your Arcade sign-in has ended. Sign in again to keep going.";
 

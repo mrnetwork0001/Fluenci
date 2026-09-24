@@ -8,7 +8,7 @@ const net = require("net");
 const fs = require("fs");
 const path = require("path");
 
-const { createAuth, secretUsable } = require("./auth");
+const { createAuth, secretUsable, resolveSignInDomain, DEFAULT_SIGN_IN_DOMAIN } = require("./auth");
 const { mountArcade } = require("./arcade/routes");
 const { createPassChecker } = require("./arcade/pass");
 const { createSnakeService } = require("./arcade/snake");
@@ -2027,8 +2027,11 @@ const ARCADE_MERCHANT = (process.env.ARCADE_MERCHANT || "").trim();
 // Replaces the pass's stablecoin allowlist on a local test chain; ignored on
 // QIE mainnet and while the chain is unknown (see arcade/pass.js).
 const ARCADE_STABLECOINS = process.env.ARCADE_STABLECOINS || "";
+// The site named in the sign-in message (EIP-4361 domain, and URI https://<domain>).
+// Wallets compare it with the page asking for the signature. Default www.fluenci.xyz.
+const SIGNIN_DOMAIN = resolveSignInDomain(process.env.SIGNIN_DOMAIN);
 
-const arcadeAuth = createAuth({ secret: SESSION_SECRET });
+const arcadeAuth = createAuth({ secret: SESSION_SECRET, domain: SIGNIN_DOMAIN || DEFAULT_SIGN_IN_DOMAIN });
 const arcadePass = createPassChecker({
   merchant: ethers.isAddress(ARCADE_MERCHANT) ? ethers.getAddress(ARCADE_MERCHANT) : "",
   stablecoinsEnv: ARCADE_STABLECOINS,
@@ -2055,6 +2058,9 @@ if (!ethers.isAddress(ARCADE_MERCHANT)) {
 }
 if (ARCADE_STABLECOINS) {
   console.warn("[ARCADE] ARCADE_STABLECOINS is set. It is for local test chains only and is ignored on QIE mainnet (1990).");
+}
+if (!SIGNIN_DOMAIN) {
+  console.warn(`[ARCADE] SIGNIN_DOMAIN is not a plain host name (e.g. www.fluenci.xyz, no https:// or path): sign-in messages use ${DEFAULT_SIGN_IN_DOMAIN}.`);
 }
 
 // ===== FLUENCI AI CHAT ENDPOINT =====
@@ -2088,9 +2094,14 @@ const CHAT_IP_WINDOW_MS = 10 * 60 * 1000;
 const CHAT_IP_MAX = 20;
 const CHAT_DAILY_MAX = 2000;
 const CHAT_WALLET_WINDOW_MAX = 20;  // per CHAT_IP_WINDOW_MS, so one pass can't be spread over many IPs
-const CHAT_WALLET_DAILY_MAX = 100;  // per UTC day
+// Per wallet per UTC day, counted like CHAT_DAILY_MAX (only calls that reach
+// OpenAI). One wallet can take at most 30 of the day's 2000, so it takes 67
+// wallets with a pass to use up the global budget.
+const CHAT_WALLET_DAILY_MAX = 30;
 const chatWalletWindow = createWindowLimiter({ windowMs: CHAT_IP_WINDOW_MS, max: CHAT_WALLET_WINDOW_MAX });
-const chatWalletDaily = createDailyLimiter({ max: CHAT_WALLET_DAILY_MAX });
+// Only wallets that reached OpenAI today are tracked, at most CHAT_DAILY_MAX of
+// them, so maxKeys never evicts a wallet's count before the day ends.
+const chatWalletDaily = createDailyLimiter({ max: CHAT_WALLET_DAILY_MAX, maxKeys: CHAT_DAILY_MAX + 1 });
 
 const chatIpHits = new Map(); // ip -> array of request timestamps inside the window
 let chatDay = new Date().toISOString().slice(0, 10); // UTC date the counter belongs to
@@ -2179,21 +2190,20 @@ function parseChatBody(req, res, next) {
   });
 }
 
-// Per-wallet limits, after the pass check (req.session is the signed-in wallet).
+// Per-wallet short-window limit, after the pass check (req.session is the
+// signed-in wallet). The per-wallet daily limit is taken with the global one,
+// right before the model is called.
 function chatWalletGate(req, res, next) {
   const wallet = req.session.address.toLowerCase();
-  const now = Date.now();
-  if (!chatWalletWindow.allow(wallet, now)) {
+  if (!chatWalletWindow.allow(wallet, Date.now())) {
     return chatError(res, 429, "rate_address", "This wallet has sent a lot of chat messages recently. Wait a few minutes and try again.");
-  }
-  if (!chatWalletDaily.allow(wallet, now)) {
-    return chatError(res, 429, "rate_address", "This wallet has reached today's chat limit. It resets at midnight UTC.");
   }
   next();
 }
 
 // Order: kill switch and per-IP limit, then sign-in (401/503), body (413/400),
-// a valid Arcade Pass (403 no_pass), per-wallet limits, then the model.
+// a valid Arcade Pass (403 no_pass), the per-wallet 10-minute limit, then the
+// global and per-wallet daily budgets, then the model.
 app.post("/api/chat", chatGate, arcade.requireSession, parseChatBody, arcade.requirePass, chatWalletGate, async (req, res) => {
   const messages = sanitizeChatMessages(req.body?.messages);
   if (!messages) {
@@ -2212,14 +2222,20 @@ app.post("/api/chat", chatGate, arcade.requireSession, parseChatBody, arcade.req
     return chatError(res, 503, "not_configured", "OpenAI not configured");
   }
 
-  // Global daily budget, counted only for calls that actually reach OpenAI.
-  const today = new Date().toISOString().slice(0, 10);
+  // Global and per-wallet daily budgets, counted only for calls that actually
+  // reach OpenAI: no wallet gets more than CHAT_WALLET_DAILY_MAX of the day's
+  // CHAT_DAILY_MAX.
+  const nowMs = Date.now();
+  const today = new Date(nowMs).toISOString().slice(0, 10);
   if (today !== chatDay) {
     chatDay = today;
     chatDayCount = 0;
   }
   if (chatDayCount >= CHAT_DAILY_MAX) {
     return chatError(res, 429, "rate_daily", "Daily chat limit reached. It resets at midnight UTC.");
+  }
+  if (!chatWalletDaily.allow(req.session.address.toLowerCase(), nowMs)) {
+    return chatError(res, 429, "rate_address", "This wallet has reached today's chat limit. It resets at midnight UTC.");
   }
   chatDayCount += 1;
 

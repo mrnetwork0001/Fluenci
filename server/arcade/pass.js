@@ -152,12 +152,31 @@ async function mapInBatches(items, size, fn) {
   return out;
 }
 
+// Enough of both for the rules to run everything before the solvency rule.
+const UNLIMITED = { balance: ethers.MaxUint256, allowance: ethers.MaxUint256 };
+
 /**
  * check(address) -> { valid, reason } for that wallet's Arcade Pass, read live
  * from the registry `getRegistryAddress()` through `getProvider()`. Results are
  * cached per address: a valid pass for `cacheMs`, a missing or lapsed one for
  * `negativeCacheMs` (so a pass bought a moment ago is seen quickly), and a read
  * error not at all. Concurrent checks for one address share a single read.
+ *
+ * The work per check is bounded, whatever the wallet holds:
+ *  - A subscription's merchant never changes, so each id's merchant is read
+ *    once and remembered (an LRU of `maxKnownIds`). Other merchants'
+ *    subscriptions are never read again; neither is an Arcade one that has
+ *    gone inactive, which is final in the registry.
+ *  - Only live Arcade subscriptions get fresh reads on every check
+ *    (getSubscription; previewOwed, balance and allowance only when the
+ *    solvency rule is reached, which is the only rule they feed).
+ *  - At most `maxNewPerCheck` never-seen ids are read per check, newest first.
+ *    If some are left unread and nothing read so far is a valid pass, the
+ *    answer is "unavailable" (fail closed, logged, not cached); the next check
+ *    carries on from there. More than `maxArcadePerCheck` live Arcade
+ *    subscriptions is "unavailable" too.
+ * Whenever the answer isn't "unavailable" it is the one evaluatePass gives
+ * over all of the wallet's subscriptions, as arcadePass.js does in the browser.
  */
 function createPassChecker({
   merchant = "",
@@ -169,13 +188,28 @@ function createPassChecker({
   cacheMs = 60 * 1000,
   negativeCacheMs = 15 * 1000,
   maxEntries = 20000,
-  maxSubscriptions = 500,
+  maxKnownIds = 20000,
+  maxNewPerCheck = 50,
+  maxArcadePerCheck = 20,
+  log = console,
 } = {}) {
   const cache = new Map();     // lowercase address -> { result, until }
   const inflight = new Map();  // lowercase address -> Promise
+  const known = new Map();     // registry:subId (lowercase) -> { merchant (lowercase), inactive }, least recently used first
 
   function rules() {
     return createPassRules({ merchant, stablecoins: resolveStablecoins(stablecoinsEnv, getChainId()) });
+  }
+
+  function remember(key, entry) {
+    known.delete(key);
+    known.set(key, entry);
+    while (known.size > maxKnownIds) known.delete(known.keys().next().value);
+  }
+  function recall(key) {
+    const entry = known.get(key);
+    if (entry) remember(key, entry);
+    return entry;
   }
 
   async function read(address) {
@@ -186,31 +220,64 @@ function createPassChecker({
     if (!provider || !registryAddress || !ethers.isAddress(registryAddress)) return { valid: false, reason: "unavailable" };
 
     const reg = new ethers.Contract(registryAddress, REGISTRY_ABI, provider);
-    const ids = await reg.getSubscriberSubscriptions(address);
-    // Only the newest `maxSubscriptions` are read; that only matters for a
-    // wallet with hundreds of subscriptions.
-    const recent = [...ids].slice(-maxSubscriptions);
-    const subs = await mapInBatches(recent, 25, async (id) => toSub(id, await reg.getSubscription(id), null));
+    const arcadeMerchant = r.ARCADE.merchant.toLowerCase();
+    const keyOf = (id) => `${registryAddress.toLowerCase()}:${String(id).toLowerCase()}`;
+    const ids = [...(await reg.getSubscriberSubscriptions(address))];
+
+    // Split the wallet's ids, newest first: known Arcade ones to re-read, and never-seen ones.
+    const arcadeIds = [];
+    const unseen = [];
+    for (let i = ids.length - 1; i >= 0; i--) {
+      const entry = recall(keyOf(ids[i]));
+      if (!entry) unseen.push(ids[i]);
+      else if (entry.merchant === arcadeMerchant && !entry.inactive) arcadeIds.push(ids[i]);
+    }
+    const batch = unseen.slice(0, maxNewPerCheck);
+    const unread = unseen.length - batch.length;
+
+    // Never-seen ids: this one read tells their merchant for good, and is fresh
+    // enough to evaluate an Arcade subscription with right away.
+    const fresh = await mapInBatches(batch, 25, async (id) => toSub(id, await reg.getSubscription(id), null));
+    const subs = [];
+    for (const s of fresh) {
+      remember(keyOf(s.id), { merchant: String(s.merchant).toLowerCase(), inactive: !s.active });
+      if (s.active && String(s.merchant).toLowerCase() === arcadeMerchant) subs.push(s);
+    }
+    if (arcadeIds.length + subs.length > maxArcadePerCheck) {
+      log.warn?.(`[ARCADE] pass check for ${address}: ${arcadeIds.length + subs.length} live Arcade subscriptions ` +
+        `(limit ${maxArcadePerCheck} per check); answering unavailable`);
+      return { valid: false, reason: "unavailable" };
+    }
+    for (const s of await mapInBatches(arcadeIds, 25, async (id) => toSub(id, await reg.getSubscription(id), null))) {
+      if (!s.active) remember(keyOf(s.id), { merchant: arcadeMerchant, inactive: true });
+      subs.push(s);
+    }
+
+    const incomplete = () => {
+      log.warn?.(`[ARCADE] pass check for ${address}: ${unread} of ${ids.length} subscriptions not read yet ` +
+        `(${maxNewPerCheck} new ones per check); answering unavailable`);
+      return { valid: false, reason: "unavailable" };
+    };
     const arcade = r.arcadeSubscriptions(subs.filter((s) => s.active), address);
-    if (arcade.length === 0) return { valid: false, reason: "no-subscription" };
+    if (arcade.length === 0) return unread > 0 ? incomplete() : { valid: false, reason: "no-subscription" };
 
     // No fallbacks: a failed read must never be evaluated as "no cap" or "nothing owed".
     const c = await reg.spendCaps(address, r.ARCADE.merchant);
     const cap = { set: c.set, maxAmount: c.maxAmount, periodSeconds: Number(c.periodSeconds) };
     const nowSeconds = Math.floor(now() / 1000);
+    const opts = { nowSeconds, cap, account: address };
     const results = await Promise.all(arcade.map(async (s0) => {
+      // Every rule before the solvency one ignores what is owed and the token
+      // state; if one of them fails, that is the answer and nothing else is read.
+      const early = r.evaluatePass({ ...s0, owed: 0n }, UNLIMITED, opts);
+      if (!early.valid) return early;
       const sub = { ...s0, owed: await reg.previewOwed(s0.id) };
-      // Token state only matters when the solvency rule can be reached.
-      const needsTokenState = sub.active && !hasEnded(sub, nowSeconds) && r.isStablecoin(sub.tokenAddress);
-      let tokenState = { balance: 0n, allowance: 0n };
-      if (needsTokenState) {
-        const erc20 = new ethers.Contract(sub.tokenAddress, ERC20_ABI, provider);
-        const [balance, allowance] = await Promise.all([erc20.balanceOf(address), erc20.allowance(address, registryAddress)]);
-        tokenState = { balance, allowance };
-      }
-      return r.evaluatePass(sub, tokenState, { nowSeconds, cap, account: address });
+      const erc20 = new ethers.Contract(sub.tokenAddress, ERC20_ABI, provider);
+      const [balance, allowance] = await Promise.all([erc20.balanceOf(address), erc20.allowance(address, registryAddress)]);
+      return r.evaluatePass(sub, { balance, allowance }, opts);
     }));
     if (results.some((x) => x.valid)) return { valid: true, reason: "ok" };
+    if (unread > 0) return incomplete();
     const worst = [...results].sort((a, b) => reasonRank(a.reason) - reasonRank(b.reason))[0];
     return { valid: false, reason: worst.reason };
   }
@@ -253,7 +320,7 @@ function createPassChecker({
   }, 60 * 1000);
   timer.unref?.();
 
-  return { check, rules, cacheSize: () => cache.size };
+  return { check, rules, cacheSize: () => cache.size, knownIds: () => known.size };
 }
 
 module.exports = {

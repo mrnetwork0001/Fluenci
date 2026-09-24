@@ -83,7 +83,7 @@ async function loadFrontend() {
   delete process.env.VITE_QUSDC_ADDRESS;
   const vite = await createServer({
     root: FRONTEND, envDir, configFile: false, logLevel: "error", appType: "custom",
-    server: { middlewareMode: true }, optimizeDeps: { noDiscovery: true, include: [] },
+    server: { middlewareMode: true, hmr: false, ws: false }, optimizeDeps: { noDiscovery: true, include: [] },
   });
   const pass = await vite.ssrLoadModule("/src/dashboard/arcadePass.js");
   const config = await vite.ssrLoadModule("/src/dashboard/v4Config.js");

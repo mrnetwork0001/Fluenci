@@ -36,3 +36,9 @@ lerna-debug.log*
 *.sw?
 .DS_Store
 design/
+
+# QIE Pass pending writes and DID links written by the server at runtime
+server/data/
+
+# Agent worktrees
+.claude/worktrees/

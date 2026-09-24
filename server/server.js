@@ -207,6 +207,11 @@ function anonymizeLog(log) {
 function sendFromAiSigner(send) {
   const run = aiSendQueue.then(async () => {
     try {
+      // Settle the manager's nonce read here, inside the try. NonceManager
+      // otherwise starts that read in sendTransaction and awaits it only after
+      // populateTransaction; if both fail, the nonce rejection is never
+      // handled and takes the whole process down.
+      await aiSigner.getNonce("pending");
       return await send();
     } catch (err) {
       aiSigner?.reset();
@@ -1658,23 +1663,26 @@ async function retryPendingQiePassWrites() {
 }
 setInterval(() => { retryPendingQiePassWrites().catch(() => {}); }, QIEPASS_RETRY_MS).unref();
 
+const QIEPASS_PENDING_BODY = {
+  success: false,
+  verified: false,
+  pending: true,
+  error: "Your QIE Pass was accepted, but recording it onchain is still pending. Fluenci retries automatically, so check back later."
+};
+
 // Finishes a claim QIE has accepted: 200 only once the chain reads verified,
 // otherwise the write is queued and the caller gets 202 pending.
-async function finishQiePassWrite(res, wallet, subject) {
+async function finishQiePassWrite(res, wallet, subject, requestId = null) {
   try {
     const txHash = await registerQiePassOnchain(wallet);
     clearPendingQiePass(wallet);
+    if (requestId) qiePassRequests.delete(requestId);
     logTelemetry("QIEPASS", txHash ? `Identity registered onchain for ${wallet}. TX: ${txHash}` : `${wallet} is already verified onchain`);
     return res.json({ success: true, verified: true, onchain: true, txHash });
   } catch (err) {
     queuePendingQiePass(wallet, subject);
     logTelemetry("ERROR", `QIE Pass accepted for ${wallet}, but the onchain write failed: ${errText(err)}. Queued for retry.`);
-    return res.status(202).json({
-      success: false,
-      verified: false,
-      pending: true,
-      error: "Your QIE Pass was accepted, but recording it onchain is still pending. Fluenci retries automatically, so check back later."
-    });
+    return res.status(202).json(QIEPASS_PENDING_BODY);
   }
 }
 
@@ -1808,6 +1816,8 @@ app.post("/qiepass/claim", async (req, res) => {
     return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
   }
   if (binding.claiming) {
+    // The app re-checks an accepted request while its write is in flight.
+    if (binding.accepted) return res.status(202).json(QIEPASS_PENDING_BODY);
     return res.status(409).json({ success: false, error: "This verification is already being processed." });
   }
 
@@ -1817,7 +1827,17 @@ app.post("/qiepass/claim", async (req, res) => {
     // write instead of spending another consent.
     const pending = qiePassData.pending[wallet.toLowerCase()];
     if (pending) {
-      return await finishQiePassWrite(res, wallet, pending.subject);
+      return await finishQiePassWrite(res, wallet, pending.subject, requestId);
+    }
+    // Accepted by QIE, not pending, so the write already landed (or the
+    // pending record couldn't be saved): answer from the chain, never re-claim.
+    if (binding.accepted) {
+      const writer = await checkQiePassWriter();
+      if (writer.adapter && await readQiePassVerified(writer.adapter, wallet)) {
+        qiePassRequests.delete(requestId);
+        return res.json({ success: true, verified: true, onchain: true, txHash: null });
+      }
+      return res.status(202).json(QIEPASS_PENDING_BODY);
     }
 
     // Everything that could stop the on-chain write is checked before QIE's
@@ -1858,8 +1878,9 @@ app.post("/qiepass/claim", async (req, res) => {
       logTelemetry("QIEPASS", `Claim failed for ${wallet}: ${error}`);
       return res.status(response.ok ? 502 : qieHttpStatus(response.status)).json({ success: false, error });
     }
-    // The consent is spent now, so the request can't be claimed again.
-    qiePassRequests.delete(requestId);
+    // The consent is spent now: QIE's claim is never called again for this
+    // request, but the binding stays so the app can poll the on-chain write.
+    binding.accepted = true;
 
     const v = data?.verification;
     const kycVerified = data?.publicClaims?.kyc_verified === true;
@@ -1871,12 +1892,13 @@ app.post("/qiepass/claim", async (req, res) => {
         notRevoked: v?.notRevoked === true,
         kycVerified
       });
+      qiePassRequests.delete(requestId);
       return res.status(400).json({ success: false, error: "QIE Pass returned a credential that didn't pass verification, so this wallet was not marked as verified." });
     }
 
     recordQiePassSubject(data.subject, wallet);
     logTelemetry("QIEPASS", `Credentials verified for ${wallet}. Registering identity onchain...`);
-    return await finishQiePassWrite(res, wallet, data.subject);
+    return await finishQiePassWrite(res, wallet, data.subject, requestId);
   } catch (err) {
     logTelemetry("QIEPASS", `Claim error for ${wallet}: ${errText(err)}`);
     res.status(502).json({ success: false, error: QIEPASS_UNREACHABLE });

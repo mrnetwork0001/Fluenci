@@ -19,6 +19,18 @@ const REASON_ORDER = ["insufficient-balance", "insufficient-allowance", "capped-
   "cliff", "underpriced", "unsupported-token", "bad-period", "cancelled"];
 const rank = (r) => { const i = REASON_ORDER.indexOf(r); return i === -1 ? 99 : i; };
 
+// A wallet request that never settles (locked wallet, prompt behind the window).
+const WALLET_TIMEOUT_MS = 60000;
+const WALLET_SILENT = "Your wallet didn't respond. Open it, approve or reject any pending request, then try again.";
+function withTimeout(promise, ms, message) {
+  let t;
+  return Promise.race([promise, new Promise((_, reject) => { t = setTimeout(() => reject(new Error(message)), ms); })])
+    .finally(() => clearTimeout(t));
+}
+
+// Dev-only breadcrumbs (console.warn is what the Vite dev server echoes to its terminal).
+const trace = (...args) => { if (import.meta.env.DEV) console.warn("[arcade]", ...args); };
+
 function toWei(qieAmount) {
   try { return ethers.parseEther(String(qieAmount || "0")); } catch { return 0n; }
 }
@@ -176,10 +188,26 @@ export default function Arcade({
   /** Swap enough QIE for `m` months of qUSDC. Returns fresh balances, or null on failure. */
   const swapFor = useCallback(async (m) => {
     const wei = quotes.byMonths[m];
-    if (!onSwapQie || wei === null || wei === undefined) return null;
-    try { await v4.ensureWalletChain(); } catch (e) { setFlow({ step: "idle", error: e?.message || "Switch your wallet to QIE Mainnet to continue." }); return null; }
+    trace("swap clicked", { months: m, qie: wei ? ethers.formatEther(wei) : null });
+    if (!onSwapQie || wei === null || wei === undefined) {
+      setFlow({ step: "idle", error: "The swap price isn't ready yet. Try again in a moment." });
+      return null;
+    }
+    // Show progress before the first wallet call: a wallet that never answers
+    // (locked, or a prompt hidden behind the browser) otherwise looks like a dead button.
+    setFlow({ step: "network", error: "" });
+    try {
+      await withTimeout(v4.ensureWalletChain(), WALLET_TIMEOUT_MS, WALLET_SILENT);
+      trace("network ok");
+    } catch (e) {
+      trace("network check failed", e?.message);
+      setFlow({ step: "idle", error: e?.message || "Switch your wallet to QIE Mainnet to continue." });
+      return null;
+    }
     setFlow({ step: "swap", error: "" });
+    trace("sending swap");
     const swapped = await onSwapQie(ethers.formatEther(wei));
+    trace("swap returned", swapped);
     const rows = await loadStables();
     if (!swapped) {
       // A slow confirmation also lands here, so don't claim nothing happened.
@@ -235,7 +263,7 @@ export default function Arcade({
   const snakeLocked = !pass.valid && freeUsed;
   const snakeLabel = pass.valid ? "Play" : (!freeUsed ? "Try one free round" : "Get the pass to play");
   const stepLabel = {
-    swap: "Swapping QIE for qUSDC…", cap: "Setting your spending limit…",
+    network: "Checking your wallet…", swap: "Confirm the swap in your wallet…", cap: "Setting your spending limit…",
     subscribe: "Starting your pass…", fix: "Waiting for your wallet…",
   }[flow.step];
   const reasonCopy = pass.reason && !["no-subscription", "wrong-merchant", "ok", "not-configured"].includes(pass.reason)

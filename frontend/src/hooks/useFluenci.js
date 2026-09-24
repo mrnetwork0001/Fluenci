@@ -801,6 +801,7 @@ export function useFluenci() {
       // contract (or fail with a confusing wallet error), so switch first.
       const wallet = activeProviderRef.current || window.ethereum;
       if (!wallet) throw new Error("No Web3 wallet detected");
+      if (import.meta.env.DEV) console.warn("[swap] checking chain", { amount, fromToken, toToken });
       if (Number(await wallet.request({ method: "eth_chainId" })) !== 1990) {
         const switched = await switchToQieMainnet();
         if (!switched || Number(await wallet.request({ method: "eth_chainId" })) !== 1990) {
@@ -881,6 +882,7 @@ export function useFluenci() {
         const valueHex = "0x" + parsedAmount.toString(16);
         const gasHex = "0x" + (300000n).toString(16);
 
+        if (import.meta.env.DEV) console.warn("[swap] asking wallet to sign", { to: swapTarget, value: valueHex });
         const txHash = await injected.request({
           method: "eth_sendTransaction",
           params: [{
@@ -892,6 +894,7 @@ export function useFluenci() {
           }]
         });
         if (!txHash) throw new Error("No transaction hash returned from wallet");
+        if (import.meta.env.DEV) console.warn("[swap] signed", txHash);
         tx = { hash: txHash };
       } else {
         // QUSDC ➔ QIE
@@ -925,6 +928,7 @@ export function useFluenci() {
       setLoading(false);
       return true;
     } catch (err) {
+      if (import.meta.env.DEV) console.warn("[swap] failed", { code: err?.code, message: err?.message, data: err?.data });
       setError(err.message);
       setTxStep("error", { error: err.message });
       setLoading(false);

@@ -207,6 +207,15 @@ a legitimate oracle-bridge architecture and it is how the QIE Pass gate works to
 should not be read as QIE having deployed a registry for us. If QIE ships a canonical onchain
 QIE Pass registry, `setQiePass()` repoints the registry at it with no migration.
 
+**Production QIE Pass keys are required.** QIE also runs a sandbox (`did-stapi.qie.digital`,
+`pk_test_` keys) where no real document checks happen, so a sandbox answer must never become a
+verified mark on mainnet. The backend only talks to QIE Pass when `QIEPASS_API_URL` is exactly
+`https://pass-api.qie.digital` and `QIEPASS_PUBLIC_KEY` starts with `pk_live_`. Otherwise
+`/qiepass/verify`, `/qiepass/status/:id` and `/qiepass/claim` answer 503 without calling QIE,
+and nothing is written to the adapter, including queued retries. `QIEPASS_ALLOW_SANDBOX=true`
+lifts this for local test chains only. It is ignored on QIE mainnet (chain 1990) and while the
+connected chain is unknown. `GET /status` reports `qiePassWriter.production`.
+
 ### QIE Reputation - offchain, consumed via signed attestation
 
 **QIE Reputation has no onchain contract.** Four independent sweeps of the chain confirmed
@@ -312,8 +321,8 @@ AUDITOR_ADDRESS=0xf6830f981043B4e3af5e8B80dBFe628F2D4E7592    # FluenciAIAuditor
 AI_PRIVATE_KEY=      # service key: the auditor's trustedAiWorker AND the QIE Pass adapter's oracle; keep it funded with QIE
 ADMIN_SECRET=
 OPENAI_API_KEY=
-QIEPASS_API_URL=https://pass-api.qie.digital
-QIEPASS_PUBLIC_KEY=
+QIEPASS_API_URL=https://pass-api.qie.digital   # production only; the sandbox is refused
+QIEPASS_PUBLIC_KEY=  # pk_live_... (a pk_test_ key is refused)
 QIEPASS_SECRET_KEY=
 QIEPASS_CLAIMS=firstName
 START_BLOCK=10031934
@@ -321,7 +330,8 @@ START_BLOCK=10031934
 
 The QIE Pass adapter is read from the registry (`registry.qiePass()`), so there is no
 separate address to configure. `GET /status` reports `qiePassWriter`; verification only works
-while it shows `oracleOk: true` and `funded: true`.
+while it shows `oracleOk: true`, `funded: true` and `production: true`. `QIEPASS_ALLOW_SANDBOX`
+is for local chains only; leave it out of a mainnet `.env` (see the QIE Pass section above).
 
 Move `REGISTRY_ADDRESS` and `START_BLOCK` together at cutover. Moving one without the other
 leaves the indexer scanning roughly 1.4M empty blocks.

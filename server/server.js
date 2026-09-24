@@ -90,6 +90,7 @@ let auditorContract = null;
 let dexContract = null;
 let fluenciRouterContract = null;
 let provider = null;
+let connectedChain = null; // { provider, chainId } once connectBlockchain has read that provider's chain id
 let aiWallet = null;
 let aiSigner = null; // NonceManager over aiWallet; every tx from the AI key goes through sendFromAiSigner
 let aiSendQueue = Promise.resolve();
@@ -114,6 +115,33 @@ const QIEPASS_REQUEST_ID_ANY = /pvr_[A-Za-z0-9_]+/g;
 // Never mark these as verified. 0xfe5F...a6bb is the old deployer, whose
 // private key is in public git history.
 const QIEPASS_DENYLIST = new Set(["0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb"].map((a) => a.toLowerCase()));
+
+// QIE's sandbox (did-stapi.qie.digital, pk_test_ keys) does no real document
+// checks, so its answers must never become a verified mark on mainnet. Only
+// QIE's production API with a live key counts. QIEPASS_ALLOW_SANDBOX=true lets
+// a local test chain use the sandbox; it is ignored on QIE mainnet (1990) and
+// while the connected chain is unknown. See qiePassAllowed().
+const QIEPASS_PRODUCTION_HOST = "pass-api.qie.digital";
+const QIEPASS_ALLOW_SANDBOX = process.env.QIEPASS_ALLOW_SANDBOX === "true";
+const QIE_MAINNET_CHAIN_ID = 1990;
+
+function qiePassEnvironment(apiUrl = QIEPASS_API_URL, publicKey = QIEPASS_PUBLIC_KEY) {
+  let url = null;
+  try { url = new URL(apiUrl); } catch { /* not a URL */ }
+  // URL drops a default port (:443), so any port left is a non-default one.
+  const productionHost = Boolean(url) && url.protocol === "https:" && url.username === "" &&
+    url.password === "" && url.port === "" && url.hostname === QIEPASS_PRODUCTION_HOST;
+  const liveKey = typeof publicKey === "string" && publicKey.startsWith("pk_live_");
+  return { hostname: url ? url.hostname : null, liveKey, production: productionHost && liveKey };
+}
+const QIEPASS_ENV = qiePassEnvironment();
+// Logged once at boot. Never the key itself.
+console[QIEPASS_ENV.production ? "log" : "warn"](
+  `[QIEPASS] QIE Pass API host: ${QIEPASS_ENV.hostname || "(not a valid URL)"}, live key: ${QIEPASS_ENV.liveKey ? "yes" : "no"}. ` +
+  (QIEPASS_ENV.production ? "Production API: verification enabled."
+    : QIEPASS_ALLOW_SANDBOX ? "Not QIE's production API: verification runs only on a known non-mainnet chain (QIEPASS_ALLOW_SANDBOX)."
+      : "Not QIE's production API: QIE Pass verification is off.")
+);
 
 // Admin-only gate for the dangerous control endpoints (/configure,
 // /trigger-anomaly, /arbitrate-dispute). Fail-closed: with no ADMIN_SECRET set
@@ -861,9 +889,11 @@ async function syncHistoricalEvents() {
 async function connectBlockchain() {
   try {
     logTelemetry("INFO", `Connecting to RPC URL: ${RPC_URL}`);
-    provider = new ethers.JsonRpcProvider(RPC_URL);
-    
-    const network = await provider.getNetwork();
+    const rpc = new ethers.JsonRpcProvider(RPC_URL);
+    provider = rpc;
+
+    const network = await rpc.getNetwork();
+    connectedChain = { provider: rpc, chainId: Number(network.chainId) };
     logTelemetry("INFO", `Connected to blockchain. Chain ID: ${Number(network.chainId)}`);
 
     if (REGISTRY_ADDRESS && AUDITOR_ADDRESS) {
@@ -937,7 +967,9 @@ async function connectBlockchain() {
       // write shows up in the log straight away.
       const writer = await checkQiePassWriter();
       if (qiePassWriterReady(writer)) {
-        logTelemetry("INFO", `QIE Pass writer ready. Adapter: ${writer.adapter}, oracle signer: ${aiWallet.address}`);
+        logTelemetry("INFO", `QIE Pass writer ready. Adapter: ${writer.adapter}, oracle signer: ${aiWallet.address}${QIEPASS_ENV.production ? "" : ` (QIE Pass sandbox, allowed on local chain ${Number(network.chainId)})`}`);
+      } else if (!qiePassAllowed()) {
+        logTelemetry("ERROR", "QIE Pass is off: QIEPASS_API_URL and QIEPASS_PUBLIC_KEY aren't QIE's production API and a live key, and the sandbox is only allowed on a local chain. QIE Pass requests are refused.");
       } else {
         logTelemetry("ERROR", `QIE Pass writer not ready (adapter: ${writer.adapter || "unreadable"}, oracle matches signer: ${writer.oracleOk}, signer holds 0.01+ QIE: ${writer.funded}). QIE Pass claims are refused until this is fixed.`);
       }
@@ -1224,7 +1256,8 @@ app.get("/status", (req, res) => {
     qiePassWriter: {
       adapter: qiePassWriter.adapter,
       oracleOk: qiePassWriter.oracleOk,
-      funded: qiePassWriter.funded
+      funded: qiePassWriter.funded,
+      production: QIEPASS_ENV.production
     }
   });
 });
@@ -1455,6 +1488,23 @@ const QIEPASS_UNAVAILABLE = "Verification is temporarily unavailable. Please try
 const QIEPASS_UNREACHABLE = "Couldn't reach QIE Pass. Please try again later.";
 const QIEPASS_WRONG_WALLET = "This verification request belongs to a different wallet.";
 const QIEPASS_DENIED = "This wallet's key is known to be compromised, so Fluenci won't mark it as verified.";
+const QIEPASS_OFF = "QIE Pass verification isn't available right now.";
+
+// QIE's production API with a live key, or the sandbox when explicitly allowed
+// on a known chain that isn't QIE mainnet. The chain id only counts for the
+// provider in use, so a reconnect that hasn't read its chain yet is "unknown".
+function qiePassAllowed() {
+  if (QIEPASS_ENV.production) return true;
+  const chainId = connectedChain && connectedChain.provider === provider ? connectedChain.chainId : null;
+  return QIEPASS_ALLOW_SANDBOX && chainId !== null && chainId !== QIE_MAINNET_CHAIN_ID;
+}
+
+// Routes call this before anything reaches QIE.
+function requireQiePassAllowed(res) {
+  if (qiePassAllowed()) return true;
+  res.status(503).json({ success: false, error: QIEPASS_OFF });
+  return false;
+}
 
 const HEX_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 function normalizeWallet(value) {
@@ -1486,9 +1536,11 @@ async function fetchQiePassRequest(requestId) {
   return { response, data: await response.json().catch(() => null) };
 }
 
-// requestId -> { wallet, createdAt, expiresAt, claiming }. The wallet is bound at
-// /qiepass/verify, where QIE confirms the request is for that wallet, so a claim
-// can only ever mark that wallet and never one named by the caller.
+// requestId -> { wallet, createdAt, expiresAt, claiming, accepted }. The wallet is
+// bound at /qiepass/verify, where QIE confirms the request is for that wallet, so
+// a claim can only ever mark that wallet and never one named by the caller.
+// Once `accepted` (QIE accepted a credential for the wallet), the binding never
+// calls QIE's claim again and only answers re-checks from the chain.
 const qiePassRequests = new Map();
 
 setInterval(() => {
@@ -1542,7 +1594,7 @@ function checkQiePassWriter() {
   return qiePassWriterCheck;
 }
 
-const qiePassWriterReady = (w) => Boolean(w.adapter && w.oracleOk && w.funded);
+const qiePassWriterReady = (w) => Boolean(qiePassAllowed() && w.adapter && w.oracleOk && w.funded);
 
 async function readQiePassVerified(adapter, wallet) {
   try {
@@ -1641,7 +1693,8 @@ function recordQiePassSubject(subject, wallet) {
 let qiePassRetrying = false;
 async function retryPendingQiePassWrites() {
   const entries = Object.values(qiePassData.pending);
-  if (qiePassRetrying || entries.length === 0) return;
+  // Entries are kept, not dropped, while QIE Pass is off.
+  if (qiePassRetrying || entries.length === 0 || !qiePassAllowed()) return;
   qiePassRetrying = true;
   try {
     for (const entry of entries) {
@@ -1676,7 +1729,10 @@ async function finishQiePassWrite(res, wallet, subject, requestId = null) {
   try {
     const txHash = await registerQiePassOnchain(wallet);
     clearPendingQiePass(wallet);
-    if (requestId) qiePassRequests.delete(requestId);
+    // Kept (until its TTL) so a re-check from an app whose RPC lags is
+    // answered from the chain instead of "expired or unknown".
+    const binding = requestId ? qiePassRequests.get(requestId) : null;
+    if (binding) binding.accepted = true;
     logTelemetry("QIEPASS", txHash ? `Identity registered onchain for ${wallet}. TX: ${txHash}` : `${wallet} is already verified onchain`);
     return res.json({ success: true, verified: true, onchain: true, txHash });
   } catch (err) {
@@ -1702,6 +1758,7 @@ app.post("/qiepass/verify", async (req, res) => {
   if (!wallet) {
     return res.status(400).json({ success: false, error: "Missing or invalid walletAddress" });
   }
+  if (!requireQiePassAllowed(res)) return;
   if (isDeniedWallet(wallet)) {
     logTelemetry("WARNING", `Refused QIE Pass request for compromised wallet ${wallet}`);
     return res.status(403).json({ success: false, error: QIEPASS_DENIED });
@@ -1776,6 +1833,7 @@ app.get("/qiepass/status/:requestId", async (req, res) => {
   if (!QIEPASS_REQUEST_ID_RE.test(requestId)) {
     return res.status(400).json({ success: false, error: "Invalid requestId" });
   }
+  if (!requireQiePassAllowed(res)) return;
   if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
     return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
   }
@@ -1799,6 +1857,7 @@ app.post("/qiepass/claim", async (req, res) => {
   if (typeof requestId !== "string" || !QIEPASS_REQUEST_ID_RE.test(requestId)) {
     return res.status(400).json({ success: false, error: "Missing or invalid requestId" });
   }
+  if (!requireQiePassAllowed(res)) return;
   const binding = qiePassRequests.get(requestId);
   if (!binding || binding.expiresAt <= Date.now()) {
     return res.status(400).json({ success: false, error: "This verification request has expired or is unknown. Please start verification again." });
@@ -1831,10 +1890,10 @@ app.post("/qiepass/claim", async (req, res) => {
     }
     // Accepted by QIE, not pending, so the write already landed (or the
     // pending record couldn't be saved): answer from the chain, never re-claim.
+    // The binding stays until its TTL, so repeated re-checks get the same answer.
     if (binding.accepted) {
       const writer = await checkQiePassWriter();
       if (writer.adapter && await readQiePassVerified(writer.adapter, wallet)) {
-        qiePassRequests.delete(requestId);
         return res.json({ success: true, verified: true, onchain: true, txHash: null });
       }
       return res.status(202).json(QIEPASS_PENDING_BODY);

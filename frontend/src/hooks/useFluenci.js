@@ -645,10 +645,15 @@ export function useFluenci() {
   };
 
   // Drop a flow and its in-progress status, so reconnecting that wallet later
-  // doesn't show a request that nothing is polling any more.
+  // doesn't show a request that nothing is polling any more. A modal still on
+  // one of its steps is closed too, since nothing would finish that spinner;
+  // a result (confirmed/error) stays up.
   const abandonKyc = (ctx) => {
     if (kycCtxRef.current === ctx) stopKycFlow();
     setKycState((prev) => (sameAddress(prev.account, ctx.wallet) ? IDLE_KYC : prev));
+    setTxState((prev) => (prev.qiePassFlow === ctx && prev.status !== "confirmed" && prev.status !== "error"
+      ? { status: "idle", action: "", hash: "", error: "" }
+      : prev));
   };
 
   // Switching wallets abandons the running flow; the server bound it to the old one.
@@ -657,6 +662,10 @@ export function useFluenci() {
     if (ctx && !sameAddress(account, ctx.wallet)) abandonKyc(ctx);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only a wallet change should abandon
   }, [account]);
+
+  // An in-progress step of this flow. qiePassFlow tags the modal as the flow's,
+  // so abandonKyc can close it, even if the modal was closed or reused meanwhile.
+  const showKycStep = (ctx, action) => setTxStep("confirming", { action, qiePassFlow: ctx });
 
   const failKyc = (ctx, status, message) => {
     if (!isLiveFlow(ctx)) return;
@@ -717,7 +726,7 @@ export function useFluenci() {
       if (ctx.phase !== "onchain") {
         ctx.phase = "onchain";
         ctx.phaseSince = Date.now();
-        setTxStep("confirming", { action: "Waiting for the on-chain record" });
+        showKycStep(ctx, "Waiting for the on-chain record");
       }
       setKycState((prev) => ({ ...prev, status: "pending_onchain", error: null, message: r.message || NOT_ONCHAIN_YET }));
     } catch (err) {
@@ -735,7 +744,7 @@ export function useFluenci() {
     ctx.phase = "claiming";
     ctx.phaseSince = Date.now();
     setKycState((prev) => ({ ...prev, status: "claiming", error: null, message: null }));
-    setTxStep("confirming", { action: "Recording your QIE Pass on-chain" });
+    showKycStep(ctx, "Recording your QIE Pass on-chain");
     await settleClaim(ctx);
   };
 
@@ -775,13 +784,13 @@ export function useFluenci() {
         } else if (data.status === "pending_consent" && ctx.lastStatus !== "pending_consent") {
           ctx.lastStatus = "pending_consent";
           setKycState((prev) => ({ ...prev, status: "pending_consent" }));
-          setTxStep("confirming", { action: "Approve the request in QIE Wallet" });
+          showKycStep(ctx, "Approve the request in QIE Wallet");
         }
       } else if (ctx.phase === "claiming" || ctx.phase === "onchain") {
         if (manual && ctx.parked) {
           ctx.parked = false;
           ctx.phaseSince = Date.now();
-          setTxStep("confirming", { action: "Waiting for the on-chain record" });
+          showKycStep(ctx, "Waiting for the on-chain record");
         }
         if (!manual && Date.now() - ctx.phaseSince > CLAIM_MAX_WAIT_MS) {
           if (ctx.phase === "claiming") {
@@ -821,7 +830,7 @@ export function useFluenci() {
     kycCtxRef.current = ctx;
     setError("");
     setKycState({ ...IDLE_KYC, status: "creating", account: ctx.wallet });
-    setTxState({ status: "preparing", action: "Starting QIE Pass verification", hash: "", error: "" });
+    setTxState({ status: "preparing", action: "Starting QIE Pass verification", hash: "", error: "", qiePassFlow: ctx });
 
     try {
       if (!SERVER_URL) throw new Error("Backend server not available. QIE Pass verification requires the server to be running.");
@@ -858,13 +867,13 @@ export function useFluenci() {
           ? data.redirectUrl
           : `https://qiepass.qie.digital${data.redirectUrl || ""}`;
         setKycState((prev) => ({ ...prev, status: "pending_kyc", redirectUrl }));
-        setTxStep("confirming", { action: "Finish verification in the QIE Pass tab" });
+        showKycStep(ctx, "Finish verification in the QIE Pass tab");
         // Can be popup-blocked after the awaits above, so the panels also link to it.
         window.open(redirectUrl, "_blank");
         scheduleKyc(ctx, KYC_POLL_MS);
       } else if (data.status === "pending_consent") {
         setKycState((prev) => ({ ...prev, status: "pending_consent" }));
-        setTxStep("confirming", { action: "Approve the request in QIE Wallet" });
+        showKycStep(ctx, "Approve the request in QIE Wallet");
         scheduleKyc(ctx, KYC_POLL_MS);
       } else if (data.status === "consent_given") {
         await startClaim(ctx);

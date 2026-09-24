@@ -98,11 +98,12 @@ const secretUsable = (secret) => typeof secret === "string" && secret.length >= 
  * Everything auth-related for one SESSION_SECRET. With no usable secret,
  * `configured` is false and nothing can be issued or verified.
  *
- * Nonces live in memory for 5 minutes. A new request never pushes out a
- * pending one: a wallet with `maxPerAddress` live nonces gets rate_address, and
- * a full table (`maxNonces`) gets busy, until some are used or expire. So a
- * sign-in that has its nonce can always finish, whoever else asks for nonces
- * for the same wallet meanwhile.
+ * Nonces live in memory for 5 minutes. Each requester (IP) keeps at most
+ * `maxPerAddress` pending nonces per wallet; a new one drops that requester's
+ * OWN oldest attempt, never anyone else's, and verify finds nonces directly.
+ * So nobody can refuse or cancel another person's sign-in by asking for nonces
+ * for their wallet, and a person retrying after cancelling in the wallet is
+ * never locked out. A full table (`maxNonces`) answers busy until some expire.
  */
 function createAuth({
   secret = "",
@@ -116,16 +117,16 @@ function createAuth({
   if (!isSignInDomain(domain)) throw new Error(`Invalid sign-in domain: ${domain}`);
   const configured = secretUsable(secret);
   const nonces = new Map();     // nonce -> { key, message, expiresAt }
-  const byAddress = new Map();  // lowercase address -> [nonce, ...], oldest first
+  const byBucket = new Map();   // "<lowercase address>|<requester>" -> [nonce, ...], oldest first
 
   const hmac = (payload) => crypto.createHmac("sha256", secret).update(payload).digest();
 
-  function forget(nonce, key = nonces.get(nonce)?.key) {
+  function forget(nonce, bucket = nonces.get(nonce)?.bucket) {
     nonces.delete(nonce);
-    if (!key) return;
-    const list = (byAddress.get(key) || []).filter((n) => n !== nonce);
-    if (list.length) byAddress.set(key, list);
-    else byAddress.delete(key);
+    if (!bucket) return;
+    const list = (byBucket.get(bucket) || []).filter((n) => n !== nonce);
+    if (list.length) byBucket.set(bucket, list);
+    else byBucket.delete(bucket);
   }
 
   function prune() {
@@ -133,25 +134,32 @@ function createAuth({
     for (const [nonce, entry] of nonces) if (entry.expiresAt <= t) forget(nonce);
   }
 
-  /** The nonces still live for one wallet (expired ones are dropped on the way). */
-  function liveFor(key) {
+  /** The nonces still live in one bucket (expired ones are dropped on the way). */
+  function liveFor(bucket) {
     const t = now();
-    for (const n of byAddress.get(key) || []) {
+    for (const n of [...(byBucket.get(bucket) || [])]) {
       const e = nonces.get(n);
-      if (!e || e.expiresAt <= t) forget(n, key);
+      if (!e || e.expiresAt <= t) forget(n, bucket);
     }
-    return byAddress.get(key) || [];
+    return [...(byBucket.get(bucket) || [])];
   }
 
   /**
-   * A fresh sign-in message for `address` (any valid address).
-   * -> { ok: true, message, nonce, expiresAt } | { ok: false, code: "rate_address" | "busy" }
+   * A fresh sign-in message for `address` (any valid address), asked for by
+   * `requester` (the client IP; "" in tests).
+   * -> { ok: true, message, nonce, expiresAt } | { ok: false, code: "busy" }
    */
-  function issueNonce(address) {
+  function issueNonce(address, requester = "") {
     if (!configured) throw new Error("SESSION_SECRET not configured");
     const wallet = ethers.getAddress(address);
     const key = wallet.toLowerCase();
-    if (liveFor(key).length >= maxPerAddress) return { ok: false, code: "rate_address" };
+    const bucket = `${key}|${requester}`;
+    // Only this requester's own oldest attempt for this wallet ever makes room.
+    let live = liveFor(bucket);
+    while (live.length >= maxPerAddress) {
+      forget(live[0], bucket);
+      live = liveFor(bucket);
+    }
     if (nonces.size >= maxNonces) prune();
     if (nonces.size >= maxNonces) return { ok: false, code: "busy" };
 
@@ -160,8 +168,8 @@ function createAuth({
     const issuedAt = new Date(issued).toISOString();
     const expiresAt = new Date(issued + nonceTtlMs).toISOString();
     const message = signInMessage({ domain, address: wallet, nonce, issuedAt, expiresAt });
-    nonces.set(nonce, { key, message, expiresAt: issued + nonceTtlMs });
-    byAddress.set(key, [...(byAddress.get(key) || []), nonce]);
+    nonces.set(nonce, { key, bucket, message, expiresAt: issued + nonceTtlMs });
+    byBucket.set(bucket, [...(byBucket.get(bucket) || []), nonce]);
     return { ok: true, message, nonce, expiresAt };
   }
 
@@ -204,7 +212,7 @@ function createAuth({
     let signer = null;
     try { signer = ethers.verifyMessage(entry.message, signature); } catch { signer = null; }
     if (!signer || signer.toLowerCase() !== key) return { ok: false, code: "bad_signature" };
-    forget(id, key);
+    forget(id);
     return { ok: true, ...issueToken(wallet) };
   }
 

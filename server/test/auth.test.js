@@ -185,25 +185,24 @@ test("expired nonce: 5 minutes is the limit", async () => {
   assert.equal((await signIn(auth, alice, again)).ok, true, "just inside the window");
 });
 
-test("F3: nonce requests never evict a pending nonce - the 6th for a wallet is refused instead", async () => {
+test("F3: pending nonces are kept per wallet AND requester; a requester only ever displaces its own", async () => {
   const clock = { t: 1_800_000_000_000 };
   const auth = createAuth({ secret: SECRET, now: () => clock.t, maxPerAddress: 5 });
-  // The victim opens a sign-in; while the wallet prompt is up, someone else asks for more nonces for the same wallet.
-  const victim = auth.issueNonce(alice.address);
-  const attacker = [];
-  for (let i = 0; i < 10; i++) attacker.push(auth.issueNonce(alice.address));
-  assert.deepEqual(attacker.map((r) => r.ok), [true, true, true, true, false, false, false, false, false, false]);
-  assert.deepEqual(attacker[4], { ok: false, code: "rate_address" });
-  // The victim's signature still signs in with the nonce it was given.
-  const r = await signIn(auth, alice, victim);
-  assert.equal(r.ok, true, "the pending sign-in finishes");
-  // Using one frees one slot; other wallets were never affected.
-  assert.equal(auth.issueNonce(alice.address).ok, true);
-  assert.equal(auth.issueNonce(alice.address).ok, false);
-  assert.equal(auth.issueNonce(bob.address).ok, true);
-  // Expired nonces free their slots.
+  // The victim opens a sign-in; while the wallet prompt is up, someone else floods nonces for the same wallet.
+  const victim = auth.issueNonce(alice.address, "10.0.0.1");
+  const flood = [];
+  for (let i = 0; i < 10; i++) flood.push(auth.issueNonce(alice.address, "10.6.6.6"));
+  assert.ok(flood.every((r) => r.ok), "nobody is refused");
+  // The victim's pending sign-in is untouched and still finishes.
+  assert.equal((await signIn(auth, alice, victim)).ok, true);
+  // The flooder's own oldest attempts made room for its newer ones (5 kept per requester and wallet).
+  assert.deepEqual(await signIn(auth, alice, flood[0]), { ok: false, code: "expired_nonce" });
+  assert.equal((await signIn(auth, alice, flood[9])).ok, true);
+  // Someone retrying from one place (e.g. after cancelling in the wallet) is never locked out.
+  for (let i = 0; i < 8; i++) assert.equal(auth.issueNonce(bob.address, "10.0.0.2").ok, true);
+  // Expired nonces go too.
   clock.t += NONCE_TTL_MS;
-  assert.equal(auth.issueNonce(alice.address).ok, true);
+  assert.equal(auth.issueNonce(alice.address, "10.6.6.6").ok, true);
 });
 
 test("F3: a full nonce table refuses new requests (busy) and never drops pending ones", async () => {

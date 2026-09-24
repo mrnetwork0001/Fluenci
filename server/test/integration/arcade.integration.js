@@ -162,7 +162,7 @@ async function signIn(wallet) {
     // While erin's wallet prompt is open, someone else asks for nonces for her address.
     const flood = [];
     for (let i = 0; i < 6; i++) flood.push((await call("POST", "/auth/nonce", { body: { address: erin.address }, ip: "198.51.100.7" })).status);
-    expect("nonce requests for erin from elsewhere: 4 more, then 429 (never evicting hers)", flood.join(",") === "200,200,200,200,429,429", flood);
+    expect("nonce requests for erin from elsewhere: never refused, never evicting hers", flood.every((st) => st === 200), flood);
     const v1 = await call("POST", "/auth/verify", { body: { address: erin.address, nonce: n1.body.nonce, message: n1.body.message, signature: await erin.signMessage(n1.body.message) } });
     expect("erin's pending sign-in still completes with the nonce she was given", v1.status === 200 && v1.body.address === erin.address, v1.body);
     const noNonce = await call("POST", "/auth/verify", { body: { address: erin.address, signature: await erin.signMessage(n1.body.message) } });

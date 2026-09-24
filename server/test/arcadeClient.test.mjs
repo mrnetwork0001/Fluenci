@@ -102,7 +102,9 @@ async function startApp({ holders }) {
   const app = express();
   const snake = createSnakeService({ now: () => clock.t });
   const leaderboard = createLeaderboard({ file: path.join(dir, "arcade.json"), now: () => clock.t, log: { error() {} } });
-  mountArcade(app, { auth: createAuth({ secret: SECRET }), passChecker, snake, leaderboard });
+  // x-test-ip stands in for a different visitor (the real app reads the client IP behind nginx).
+  mountArcade(app, { auth: createAuth({ secret: SECRET }), passChecker, snake, leaderboard,
+    clientIp: (req) => req.headers["x-test-ip"] || req.socket.remoteAddress });
   const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
   return { apiBase: `http://127.0.0.1:${server.address().port}`, clock, close: () => new Promise((r) => server.close(r)) };
 }
@@ -220,23 +222,25 @@ test("F3: the app sends back the nonce it signed, so others asking for nonces ca
   const app = await startApp({ holders: [wallet] });
   try {
     const account = wallet.address.toLowerCase();
-    // What the app sends to /auth/verify.
     const sent = [];
     const realFetch = globalThis.fetch;
     globalThis.fetch = async (url, init) => {
       if (String(url).endsWith("/auth/verify")) sent.push(JSON.parse(init.body));
       return realFetch(url, init);
     };
-    let flooded = [];
+    const flooded = [];
     try {
-      const provider = eip1193(wallet);
-      const sign = signWith(provider, account);
-      // While the wallet prompt is open, someone else asks for nonces for this wallet.
+      const sign = signWith(eip1193(wallet), account);
+      // While the wallet prompt is open, someone elsewhere asks for nonces for this wallet.
       const r = await api.signInToArcade({
         apiBase: app.apiBase, address: account,
         sign: async (message) => {
-          for (let i = 0; i < 6; i++) {
-            flooded.push(await api.requestJson(app.apiBase, "/auth/nonce", { method: "POST", body: { address: wallet.address } }));
+          for (let i = 0; i < 8; i++) {
+            const res = await realFetch(`${app.apiBase}/auth/nonce`, {
+              method: "POST", headers: { "Content-Type": "application/json", "x-test-ip": "10.6.6.6" },
+              body: JSON.stringify({ address: wallet.address }),
+            });
+            flooded.push(res.status);
           }
           return sign(message);
         },
@@ -244,17 +248,39 @@ test("F3: the app sends back the nonce it signed, so others asking for nonces ca
       assert.equal(r.ok, true, r.message);
       assert.equal(r.address, wallet.address);
     } finally { globalThis.fetch = realFetch; }
-    assert.deepEqual(flooded.map((f) => f.status), [200, 200, 200, 200, 429, 429]);
+    assert.ok(flooded.every((s) => s === 200), "the flood is never refused either");
     assert.equal(sent.length, 1);
     assert.deepEqual(Object.keys(sent[0]).sort(), ["address", "message", "nonce", "signature"]);
     assert.equal(parseSignInMessage(sent[0].message).nonce, sent[0].nonce, "the nonce and the exact message that were signed");
+  } finally { await app.close(); }
+});
 
-    // Four of the flood's nonces are still pending; one more fills the wallet's five,
-    // and the app words the server's 429.
-    assert.equal((await api.requestJson(app.apiBase, "/auth/nonce", { method: "POST", body: { address: wallet.address } })).status, 200);
-    const full = await api.signInToArcade({ apiBase: app.apiBase, address: account, sign: signWith(eip1193(wallet), account) });
-    assert.deepEqual([full.ok, full.status, full.code], [false, 429, "rate_address"]);
-    assert.match(full.message, /already has 5 sign-in requests waiting/);
+test("F3: after cancelling in the wallet, a retry reuses the same sign-in message", async () => {
+  const wallet = ethers.Wallet.createRandom();
+  const app = await startApp({ holders: [wallet] });
+  try {
+    const account = wallet.address.toLowerCase();
+    let nonceRequests = 0;
+    const signed = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (url, init) => {
+      if (String(url).endsWith("/auth/nonce")) nonceRequests++;
+      return realFetch(url, init);
+    };
+    try {
+      for (let i = 0; i < 3; i++) {
+        const cancelled = await api.signInToArcade({
+          apiBase: app.apiBase, address: account,
+          sign: async (message) => { signed.push(message); throw Object.assign(new Error("User rejected the request."), { code: 4001 }); },
+        });
+        assert.deepEqual([cancelled.ok, cancelled.rejected], [false, true]);
+      }
+      const sign = signWith(eip1193(wallet), account);
+      const r = await api.signInToArcade({ apiBase: app.apiBase, address: account, sign: async (m) => { signed.push(m); return sign(m); } });
+      assert.equal(r.ok, true, r.message);
+    } finally { globalThis.fetch = realFetch; }
+    assert.equal(nonceRequests, 1, "one nonce for all four attempts");
+    assert.equal(new Set(signed).size, 1, "the same message every time");
   } finally { await app.close(); }
 });
 

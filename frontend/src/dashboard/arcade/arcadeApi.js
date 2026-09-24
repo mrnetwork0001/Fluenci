@@ -143,13 +143,29 @@ function withTimeout(promise, ms) {
  * the server checks it against that very request.
  * -> { ok: true, token, address, expiresAt } | { ok: false, message, rejected? }
  */
+// The sign-in message this tab is waiting to have signed, per wallet. A retry
+// after cancelling in the wallet reuses it instead of asking for another one.
+const pendingSignIns = new Map();
+const REUSE_MIN_MS = 30 * 1000;
+
 export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = SIGN_TIMEOUT_MS, domains }) {
-  const n = await requestJson(apiBase, "/auth/nonce", { method: "POST", body: { address } });
-  if (n.status !== 200) return failure(n, SIGN_IN_COPY, "Sign-in didn't work. Try again in a moment.");
-  const message = n.data?.message;
-  const nonce = n.data?.nonce;
-  if (typeof nonce !== "string" || !isSignInMessage(message, address, { nonce, ...(domains ? { domains } : {}) })) {
-    return { ok: false, message: "The server sent an unexpected sign-in message, so nothing was signed." };
+  const pendingKey = `${apiBase}|${String(address).toLowerCase()}`;
+  const held = pendingSignIns.get(pendingKey);
+  let message;
+  let nonce;
+  if (held && held.expiresAt - Date.now() > REUSE_MIN_MS) {
+    ({ message, nonce } = held);
+  } else {
+    pendingSignIns.delete(pendingKey);
+    const n = await requestJson(apiBase, "/auth/nonce", { method: "POST", body: { address } });
+    if (n.status !== 200) return failure(n, SIGN_IN_COPY, "Sign-in didn't work. Try again in a moment.");
+    message = n.data?.message;
+    nonce = n.data?.nonce;
+    if (typeof nonce !== "string" || !isSignInMessage(message, address, { nonce, ...(domains ? { domains } : {}) })) {
+      return { ok: false, message: "The server sent an unexpected sign-in message, so nothing was signed." };
+    }
+    const expiresAt = Date.parse(n.data?.expiresAt);
+    if (Number.isFinite(expiresAt)) pendingSignIns.set(pendingKey, { message, nonce, expiresAt });
   }
 
   let signature;
@@ -174,6 +190,8 @@ export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = S
   }
 
   const v = await requestJson(apiBase, "/auth/verify", { method: "POST", body: { address, nonce, message, signature } });
+  // Whatever the answer, this message is done: used up, or no longer accepted.
+  if (v.status === 200 || v.status === 401 || v.status === 400) pendingSignIns.delete(pendingKey);
   if (v.status !== 200) return failure(v, SIGN_IN_COPY, "Sign-in didn't work. Try again in a moment.");
   const { token, expiresAt } = v.data || {};
   if (typeof token !== "string" || !token || !sameAddress(v.data?.address, address) || !Number.isFinite(Date.parse(expiresAt))) {

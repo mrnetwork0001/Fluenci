@@ -39,11 +39,14 @@ async function startApp({ secret = SECRET, merchantSet = true, limits = {} } = {
   const app = express();
   const snake = createSnakeService({ now: () => clock.t });
   const leaderboard = createLeaderboard({ file: path.join(dir, "arcade.json"), now: () => clock.t, log: { error() {} } });
-  mountArcade(app, { auth: createAuth({ secret }), passChecker, snake, leaderboard, limits });
+  // x-test-ip stands in for different visitors (the real app reads the client IP behind nginx).
+  mountArcade(app, { auth: createAuth({ secret }), passChecker, snake, leaderboard, limits,
+    clientIp: (req) => req.headers["x-test-ip"] || req.socket.remoteAddress });
   const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
   const base = `http://127.0.0.1:${server.address().port}`;
-  const call = async (method, p, { body, token, raw } = {}) => {
+  const call = async (method, p, { body, token, raw, ip } = {}) => {
     const headers = {};
+    if (ip) headers["x-test-ip"] = ip;
     if (body !== undefined || raw !== undefined) headers["Content-Type"] = "application/json";
     if (token) headers.Authorization = `Bearer ${token}`;
     const r = await fetch(base + p, { method, headers, body: raw !== undefined ? raw : body === undefined ? undefined : JSON.stringify(body) });
@@ -131,24 +134,23 @@ test("sign-in over HTTP: nonce, verify, and the error codes", async () => {
   } finally { await app.close(); }
 });
 
-test("F3 over HTTP: nonce requests for someone else's wallet can't cancel their sign-in", async () => {
+test("F3 over HTTP: nonce requests for someone else's wallet can't cancel or block their sign-in", async () => {
   const app = await startApp();
   try {
     // The victim asks for a nonce and opens their wallet...
-    const mine = await app.call("POST", "/auth/nonce", { body: { address: holder.address } });
-    // ...while someone else asks for nonces for the same wallet.
+    const mine = await app.call("POST", "/auth/nonce", { body: { address: holder.address }, ip: "10.0.0.1" });
+    // ...while someone elsewhere floods nonces for the same wallet: never refused, never touching the victim's.
     const others = [];
-    for (let i = 0; i < 6; i++) others.push(await app.call("POST", "/auth/nonce", { body: { address: holder.address } }));
-    assert.deepEqual(others.map((r) => r.status), [200, 200, 200, 200, 429, 429]);
-    assert.equal(others[4].body.code, "rate_address");
-    assert.match(others[4].body.error, /already has 5 sign-in requests waiting/);
-    // The victim's signature over their own message still signs in.
+    for (let i = 0; i < 8; i++) others.push(await app.call("POST", "/auth/nonce", { body: { address: holder.address }, ip: "10.6.6.6" }));
+    assert.ok(others.every((r) => r.status === 200), JSON.stringify(others.map((r) => r.status)));
+    // The victim can also still ask again (no lockout), and their first message still signs in.
+    assert.equal((await app.call("POST", "/auth/nonce", { body: { address: holder.address }, ip: "10.0.0.1" })).status, 200);
     const { message, nonce } = mine.body;
     const v = await app.call("POST", "/auth/verify", { body: { address: holder.address, nonce, message, signature: await holder.signMessage(message) } });
     assert.equal(v.status, 200);
     assert.equal(v.body.address, holder.address);
     // Someone else's nonce for this wallet can't be used with the victim's signature either.
-    const theirs = others[0].body;
+    const theirs = others[7].body;
     const cross = await app.call("POST", "/auth/verify", { body: { address: holder.address, nonce: theirs.nonce, signature: await holder.signMessage(message) } });
     assert.deepEqual([cross.status, cross.body.code], [401, "bad_signature"]);
   } finally { await app.close(); }

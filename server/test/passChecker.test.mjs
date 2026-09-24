@@ -303,17 +303,39 @@ test("F2: at most 50 never-seen ids per check; fails closed (and logs) until the
   assert.deepEqual(await checker.check(lapsed), reference(chain, lapsed, clock.t));
 });
 
-test("F2: more than 20 live Arcade subscriptions on one wallet is unavailable, with bounded reads", async () => {
+test("F2: live Arcade passes are re-read newest first, 20 per check; cancelled ones never count toward that", async () => {
   const chain = fakeChain();
   const clock = { t: T0 };
   const { checker, logs } = checkerFor(chain, clock);
+
+  // 25 live passes, none valid: unavailable (never a wrong "no"), with bounded reads.
   const w = ethers.Wallet.createRandom().address;
   chain.addMany(w, 25, { subscriber: w, tokenAddress: JUNK });
   assert.deepEqual(await checker.check(w), { valid: false, reason: "unavailable" });
-  assert.match(logs[0], /25 live Arcade subscriptions \(limit 20 per check\)/);
+  assert.match(logs[0], /5 live Arcade subscriptions over the per-check limit of 20/);
   chain.reset();
   assert.deepEqual(await checker.check(w), { valid: false, reason: "unavailable" });
-  assert.deepEqual(chain.calls, { getSubscriberSubscriptions: 1 }, "known ids aren't re-read past the limit");
+  assert.equal(chain.calls.getSubscription, 20, "at most 20 live passes are re-read per check");
+
+  // 25 live passes where the newest is valid: valid, whatever the older ones are.
+  const v = ethers.Wallet.createRandom().address;
+  chain.addMany(v, 24, { subscriber: v, tokenAddress: JUNK });
+  chain.add(v, { subscriber: v });
+  chain.setFunds(v, Q, 10_000_000n);
+  assert.deepEqual(await checker.check(v), { valid: true, reason: "ok" });
+
+  // 30 passes cancelled long ago plus one valid pass: the cancelled ones don't fill the cap.
+  const c = ethers.Wallet.createRandom().address;
+  chain.addMany(c, 30, { subscriber: c, stopTime: Math.floor(T0 / 1000) - 3600 });
+  chain.add(c, { subscriber: c });
+  chain.setFunds(c, Q, 10_000_000n);
+  assert.deepEqual(await checker.check(c), { valid: true, reason: "ok" });
+  assert.deepEqual(await checker.check(c), reference(chain, c, clock.t));
+
+  // Only cancelled passes: the browser's answer, "cancelled".
+  const x = ethers.Wallet.createRandom().address;
+  chain.addMany(x, 30, { subscriber: x, stopTime: Math.floor(T0 / 1000) - 3600 });
+  assert.deepEqual(await checker.check(x), reference(chain, x, clock.t));
 
   // 20 is fine, and each is one read (they fail before the solvency rule).
   const ok = ethers.Wallet.createRandom().address;

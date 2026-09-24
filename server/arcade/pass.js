@@ -173,8 +173,11 @@ const UNLIMITED = { balance: ethers.MaxUint256, allowance: ethers.MaxUint256 };
  *  - At most `maxNewPerCheck` never-seen ids are read per check, newest first.
  *    If some are left unread and nothing read so far is a valid pass, the
  *    answer is "unavailable" (fail closed, logged, not cached); the next check
- *    carries on from there. More than `maxArcadePerCheck` live Arcade
- *    subscriptions is "unavailable" too.
+ *    carries on from there.
+ *  - Live Arcade passes are re-read newest first, at most `maxArcadePerCheck`
+ *    per check; the answer is valid if any of them is. Only when none is valid
+ *    and some were skipped is it "unavailable". Passes cancelled long ago are
+ *    re-read on a separate budget until they close, and never count as live.
  * Whenever the answer isn't "unavailable" it is the one evaluatePass gives
  * over all of the wallet's subscriptions, as arcadePass.js does in the browser.
  */
@@ -224,13 +227,24 @@ function createPassChecker({
     const keyOf = (id) => `${registryAddress.toLowerCase()}:${String(id).toLowerCase()}`;
     const ids = [...(await reg.getSubscriberSubscriptions(address))];
 
-    // Split the wallet's ids, newest first: known Arcade ones to re-read, and never-seen ones.
-    const arcadeIds = [];
+    // An Arcade pass cancelled well in the past can never be valid again (only
+    // terminateStream writes stopTime), but it stays "active" while it owes
+    // arrears and closes once they're collected, which changes the browser's
+    // answer from "cancelled" to "no-subscription". So ended passes are still
+    // re-read (until they close for good), but on their own small budget, and
+    // they never count against the live-pass cap.
+    const nowSeconds = Math.floor(now() / 1000);
+    const endedLongAgo = (s) => Number(s.stopTime || 0) !== 0 && Number(s.stopTime) <= nowSeconds - 120;
+
+    // Split the wallet's ids, newest first: known Arcade ones to re-read (live
+    // and ended), and never-seen ones.
+    const liveIds = [];
+    const endedIds = [];
     const unseen = [];
     for (let i = ids.length - 1; i >= 0; i--) {
       const entry = recall(keyOf(ids[i]));
       if (!entry) unseen.push(ids[i]);
-      else if (entry.merchant === arcadeMerchant && !entry.inactive) arcadeIds.push(ids[i]);
+      else if (entry.merchant === arcadeMerchant && !entry.inactive) (entry.ended ? endedIds : liveIds).push(ids[i]);
     }
     const batch = unseen.slice(0, maxNewPerCheck);
     const unread = unseen.length - batch.length;
@@ -238,33 +252,47 @@ function createPassChecker({
     // Never-seen ids: this one read tells their merchant for good, and is fresh
     // enough to evaluate an Arcade subscription with right away.
     const fresh = await mapInBatches(batch, 25, async (id) => toSub(id, await reg.getSubscription(id), null));
-    const subs = [];
+    const live = [];
+    const ended = [];
     for (const s of fresh) {
-      remember(keyOf(s.id), { merchant: String(s.merchant).toLowerCase(), inactive: !s.active });
-      if (s.active && String(s.merchant).toLowerCase() === arcadeMerchant) subs.push(s);
-    }
-    if (arcadeIds.length + subs.length > maxArcadePerCheck) {
-      log.warn?.(`[ARCADE] pass check for ${address}: ${arcadeIds.length + subs.length} live Arcade subscriptions ` +
-        `(limit ${maxArcadePerCheck} per check); answering unavailable`);
-      return { valid: false, reason: "unavailable" };
-    }
-    for (const s of await mapInBatches(arcadeIds, 25, async (id) => toSub(id, await reg.getSubscription(id), null))) {
-      if (!s.active) remember(keyOf(s.id), { merchant: arcadeMerchant, inactive: true });
-      subs.push(s);
+      const isArcade = String(s.merchant).toLowerCase() === arcadeMerchant;
+      const isEnded = isArcade && s.active && endedLongAgo(s);
+      remember(keyOf(s.id), { merchant: String(s.merchant).toLowerCase(), inactive: !s.active, ended: isEnded });
+      if (!s.active || !isArcade) continue;
+      (isEnded ? ended : live).push(s);
     }
 
-    const incomplete = () => {
-      log.warn?.(`[ARCADE] pass check for ${address}: ${unread} of ${ids.length} subscriptions not read yet ` +
-        `(${maxNewPerCheck} new ones per check); answering unavailable`);
+    // Re-read known Arcade subscriptions, newest first, within the per-check
+    // budgets. A skipped live one only matters when nothing read is valid.
+    const liveRoom = Math.max(0, maxArcadePerCheck - live.length);
+    const liveReread = liveIds.slice(0, liveRoom);
+    const endedReread = endedIds.slice(0, maxArcadePerCheck);
+    const skippedLive = liveIds.length - liveReread.length + Math.max(0, live.length - maxArcadePerCheck);
+    const skippedEnded = endedIds.length - endedReread.length;
+    if (live.length > maxArcadePerCheck) live.length = maxArcadePerCheck;
+    const reread = await mapInBatches([...liveReread, ...endedReread], 25, async (id) => toSub(id, await reg.getSubscription(id), null));
+    for (const s of reread) {
+      if (!s.active) { remember(keyOf(s.id), { merchant: arcadeMerchant, inactive: true }); continue; }
+      if (endedLongAgo(s)) { remember(keyOf(s.id), { merchant: arcadeMerchant, inactive: false, ended: true }); ended.push(s); continue; }
+      live.push(s);
+    }
+
+    const incomplete = (why) => {
+      log.warn?.(`[ARCADE] pass check for ${address}: ${why}; answering unavailable`);
       return { valid: false, reason: "unavailable" };
     };
-    const arcade = r.arcadeSubscriptions(subs.filter((s) => s.active), address);
-    if (arcade.length === 0) return unread > 0 ? incomplete() : { valid: false, reason: "no-subscription" };
+    const unreadNote = () => `${unread} of ${ids.length} subscriptions not read yet (${maxNewPerCheck} new ones per check)`;
+    const skippedNote = () => `${skippedLive} live Arcade subscriptions over the per-check limit of ${maxArcadePerCheck}`;
+    const arcade = r.arcadeSubscriptions([...live, ...ended], address);
+    if (arcade.length === 0) {
+      if (unread > 0) return incomplete(unreadNote());
+      if (skippedLive > 0) return incomplete(skippedNote());
+      return skippedEnded > 0 ? { valid: false, reason: "cancelled" } : { valid: false, reason: "no-subscription" };
+    }
 
     // No fallbacks: a failed read must never be evaluated as "no cap" or "nothing owed".
     const c = await reg.spendCaps(address, r.ARCADE.merchant);
     const cap = { set: c.set, maxAmount: c.maxAmount, periodSeconds: Number(c.periodSeconds) };
-    const nowSeconds = Math.floor(now() / 1000);
     const opts = { nowSeconds, cap, account: address };
     const results = await Promise.all(arcade.map(async (s0) => {
       // Every rule before the solvency one ignores what is owed and the token
@@ -277,7 +305,10 @@ function createPassChecker({
       return r.evaluatePass(sub, { balance, allowance }, opts);
     }));
     if (results.some((x) => x.valid)) return { valid: true, reason: "ok" };
-    if (unread > 0) return incomplete();
+    if (unread > 0) return incomplete(unreadNote());
+    if (skippedLive > 0) return incomplete(skippedNote());
+    // Ended passes past the re-read budget were still ended when last read.
+    if (skippedEnded > 0) results.push({ valid: false, reason: "cancelled" });
     const worst = [...results].sort((a, b) => reasonRank(a.reason) - reasonRank(b.reason))[0];
     return { valid: false, reason: worst.reason };
   }

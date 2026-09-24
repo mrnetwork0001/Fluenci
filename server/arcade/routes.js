@@ -92,11 +92,7 @@ function mountArcade(app, {
   app.post("/auth/nonce", requireConfigured, perIp("nonce"), json(), (req, res) => {
     const address = req.body?.address;
     if (!validAddress(address)) return fail(res, 400, "bad_request", "A valid wallet address is required.");
-    const issued = auth.issueNonce(address);
-    if (issued.code === "rate_address") {
-      return fail(res, 429, "rate_address",
-        "This wallet already has 5 sign-in requests waiting. Finish one, or wait up to 5 minutes and try again.");
-    }
+    const issued = auth.issueNonce(address, clientIp(req));
     if (issued.code === "busy") {
       return fail(res, 503, "busy", "Too many sign-ins are in progress right now. Try again in a few minutes.");
     }

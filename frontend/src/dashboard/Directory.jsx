@@ -34,15 +34,16 @@ export default function Directory({ onOpen = null, onBecomeMerchant = null }) {
           const isVerified = Boolean(m.merchant && verified[m.merchant.toLowerCase()]);
           return (
             <div key={m.id} className="fl-card" style={{ display: "flex", flexDirection: "column", gap: 12, opacity: live ? 1 : 0.72 }}>
-              <div className="fl-row--between" style={{ alignItems: "flex-start" }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <MerchantLogo id={m.logo} size={44} fallback={m.name.charAt(0)} />
-                  <div>
-                    <div style={{ color: "var(--fl-fg)", fontSize: 14.5, fontWeight: 600 }}>{m.name}</div>
-                    <div style={{ color: "var(--fl-fg-3)", fontSize: 11.5 }}>{m.category}</div>
+              {/* The status pill sits on the category line so the name gets the full width. */}
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <MerchantLogo id={m.logo} size={44} fallback={m.name.charAt(0)} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: "var(--fl-fg)", fontSize: 14.5, fontWeight: 600 }}>{m.name}</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 3 }}>
+                    <span style={{ color: "var(--fl-fg-3)", fontSize: 11.5 }}>{m.category}</span>
+                    <span className={`fl-pill ${live ? "fl-pill--on" : "fl-pill--off"}`}>{live ? "Live" : "Soon"}</span>
                   </div>
                 </div>
-                <span className={`fl-pill ${live ? "fl-pill--on" : "fl-pill--off"}`}>{live ? "Live" : "Soon"}</span>
               </div>
 
               <div style={{ color: "var(--fl-fg-2)", fontSize: 12.5, lineHeight: 1.6, flexGrow: 1 }}>{m.blurb}</div>

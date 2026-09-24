@@ -16,9 +16,15 @@ dotenv.config();
  */
 
 const MAINNET_DEFAULTS = {
-  qiePass: "0x0766Ff824376CEf38CFa5C155A51E90578096e38",
+  qiePass: "0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE", // QiePassAdapter, oracle-gated writer
   aiAuditor: "0xF38d9458d14d916B60026693a76FBe7cDEf651Fa",
   qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5",
+};
+
+// Retired contracts a registry must never be wired to again, even if .env still names them.
+const RETIRED: Record<string, string> = {
+  "0x0766ff824376cef38cfa5c155a51e90578096e38":
+    "the retired QIE Pass mock - its registerIdentity is public, so any wallet can mark itself verified",
 };
 
 function requireAddress(name: string, value: string | undefined): string {
@@ -29,6 +35,11 @@ function requireAddress(name: string, value: string | undefined): string {
     );
   }
   return ethers.getAddress(value);
+}
+
+function refuseRetired(name: string, value: string, fix: string): void {
+  const reason = RETIRED[value.toLowerCase()];
+  if (reason) throw new Error(`${name}=${value} is ${reason}.\n${fix}`);
 }
 
 async function main() {
@@ -66,6 +77,8 @@ async function main() {
     treasury = requireAddress("TREASURY_ADDRESS", process.env.TREASURY_ADDRESS);
     reputationSigner = requireAddress("REPUTATION_SIGNER", process.env.REPUTATION_SIGNER);
     qiePass = requireAddress("QIE_PASS_ADDRESS", qiePass);
+    refuseRetired("QIE_PASS_ADDRESS", qiePass,
+      `Set QIE_PASS_ADDRESS=${MAINNET_DEFAULTS.qiePass} (QiePassAdapter) in contracts/.env.`);
     console.log(`treasury  : ${treasury}`);
     console.log(`qiePass   : ${qiePass}`);
     console.log(`rep signer: ${reputationSigner}`);

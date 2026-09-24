@@ -17,14 +17,18 @@ dotenv.config();
 
 const MAINNET_DEFAULTS = {
   qiePass: "0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE", // QiePassAdapter, oracle-gated writer
-  aiAuditor: "0xF38d9458d14d916B60026693a76FBe7cDEf651Fa",
   qusdc: "0x3F43DA82eC9A4f5285F10FaF1F26EcA7319E5DA5",
+  // No aiAuditor default: an auditor is bound to one registry at construction, so an
+  // existing one can never pause streams on the registry deployed here.
 };
 
 // Retired contracts a registry must never be wired to again, even if .env still names them.
 const RETIRED: Record<string, string> = {
   "0x0766ff824376cef38cfa5c155a51e90578096e38":
     "the retired QIE Pass mock - its registerIdentity is public, so any wallet can mark itself verified",
+  "0xf38d9458d14d916b60026693a76fbe7cdef651fa":
+    "v3's AI auditor - it can only pause v3 streams, and its trustedAiWorker (the v3 hot wallet) " +
+    "would become this registry's dispute signer",
 };
 
 function requireAddress(name: string, value: string | undefined): string {
@@ -58,6 +62,7 @@ async function main() {
 
   let qusdc = MAINNET_DEFAULTS.qusdc;
   let qiePass = process.env.QIE_PASS_ADDRESS || MAINNET_DEFAULTS.qiePass;
+  const auditor = process.env.AI_AUDITOR_ADDRESS || "";
   let treasury: string;
   let reputationSigner: string;
 
@@ -79,6 +84,10 @@ async function main() {
     qiePass = requireAddress("QIE_PASS_ADDRESS", qiePass);
     refuseRetired("QIE_PASS_ADDRESS", qiePass,
       `Set QIE_PASS_ADDRESS=${MAINNET_DEFAULTS.qiePass} (QiePassAdapter) in contracts/.env.`);
+    if (auditor) {
+      refuseRetired("AI_AUDITOR_ADDRESS", auditor,
+        "Leave AI_AUDITOR_ADDRESS empty and wire a FluenciAIAuditor built for the new registry afterwards.");
+    }
     console.log(`treasury  : ${treasury}`);
     console.log(`qiePass   : ${qiePass}`);
     console.log(`rep signer: ${reputationSigner}`);
@@ -97,12 +106,12 @@ async function main() {
   await (await registry.setQieReputation(attestorAddr)).wait();
   console.log("\nwired     : registry.setQieReputation(attestor)");
 
-  const auditor = process.env.AI_AUDITOR_ADDRESS || (isLocal ? "" : MAINNET_DEFAULTS.aiAuditor);
   if (auditor && ethers.isAddress(auditor)) {
     await (await registry.setAIAuditor(ethers.getAddress(auditor))).wait();
     console.log(`wired     : registry.setAIAuditor(${auditor})`);
   } else {
-    console.log("skipped   : setAIAuditor - Protect pauses and disputes are inactive until set");
+    console.log("skipped   : setAIAuditor - Protect pauses and disputes are inactive until you deploy");
+    console.log(`            FluenciAIAuditor(${registryAddr}) and call registry.setAIAuditor(it)`);
   }
 
   const modelVersion = process.env.REQUIRED_MODEL_VERSION;

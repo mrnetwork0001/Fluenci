@@ -34,6 +34,10 @@ function assertMined(receipt) {
   return receipt;
 }
 
+// Stable empties, so screens memoising on these never see a new identity per render.
+const NO_ROWS = [];
+const DEFAULT_POLICY = { gate: 0, minReputation: 50n };
+
 /**
  * v4-specific chain access, layered beside useFluenci rather than inside it.
  * Keeping them separate means the live v1 dashboard is untouched while v2 is
@@ -45,26 +49,45 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
   // every write callback below.
   const getProviderRef = useRef(getProvider);
   useEffect(() => { getProviderRef.current = getProvider; }, [getProvider]);
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [merchantStreams, setMerchantStreams] = useState([]);
-  const [limits, setLimits] = useState([]);
-  const [policy, setPolicy] = useState({ gate: 0, minReputation: 50n });
+  // Everything read for one wallet, committed together and tagged with that
+  // wallet. A snapshot for another account is never exposed, so a wallet switch
+  // can't show (or gate on) the previous wallet's subscriptions. Its presence
+  // for the current account is also what "loaded" means: screens that gate on
+  // subscriptions (the Arcade pass) never offer "buy" before it exists.
+  const [snapshot, setSnapshot] = useState(null);
   const [protocolFeeBps, setProtocolFeeBps] = useState(50);
   const [reputationGateAvailable, setReputationGateAvailable] = useState(false);
   const [idGateAvailable, setIdGateAvailable] = useState(false);
-  const [merchantVerified, setMerchantVerified] = useState(false);
   const [kycRequired, setKycRequired] = useState(true);
-  const [claimableNet, setClaimableNet] = useState(0n);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   const [txState, setTxState] = useState({ status: "idle", action: "", hash: "", error: "" });
   const resetTx = useCallback(() => setTxState({ status: "idle", action: "", hash: "", error: "" }), []);
-  // Which account the last completed refresh was for. Screens that gate on
-  // subscriptions (the Arcade pass) wait on this so they never offer "buy" to
-  // someone whose existing subscription simply hasn't loaded yet.
-  const [loadedFor, setLoadedFor] = useState(null);
+  // The account whose latest refresh failed, so a screen can offer a retry
+  // instead of acting on missing data.
+  const [loadFailedFor, setLoadFailedFor] = useState(null);
+  // A wallet switch drops everything read so far, even when switching back to
+  // a wallet read earlier: its subscriptions may have changed since.
+  const [dataAccount, setDataAccount] = useState(account);
+  if (dataAccount !== account) {
+    setDataAccount(account);
+    setSnapshot(null);
+    setLoadFailedFor(null);
+  }
+  // Only the newest refresh for the current account may commit.
+  const refreshSeq = useRef(0);
+  const accountRef = useRef(account);
+  useEffect(() => { accountRef.current = account; }, [account]);
   const providerRef = useRef(null);
+
+  const current = snapshot && account && snapshot.account === account ? snapshot : null;
+  const subscriptions = current?.subscriptions ?? NO_ROWS;
+  const merchantStreams = current?.merchantStreams ?? NO_ROWS;
+  const limits = current?.limits ?? NO_ROWS;
+  const policy = current?.policy ?? DEFAULT_POLICY;
+  const merchantVerified = current?.merchantVerified ?? false;
+  const claimableNet = current?.claimableNet ?? 0n;
 
   const readProvider = useCallback(() => {
     if (!providerRef.current) providerRef.current = new ethers.JsonRpcProvider(RPC);
@@ -80,6 +103,11 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
   const refresh = useCallback(async () => {
     const reg = readRegistry();
     if (!reg || !account) return;
+    // A refresh started from a previous wallet's closure (say, a tx that
+    // confirmed after the switch) must not start, let alone commit.
+    if (account !== accountRef.current) return;
+    const seq = ++refreshSeq.current;
+    const isLatest = () => seq === refreshSeq.current && account === accountRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -90,23 +118,17 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
         reg.qieReputation().catch(() => ethers.ZeroAddress),
         reg.qieIdentity().catch(() => ethers.ZeroAddress),
       ]);
-      setProtocolFeeBps(Number(feeBps));
-      // Adapter wired AND scores actually flowing (QIE's signer live).
-      setReputationGateAvailable(repAddr && repAddr !== ethers.ZeroAddress && REPUTATION_LIVE);
-      setIdGateAvailable(idAddr && idAddr !== ethers.ZeroAddress);
 
       const hydrate = async (id) => {
         const [s, owed] = await Promise.all([reg.getSubscription(id), reg.previewOwed(id).catch(() => 0n)]);
         return toSub(id, s, owed);
       };
 
-      const mine = await Promise.all(mineIds.map(hydrate));
-      const theirs = await Promise.all(merchantIds.map(hydrate));
-      setSubscriptions(mine.filter((s) => s.active));
-      setMerchantStreams(theirs.filter((s) => s.active));
+      const mine = (await Promise.all(mineIds.map(hydrate))).filter((s) => s.active);
+      const theirs = (await Promise.all(merchantIds.map(hydrate))).filter((s) => s.active);
 
       // One cap row per distinct merchant - caps are per (subscriber, merchant).
-      const merchants = [...new Set(mine.filter((s) => s.active).map((s) => s.merchant))];
+      const merchants = [...new Set(mine.map((s) => s.merchant))];
       const caps = await Promise.all(
         merchants.map(async (m) => {
           const c = await reg.spendCaps(account, m);
@@ -121,48 +143,79 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
           };
         })
       );
-      setLimits(caps);
 
       const [gate, minRep] = await reg.getMerchantGate(account);
-      setPolicy({ gate: Number(gate), minReputation: minRep });
 
       // Ask the registry which QIE Pass IT enforces. Reading a chain-mapped
       // address instead meant the Claim button stayed disabled while the
       // registry considered the merchant perfectly verified.
+      let verified = false;
       try {
         const passAddr = await reg.qiePass();
         if (passAddr && passAddr !== ethers.ZeroAddress) {
           const pass = new ethers.Contract(passAddr, QIE_PASS_ABI, readProvider());
-          setMerchantVerified(await pass.verifyIdentity(account));
+          verified = Boolean(await pass.verifyIdentity(account));
         }
-      } catch { setMerchantVerified(false); }
-      try { setKycRequired(await reg.requireMerchantKyc()); } catch { setKycRequired(true); }
+      } catch { verified = false; }
+      let kyc = true;
+      try { kyc = await reg.requireMerchantKyc(); } catch { kyc = true; }
 
       // What can actually be withdrawn today: previewOwed is documented as being
       // BEFORE the spend cap, so showing it raw promised money the claim reverts on.
       let net = 0n;
-      for (const s of theirs.filter((x) => x.active)) {
+      for (const s of theirs) {
         const room = await reg.remainingAllowance(s.subscriber ?? account, account).catch(() => null);
         const owed = s.owed ?? 0n;
         net += room === null ? owed : (owed < room ? owed : room);
       }
-      setClaimableNet(net);
-    } catch (e) {
-      setError(e?.shortMessage || e?.message || String(e));
-    } finally {
-      setLoading(false);
-      // Mark loaded even on error, so gated screens never spin forever.
-      setLoadedFor(account);
-    }
-  }, [account, readRegistry]);
 
-  /** Fresh read of one subscription (owed, stopTime, pause and dispute change without events we listen to). */
+      if (!isLatest()) return;
+      setProtocolFeeBps(Number(feeBps));
+      // Adapter wired AND scores actually flowing (QIE's signer live).
+      setReputationGateAvailable(Boolean(repAddr && repAddr !== ethers.ZeroAddress && REPUTATION_LIVE));
+      setIdGateAvailable(Boolean(idAddr && idAddr !== ethers.ZeroAddress));
+      setKycRequired(kyc);
+      setSnapshot({
+        account,
+        subscriptions: mine,
+        merchantStreams: theirs,
+        limits: caps,
+        policy: { gate: Number(gate), minReputation: minRep },
+        merchantVerified: verified,
+        claimableNet: net,
+      });
+      setLoadFailedFor(null);
+    } catch (e) {
+      if (!isLatest()) return;
+      // Keep the last good snapshot (if any) and flag the failure: an empty
+      // list here used to read as "no subscriptions" and offered a second pass.
+      setError(e?.shortMessage || e?.message || String(e));
+      setLoadFailedFor(account);
+    } finally {
+      // Sequence only: after a disconnect no newer refresh exists to clear it.
+      if (seq === refreshSeq.current) setLoading(false);
+    }
+  }, [account, readRegistry, readProvider]);
+
+  /** Fresh read of one subscription (owed, stopTime, pause and dispute change without events we listen to). Throws on any read error. */
   const readSubscription = useCallback(async (id) => {
     const reg = readRegistry();
     if (!reg || !id) return null;
-    const [s, owed] = await Promise.all([reg.getSubscription(id), reg.previewOwed(id).catch(() => 0n)]);
+    const [s, owed] = await Promise.all([reg.getSubscription(id), reg.previewOwed(id)]);
     return toSub(id, s, owed);
   }, [readRegistry]);
+
+  /**
+   * Every subscription `owner` has opened, read straight from the registry
+   * (not the last refresh). `owed` is not read here and is left null. Throws on
+   * any read error, so a caller deciding "is there already one?" fails closed.
+   */
+  const readSubscriberSubscriptions = useCallback(async (owner = account) => {
+    const reg = readRegistry();
+    if (!reg || !owner) throw new Error("The registry isn't available.");
+    const ids = await reg.getSubscriberSubscriptions(owner);
+    return Promise.all(ids.map(async (id) => toSub(id, await reg.getSubscription(id), null)));
+  }, [readRegistry, account]);
 
   /** The subscriber's spending cap on `merchant` ({ set, maxAmount, periodSeconds }). */
   const readSpendCap = useCallback(async (merchant, owner = account) => {
@@ -357,13 +410,17 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
     [run, tokenAddress, ensureAllowance, sendDirect, registryIface]
   );
 
-  /** Balance and registry allowance of one ERC-20 for `owner` (defaults to the connected account). */
+  /**
+   * Balance and registry allowance of one ERC-20 for `owner` (defaults to the
+   * connected account). Throws on a read error rather than reporting 0, so a
+   * caller can tell "empty" from "unknown".
+   */
   const readTokenState = useCallback(async (token, owner = account) => {
     if (!token || !owner) return { balance: 0n, allowance: 0n };
     const erc20 = new ethers.Contract(token, ERC20_ABI, readProvider());
     const [balance, allowance] = await Promise.all([
-      erc20.balanceOf(owner).catch(() => 0n),
-      erc20.allowance(owner, V4_REGISTRY).catch(() => 0n),
+      erc20.balanceOf(owner),
+      erc20.allowance(owner, V4_REGISTRY),
     ]);
     return { balance, allowance };
   }, [account, readProvider]);
@@ -425,9 +482,10 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
     loading, busy, error, txState, resetTx,
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
     reputationGateAvailable, idGateAvailable, checkMerchantPolicy, claimable, claimableGross, merchantVerified, kycRequired,
-    loaded: Boolean(account) && loadedFor === account,
+    loaded: Boolean(current),
+    loadFailed: Boolean(account) && loadFailedFor === account,
     tokenAddress, ensureAllowance, readTokenState, readStablecoinBalances, readProvider,
-    readSubscription, readSpendCap, reapprove, ensureWalletChain,
+    readSubscription, readSubscriberSubscriptions, readSpendCap, reapprove, ensureWalletChain,
     refresh, fetchReputation, fetchReputationAttestation, submitAttestation, verifyReputation,
     createSubscription, setSpendCap, clearSpendCap, setMerchantPolicy,
     claimStream, terminateStream, openDispute,

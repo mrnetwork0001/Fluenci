@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IconCopy, IconCheck } from "./icons";
+import { stablecoinOf } from "./v4Config";
 
 function Route({ title, body, action }) {
   return (
@@ -11,13 +12,20 @@ function Route({ title, body, action }) {
   );
 }
 
+const trimQie = (v) => Number(v).toFixed(4).replace(/\.?0+$/, "");
+
 /**
  * "Fund your wallet" guide for people arriving with nothing on QIE.
  * Lists only routes that were verified to work: the ETH/BNB native bridge is
  * deliberately absent - it delivers WETH/WBNB, which have no liquidity on
  * QIEDex, so a user following it would be stranded.
+ *
+ * `payToken` narrows the guide to one stablecoin (topping up a pass that is
+ * paid in it): a subscription's token is fixed, so a route that delivers a
+ * different token can't help. `qieNeeded` (QIE, including fees) lets the QIE
+ * route say "ready" only when the QIE held actually covers the swap.
  */
-export default function FundWallet({ account = null, qieBalance = "0", onSwap = null, compact = false }) {
+export default function FundWallet({ account = null, qieBalance = "0", onSwap = null, compact = false, payToken = null, qieNeeded = null }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     if (!account) return;
@@ -29,26 +37,49 @@ export default function FundWallet({ account = null, qieBalance = "0", onSwap = 
   };
 
   const hasQie = Number(qieBalance || 0) > 0;
+  const pay = payToken ? stablecoinOf(payToken) : null;
+  // Swap only trades QIE <-> qUSDC, and the bridge only delivers bridged USDC/USDT.
+  const showSwap = hasQie && onSwap && !pay?.bridged;
+  const showBridge = !pay || pay.bridged;
+  const qieCovers = qieNeeded !== null && qieNeeded !== undefined && Number(qieBalance || 0) >= Number(qieNeeded);
+
+  let swapBody;
+  if (pay) {
+    swapBody = qieCovers
+      ? `Swap about ${trimQie(qieNeeded)} QIE for qUSDC to top up your pass.`
+      : "Swap QIE for qUSDC on the Swap page to top up your pass.";
+  } else {
+    swapBody = qieCovers
+      ? `Swap about ${trimQie(qieNeeded)} QIE for qUSDC and you're ready to subscribe.`
+      : "Swap QIE for qUSDC on the Swap page.";
+  }
+
+  const bridgeTitle = pay?.bridged ? `Bring ${pay.symbol} from Ethereum` : "Bring USDC or USDT from Ethereum";
+  const bridgeBody = pay?.bridged
+    ? `Use QIE's official stable bridge. Your pass is paid in bridged ${pay.symbol}, which is what the bridge delivers, in about a minute. The bridge doesn't give you QIE, so also get a little QIE from an exchange for network fees.`
+    : "Use QIE's official stable bridge. Funds arrive in about a minute as bridged USDC/USDT, which the Arcade Pass accepts directly; other subscriptions settle in qUSDC. The bridge doesn't give you QIE, so also get a little QIE from an exchange for network fees.";
 
   return (
     <div className={compact ? "" : "fl-card"}>
       {!compact && <div className="fl-lbl" style={{ marginBottom: 10 }}>Fund your wallet</div>}
       <div style={{ display: "grid", gap: 8 }}>
-        {hasQie && onSwap && (
+        {showSwap && (
           <Route
             title="You already hold QIE"
-            body="Swap a little QIE for qUSDC and you're ready to subscribe."
+            body={swapBody}
             action={<button className="fl-link" style={{ fontSize: 12 }} onClick={onSwap}>Open Swap &rarr;</button>}
           />
         )}
-        <Route
-          title="Bring USDC or USDT from Ethereum"
-          body="Use QIE's official stable bridge. Funds arrive in about a minute as bridged USDC/USDT, which the Arcade Pass accepts directly; other subscriptions settle in qUSDC. The bridge doesn't give you QIE, so also get a little QIE from an exchange for network fees."
-          action={
-            <a className="fl-link" style={{ fontSize: 12 }} href="https://www.bridge.qie.digital/stable-bridge"
-               target="_blank" rel="noopener noreferrer">Open the QIE Stable Bridge &rarr;</a>
-          }
-        />
+        {showBridge && (
+          <Route
+            title={bridgeTitle}
+            body={bridgeBody}
+            action={
+              <a className="fl-link" style={{ fontSize: 12 }} href="https://www.bridge.qie.digital/stable-bridge"
+                 target="_blank" rel="noopener noreferrer">Open the QIE Stable Bridge &rarr;</a>
+            }
+          />
+        )}
         <Route
           title="Buy QIE on an exchange"
           body="QIE trades on XT.com and MEXC. Withdraw to your wallet on the QIE Mainnet network. XT's minimum withdrawal is about 55 QIE."

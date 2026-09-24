@@ -53,6 +53,18 @@ function sinceLabel(value) {
   return d.toLocaleString("en-US", { month: "short", year: "numeric" });
 }
 
+// QIE Pass verification progress (useFluenci kycState.status) as button labels.
+const QIE_PASS_BUSY = {
+  creating: "Starting verification…",
+  pending_kyc: "Finish KYC in the QIE Pass tab…",
+  pending_consent: "Approve in QIE Wallet…",
+  claiming: "Recording your verification…",
+};
+const QIE_PASS_NOTE = {
+  pending_onchain: "QIE Pass approved you, but it isn't recorded on-chain yet. Try again in a moment.",
+  expired: "That verification request expired. Start a new one.",
+};
+
 const ROW = { padding: "13px 16px", background: "var(--fl-card)" };
 const ROW_KEY = { color: "var(--fl-fg-2)", fontSize: 12.5 };
 const ROW_VAL = { color: "var(--fl-fg)", fontSize: 12.5 };
@@ -84,6 +96,9 @@ export default function NewSubscription({
   reputationMax = 100,
   onVerifyReputation = null,
   verifyingReputation = false,
+  onVerifyQiePass = null,   // starts QIE Pass verification, for a merchant with a QIE Pass gate
+  qiePassStatus = "idle",   // idle | creating | pending_kyc | pending_consent | claiming | pending_onchain | verified | expired | error
+  qiePassError = null,
   walletFlags = null,
   resolveMerchant = null,
   tokenAddress = ZERO,
@@ -163,7 +178,7 @@ export default function NewSubscription({
   // The merchant's access policy: block up front rather than revert on-chain.
   const GATE_MSG = {
     1: "This merchant only accepts subscribers with a registered QIE ID. Your wallet does not have one.",
-    2: "This merchant only accepts QIE Pass–verified subscribers. Verify your identity with QIE Pass to subscribe.",
+    2: "This merchant only accepts QIE Pass-verified subscribers. Verify your identity with QIE Pass to subscribe.",
     3: "This merchant requires a minimum reputation score. Your wallet does not meet it yet.",
   };
   const policyBlocked = identityReady && merchant && merchant.meetsPolicy === false;
@@ -325,6 +340,21 @@ export default function NewSubscription({
                         style={{ marginTop: 10, padding: "9px 14px", fontSize: 12.5 }}>
                   {verifyingReputation ? "Recording your score…" : "Verify my reputation"}
                 </button>
+              )}
+              {policyBlocked && Number(merchant?.gate) === 2 && onVerifyQiePass && (
+                <>
+                  <button type="button" className="fl-btn fl-btn--ghost"
+                          disabled={Boolean(QIE_PASS_BUSY[qiePassStatus])}
+                          onClick={() => onVerifyQiePass()}
+                          style={{ display: "block", marginTop: 10, padding: "9px 14px", fontSize: 12.5 }}>
+                    {QIE_PASS_BUSY[qiePassStatus] || "Verify with QIE Pass"}
+                  </button>
+                  {(QIE_PASS_NOTE[qiePassStatus] || (qiePassStatus === "error" && qiePassError)) && (
+                    <div style={{ color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.5, marginTop: 8 }}>
+                      {QIE_PASS_NOTE[qiePassStatus] || qiePassError}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

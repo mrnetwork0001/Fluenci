@@ -43,11 +43,12 @@ export default function Swap({
   const amountNum = Number(amount);
   const overBalance = Number.isFinite(amountNum) && amountNum > Number(fromBalance || 0);
   const canSwap = Number.isFinite(amountNum) && amountNum > 0 && !overBalance && !swapping;
-  // Swapping ALL of your QIE leaves nothing for gas, and the next approve or
-  // subscribe then fails. "Use max" keeps a small reserve back; typing more is
-  // allowed but warned about.
+  // Swapping ALL of your QIE leaves nothing for gas. "Use max" keeps a roomy
+  // reserve back; typing more is allowed, and only warned about once what is
+  // left drops below what a few transactions need (each is well under 0.001 QIE).
   const spendableQie = Math.max(0, Number(qieBalance || 0) - GAS_RESERVE_QIE);
-  const eatsGas = !reverse && !overBalance && Number.isFinite(amountNum) && amountNum > spendableQie;
+  const eatsGas = !reverse && !overBalance && Number.isFinite(amountNum) && amountNum > 0 &&
+    Number(qieBalance || 0) - amountNum < LOW_GAS_QIE;
   const maxAmount = reverse ? String(fromBalance || 0) : String(Number(spendableQie.toFixed(6)));
 
   const flip = () => {
@@ -135,7 +136,7 @@ export default function Swap({
           )}
           {eatsGas && (
             <div style={{ color: "var(--fl-warn)", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-              Leave about {GAS_RESERVE_QIE} QIE for network fees, or your next transaction will fail.
+              Keep a little QIE (about {LOW_GAS_QIE}) for network fees. A transaction here usually costs well under 0.001 QIE.
             </div>
           )}
           {error && (

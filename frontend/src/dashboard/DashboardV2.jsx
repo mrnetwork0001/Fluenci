@@ -49,11 +49,39 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
   const lowGas = Boolean(account) && !usingSample && Number(fluenci?.qieBalance || 0) < LOW_GAS_QIE;
 
   // Reset the nav when switching roles: the two role navs share only some keys.
-  const firstRender = useRef(true);
+  // Compared against the previous role rather than a first-render flag, which
+  // StrictMode's double-run effect flipped - so /arcade opened the Dashboard in dev.
+  const prevRole = useRef(role);
   useEffect(() => {
-    if (firstRender.current) { firstRender.current = false; return; }
+    if (prevRole.current === role) return;
+    prevRole.current = role;
     setActive("dashboard");
   }, [role]);
+
+  // The Arcade purchase in flight, kept here so leaving and re-opening the
+  // Arcade mid-purchase still shows it (and can't offer a second one). The
+  // Arcade tags it with the account that started it.
+  const [arcadeFlow, setArcadeFlow] = useState(null);
+
+  // A finished QIE Pass verification changes on-chain state v4 has already
+  // read: re-read it (merchant "verified", claim button) and re-check the
+  // merchant policy on the subscribe form (a QIE Pass gate may now be met).
+  // Held in a ref so the effect fires once per status change, not on every v4 update.
+  const kycStatus = fluenci?.kycState?.status;
+  const afterVerifyRef = useRef(null);
+  useEffect(() => {
+    afterVerifyRef.current = () => {
+      v4.refresh();
+      const addr = merchantPreview?.address;
+      if (!addr) return;
+      v4.checkMerchantPolicy(addr).then(({ gate, meets }) => {
+        setMerchantPreview((m) => (m && m.address === addr ? { ...m, gate, meetsPolicy: meets } : m));
+      });
+    };
+  });
+  useEffect(() => {
+    if (kycStatus === "verified") afterVerifyRef.current?.();
+  }, [kycStatus]);
 
   const subscriptions = usingSample ? sampleSubscriptions : v4.subscriptions;
   const limits = usingSample ? sampleLimits : v4.limits;
@@ -468,6 +496,9 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             reputation={merchantPreview?.reputation ?? null}
             onVerifyReputation={handleVerifyReputation}
             verifyingReputation={v4.busy === "submitAttestation"}
+            onVerifyQiePass={() => fluenci?.startKycVerification?.()}
+            qiePassStatus={fluenci?.kycState?.status ?? "idle"}
+            qiePassError={fluenci?.kycState?.error ?? null}
             tokenAddress={tokenAddress}
             protocolFeeBps={v4.protocolFeeBps}
             resolveMerchant={resolveMerchant}
@@ -491,8 +522,10 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             onConnect={() => setWalletOpen(true)}
             v4={v4}
             qieBalance={fluenci?.qieBalance ?? "0"}
-            onSwapQie={async (amount) => {
-              const ok = await fluenci?.swapQieForTokens?.("QIE", "QUSDC", amount);
+            // opts.minOut: the least qUSDC the swap may return, so it reverts
+            // rather than landing short of what the pass needs.
+            onSwapQie={async (amount, opts = {}) => {
+              const ok = await fluenci?.swapQieForTokens?.("QIE", "QUSDC", amount, opts);
               // The Arcade shows its own progress; don't leave the global swap popup open.
               if (ok) fluenci?.resetTx?.();
               return Boolean(ok);
@@ -500,6 +533,8 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             apiBase={API_BASE_URL}
             onNavigate={navigate}
             unavailable={usingSample}
+            flow={arcadeFlow}
+            setFlow={setArcadeFlow}
           />
         );
       case "limits":
@@ -541,7 +576,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
     }
   }, [role, active, v4, subscriptions, subscriptionRows, limits, merchantPreview, merchantData, protect, quote, quoting,
       requestQuote, usingSample, tokenAddress, fluenci, account, walletUnits, handleCreate, resolveMerchant,
-      prefill, lowGas, navigate]);
+      prefill, lowGas, navigate, arcadeFlow]);
 
   return (
     <>

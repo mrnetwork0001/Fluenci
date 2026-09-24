@@ -237,10 +237,9 @@ export default function SubscriberPanel({
       return;
     }
 
-    // v2 rebuild: block new writes to the v3 registry while v4 is being deployed,
-    // otherwise this pulls real funds into a registry we are about to abandon.
+    // The legacy registry takes no new streams (see V3_WRITES_FROZEN).
     if (V3_WRITES_FROZEN) {
-      alert("New streams are paused while the v2 registry is deployed. Existing streams keep settling normally.");
+      alert("New streams on this legacy registry are closed. You can still cancel existing streams and revoke your approval.");
       return;
     }
 
@@ -262,6 +261,12 @@ export default function SubscriberPanel({
   const isAllowanceApproved = (symbol) => {
     return parseFloat(qusdcAllowance) > 0;
   };
+
+  // "Verified" only ever comes from the on-chain read (qiePassVerified); the
+  // flow status just says what the verification request is doing.
+  const kycStatus = kycState?.status || "idle";
+  const kycBusy = ["creating", "pending_kyc", "pending_consent", "claiming", "pending_onchain"].includes(kycStatus);
+  const kycFailed = kycStatus === "error" || kycStatus === "expired";
 
   // Request AI arbitration details from offchain node
   const requestArbitration = async (subId, stream) => {
@@ -518,33 +523,37 @@ export default function SubscriberPanel({
             <h3 style={{ fontSize: "1rem", color: "var(--text-secondary)", margin: 0 }}>
               QIE Pass Identity
             </h3>
-            <span className={`status-indicator ${qiePassVerified ? "status-online" : kycState?.status === "error" ? "status-offline" : kycState?.status !== "idle" ? "status-warning" : "status-offline"}`} />
+            <span className={`status-indicator ${qiePassVerified ? "status-online" : kycBusy ? "status-warning" : "status-offline"}`} />
           </div>
           <div style={{ margin: "8px 0" }}>
-            {/* Status text based on KYC state */}
-            {qiePassVerified || kycState?.status === "verified" ? (
+            {/* Status text: verified from the chain, everything else from the request */}
+            {qiePassVerified ? (
               <p style={{ color: "#111111", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
                 ✓ Verified via QIE Pass
               </p>
-            ) : kycState?.status === "creating" ? (
+            ) : kycStatus === "creating" ? (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Creating verification request…
               </p>
-            ) : kycState?.status === "pending_kyc" ? (
+            ) : kycStatus === "pending_kyc" ? (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
-                ⏳ Complete KYC in QIE Wallet
+                ⏳ Complete KYC in QIE Pass
               </p>
-            ) : kycState?.status === "pending_consent" ? (
+            ) : kycStatus === "pending_consent" ? (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Loader2 size={14} className="tx-spinner" /> Waiting for your consent…
               </p>
-            ) : kycState?.status === "claiming" ? (
+            ) : kycStatus === "claiming" ? (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Loader2 size={14} className="tx-spinner" /> Verifying credentials…
+                <Loader2 size={14} className="tx-spinner" /> Recording your verification on-chain…
               </p>
-            ) : kycState?.status === "error" ? (
+            ) : kycStatus === "pending_onchain" ? (
+              <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Loader2 size={14} className="tx-spinner" /> Waiting for the on-chain record…
+              </p>
+            ) : kycFailed ? (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
-                ✗ {kycState.error || "Verification failed"}
+                ✗ {kycState?.error || "Verification failed"}
               </p>
             ) : (
               <p style={{ color: "#777777", fontSize: "0.85rem", margin: 0, fontWeight: "bold" }}>
@@ -552,19 +561,41 @@ export default function SubscriberPanel({
               </p>
             )}
             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px", margin: 0 }}>
-              {kycState?.status === "pending_kyc"
-                ? "A KYC tab has opened. Complete verification there, then check status."
-                : kycState?.status === "pending_consent"
+              {qiePassVerified
+                ? "Streams require active QIE Pass DIDs to prevent bot exploits."
+                : kycStatus === "pending_kyc"
+                ? "A QIE Pass tab has opened. Complete verification there, then check status."
+                : kycStatus === "pending_consent"
                 ? "Please approve the consent request in your QIE Wallet."
+                : kycStatus === "pending_onchain"
+                ? kycState?.message || "QIE Pass accepted your verification. It is not recorded on-chain yet."
                 : "Streams require active QIE Pass DIDs to prevent bot exploits."}
             </p>
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {qiePassVerified || kycState?.status === "verified" ? (
+            {qiePassVerified ? (
               <span style={{ fontSize: "0.75rem", color: "#111111", display: "flex", alignItems: "center", gap: "4px" }}>
                 <ShieldCheck size={14} /> KYC Active
+                {kycState?.txHash && (
+                  <a
+                    href={`https://mainnet.qie.digital/tx/${kycState.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ marginLeft: "6px", display: "inline-flex", alignItems: "center", gap: "3px", color: "#2563eb" }}
+                  >
+                    <ExternalLink size={11} /> View transaction
+                  </a>
+                )}
               </span>
-            ) : kycState?.status === "pending_kyc" ? (
+            ) : kycStatus === "pending_onchain" ? (
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: "0.75rem", padding: "6px 12px" }}
+                onClick={checkKycStatus}
+              >
+                Check again
+              </button>
+            ) : kycStatus === "pending_kyc" ? (
               <>
                 <a
                   href={kycState.redirectUrl}
@@ -583,7 +614,7 @@ export default function SubscriberPanel({
                   Check Status
                 </button>
               </>
-            ) : kycState?.status === "pending_consent" || kycState?.status === "claiming" || kycState?.status === "creating" ? (
+            ) : kycBusy ? (
               <button
                 className="btn btn-secondary"
                 style={{ fontSize: "0.75rem", padding: "6px 12px", display: "flex", alignItems: "center", gap: "4px" }}
@@ -618,15 +649,34 @@ export default function SubscriberPanel({
             </div>
           </div>
           <div style={{ display: "flex", gap: "6px" }}>
-            <button 
-              className="btn btn-secondary" 
-              style={{ width: "100%", justifyContent: "center" }}
-              onClick={() => approveToken("QUSDC")}
-              disabled={loading || isAllowanceApproved("QUSDC")}
-            >
-              Approve QUSDC
-            </button>
+            {V3_WRITES_FROZEN ? (
+              // Frozen registry: no new approvals, but an existing one can always be revoked.
+              <button
+                className="btn btn-secondary"
+                style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => approveToken("QUSDC", "0")}
+                disabled={loading || !isAllowanceApproved("QUSDC")}
+              >
+                Revoke QUSDC approval
+              </button>
+            ) : (
+              <button
+                className="btn btn-secondary"
+                style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => approveToken("QUSDC")}
+                disabled={loading || isAllowanceApproved("QUSDC")}
+              >
+                Approve QUSDC
+              </button>
+            )}
           </div>
+          {V3_WRITES_FROZEN && isAllowanceApproved("QUSDC") && (
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "8px 0 0 0" }}>
+              {subscriberStreams.some((s) => s.active)
+                ? "Cancel your streams below first - cancelling settles what you owe through this approval - then revoke it."
+                : "This legacy registry takes no new streams, so this approval is no longer needed."}
+            </p>
+          )}
         </div>
       </div>
 
@@ -920,7 +970,7 @@ export default function SubscriberPanel({
         
         {V3_WRITES_FROZEN && (
           <p style={{ color: "#079AB7", fontSize: "0.75rem", marginTop: "10px", margin: 0 }}>
-            New streams are paused while the v2 registry is deployed. Existing streams keep settling normally.
+            New streams on this legacy registry are closed. You can still cancel the streams below and revoke your approval.
           </p>
         )}
 

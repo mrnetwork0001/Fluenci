@@ -13,7 +13,7 @@ export const DIRECTORY = [
     id: "arcade",
     name: "Fluenci Arcade",
     category: "Games",
-    blurb: "Snake plus an AI assistant for QIE and Fluenci. A weekly leaderboard with prizes is coming next.",
+    blurb: "Snake plus an AI assistant for QIE and Fluenci.",
     priceLabel: ARCADE.priceLabel,
     merchant: ARCADE.merchant,
     status: ARCADE.merchant ? "live" : "soon",

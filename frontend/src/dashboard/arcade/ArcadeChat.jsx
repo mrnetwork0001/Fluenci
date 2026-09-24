@@ -11,7 +11,18 @@ const MAX_STORED = 100;        // keeps localStorage bounded on long chats
 const REQUEST_TIMEOUT_MS = 30000;
 
 const NOTICE_FAILED = "The AI is unavailable right now - try again in a moment.";
-const NOTICE_RATE = "You're sending messages too fast - wait a minute and try again.";
+// Keyed by the `code` /api/chat sends with every error. The per-IP limit is
+// shared by everyone on one connection, so it doesn't say "you're too fast".
+const NOTICE_BY_CODE = {
+  rate_ip: "Too many chat messages have come from your network recently. Wait a few minutes and try again.",
+  rate_daily: "The AI chat has reached its limit for today. It resets at midnight UTC.",
+  disabled: "The AI chat is switched off for now. Try again later.",
+  too_large: "This conversation is too long to send. Clear the chat and try again.",
+  bad_request: "That message couldn't be sent. Clear the chat and try again.",
+  not_configured: "The AI chat isn't set up on the server yet.",
+  upstream: NOTICE_FAILED,
+};
+const NOTICE_RATE = "The AI chat is busy right now. Wait a few minutes and try again.";
 
 // Only real turns are persisted; a stale "unavailable" notice on reload would
 // be misleading.
@@ -117,10 +128,11 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
         body: JSON.stringify({ messages: toPayload(next) }),
         signal: ctrl.signal,
       });
-      if (res.status === 429) {
-        notice = NOTICE_RATE;
-      } else if (!res.ok) {
-        notice = NOTICE_FAILED;
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // A 429 without a code (an older server) still says which limit it was.
+        const serverText = typeof body?.error === "string" && body.error.length < 160 ? body.error : null;
+        notice = NOTICE_BY_CODE[body?.code] || (res.status === 429 ? serverText || NOTICE_RATE : NOTICE_FAILED);
       } else {
         const data = await res.json().catch(() => null);
         if (typeof data?.reply === "string" && data.reply.trim()) reply = data.reply;
@@ -192,7 +204,7 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
         {messages.length === 0 && !noBackend && (
           <div style={styles.empty}>
             Ask about Fluenci, QIE, subscriptions or the Arcade. Replies come from the
-            live AI — nothing here is scripted.
+            live AI - nothing here is scripted.
           </div>
         )}
 

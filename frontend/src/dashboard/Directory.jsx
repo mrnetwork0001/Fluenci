@@ -70,8 +70,8 @@ export default function Directory({ onOpen = null, onBecomeMerchant = null }) {
         <div style={{ flexGrow: 1, minWidth: 220 }}>
           <div style={{ color: "var(--fl-fg)", fontSize: 13, fontWeight: 600 }}>Run a paid community, tool or newsletter?</div>
           <div style={{ color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.55 }}>
-            Bill it on QIE with one link, no integration needed. Open the Merchant view to get your payment link.
-            To withdraw earnings you'll need a verified QIE Pass, and a .qie name gives your link a readable address.
+            Bill it on QIE with no integration. Register a .qie name to get a payment link (fluenci.xyz/pay/yourname);
+            until then, share your wallet address. To withdraw earnings you'll need a verified QIE Pass.
           </div>
         </div>
         {onBecomeMerchant && (

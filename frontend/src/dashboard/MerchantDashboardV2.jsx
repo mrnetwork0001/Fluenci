@@ -49,6 +49,15 @@ const GATES = [
 const REPUTATION_MAX = 100;
 const REPUTATION_DEFAULT = 50; // "Trusted" — a sensible starting gate
 
+/* useFluenci's kycState.status values while a QIE Pass request is in flight. */
+const VERIFY_BUSY_LABEL = {
+  creating: "Starting QIE Pass…",
+  pending_kyc: "Finish KYC in the QIE Pass tab",
+  pending_consent: "Approve the request in QIE Wallet",
+  claiming: "Recording on-chain…",
+  pending_onchain: "Waiting for the on-chain record…",
+};
+
 /**
  * Merchant home. Presentational: every chain value and every action arrives as a
  * prop, so the screen renders with no wallet connected.
@@ -74,6 +83,12 @@ export default function MerchantDashboardV2({
   onClaim = () => {},
   onVerify = () => {},
   verifying = false,
+  // Optional, from useFluenci.kycState: status, the message for pending/failed
+  // requests, and the QIE Pass link in case the popup was blocked.
+  verifyStatus = "idle",
+  verifyMessage = "",
+  verifyUrl = "",
+  onCheckVerify = null,
   kycRequired = true,
   onSavePolicy = () => {},
   onCopyPaymentLink = () => {},
@@ -102,8 +117,13 @@ export default function MerchantDashboardV2({
     claimableAmount > 0 || toNumber(settledAllTime) > 0 || Number(subscriberCount) > 0;
   const paymentLink = merchantName ? `${paymentLinkHost}/${merchantName}` : "";
 
-  const needsKyc = kycRequired && !qiePassVerified;
+  // kycState only reaches "verified" after useFluenci read the adapter itself, so
+  // it can stand in until the v4 read here catches up.
+  const passVerified = qiePassVerified || verifyStatus === "verified";
+  const needsKyc = kycRequired && !passVerified;
   const canClaim = !loading && !claiming && claimableAmount > 0 && !needsKyc;
+  const verifyBusy = verifying || Boolean(VERIFY_BUSY_LABEL[verifyStatus]);
+  const verifyFailed = verifyStatus === "error" || verifyStatus === "expired";
   const claimNote = needsKyc
     ? "Withdrawing requires a verified QIE Pass. Accruals keep running whether or not you claim."
     : claimableAmount <= 0
@@ -120,6 +140,48 @@ export default function MerchantDashboardV2({
     }
     onCopyPaymentLink?.(`https://${paymentLink}`);
   };
+
+  // Shown both on the claim card and above the empty state: a merchant with no
+  // activity yet still has to be able to verify.
+  const verifyBlock = (
+    <div style={{ marginBottom: 12 }}>
+      <button
+        className="fl-btn fl-btn--primary fl-btn--block"
+        disabled={verifyBusy}
+        onClick={() => onVerify?.()}
+      >
+        {verifyBusy ? VERIFY_BUSY_LABEL[verifyStatus] || "Waiting on QIE Pass…" : "Verify with QIE Pass"}
+      </button>
+      {verifyStatus === "pending_kyc" && verifyUrl && (
+        <a
+          className="fl-link"
+          href={verifyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: "inline-block", marginTop: 8, fontSize: 12 }}
+        >
+          Open QIE Pass
+        </a>
+      )}
+      {(verifyFailed || verifyStatus === "pending_onchain") && verifyMessage && (
+        <div
+          style={{
+            color: verifyFailed ? "var(--fl-warn)" : "var(--fl-fg-3)",
+            fontSize: 12,
+            lineHeight: 1.55,
+            marginTop: 8,
+          }}
+        >
+          {verifyMessage}
+        </div>
+      )}
+      {verifyStatus === "pending_onchain" && onCheckVerify && (
+        <button className="fl-link" onClick={() => onCheckVerify()} style={{ padding: 0, marginTop: 6, fontSize: 12 }}>
+          Check again
+        </button>
+      )}
+    </div>
+  );
 
   const thresholdNumber = Math.max(0, parseInt(threshold, 10) || 0);
   const policyDisabled =
@@ -167,7 +229,7 @@ export default function MerchantDashboardV2({
               ? "Loading"
               : reputationScore === null || reputationScore === undefined
               ? "QIE has not published a score for this address."
-              : qiePassVerified
+              : passVerified
               ? "QIE Pass verified"
               : "QIE Pass not verified"
           }
@@ -181,6 +243,14 @@ export default function MerchantDashboardV2({
 
           {!loading && !hasActivity ? (
             <div style={{ marginBottom: 24 }}>
+              {needsKyc && (
+                <>
+                  {verifyBlock}
+                  <div style={{ color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.55, marginBottom: 14 }}>
+                    Withdrawing earnings requires a verified QIE Pass.
+                  </div>
+                </>
+              )}
               <EmptyState
                 icon={<IconStore size={26} stroke="var(--fl-fg-3)" />}
                 title="Nothing has settled yet"
@@ -203,14 +273,7 @@ export default function MerchantDashboardV2({
                 </span>
               </div>
               {!loading && needsKyc ? (
-                <button
-                  className="fl-btn fl-btn--primary fl-btn--block"
-                  disabled={verifying}
-                  onClick={() => onVerify?.()}
-                  style={{ marginBottom: 12 }}
-                >
-                  {verifying ? "Opening QIE Pass…" : "Verify with QIE Pass"}
-                </button>
+                verifyBlock
               ) : (
                 <button
                   className="fl-btn fl-btn--primary fl-btn--block"

@@ -165,36 +165,47 @@ name had been transferred rather than registered.
 
 ### QIE Pass - Fluenci runs an oracle bridge, not a QIE contract
 
-`0x0766Ff824376CEf38CFa5C155A51E90578096e38` was previously listed here as "QIE Pass (KYC)"
-under QIE ecosystem integrations. **That is a Fluenci-deployed contract, not QIE
-infrastructure.** Its creator is `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` - Fluenci's own
-AI worker hot wallet, listed as such in the deployment table below. It is unverified. Both of
-those facts are checkable on the QIE explorer today.
+The v4 registry's QIE Pass gate reads `QiePassAdapter` at
+`0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE`. **That is a Fluenci-deployed contract, not QIE
+infrastructure.** Its creator and owner is `0x84FC1A7cbA67BDad24Bd909cAb5860B230A8f5b5`, which
+also owns the v4 registry. Only two addresses can write to it: its oracle,
+`0xEE7D633AF4Fde1aD054244a2B888672211f61D5f` (a Fluenci-held key), and that owner.
+`registerIdentity` from anyone else reverts with `Only oracle`. The registry's `qiePass()`,
+the adapter's `oracle()` and `owner()`, and that revert are all checkable onchain today.
+
+`0x0766Ff824376CEf38CFa5C155A51E90578096e38` was previously listed here as "QIE Pass (KYC)".
+**It is retired.** It was also Fluenci-deployed - its creator is
+`0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb`, the v3 AI worker hot wallet in the deployment
+table below - and its `registerIdentity` is public, so any wallet can mark itself verified.
+The v4 registry no longer reads it, and verifications recorded there were not carried over to
+the adapter. The legacy v3 registry still reads it, so a v3 QIE Pass check can be passed by
+any wallet that registers itself.
 
 Do not read verification status as the tell. The QIE contracts listed above are not uniformly
 verified either - qUSDC and one of the two forward registries are verified; the QIEDex router,
 the reverse resolver and the other forward registry are not - and they do not share a single
 deployer (`0x9a689036A798cF1a96e65c1911cE7B444C4e06a4` deployed the name registries; qUSDC and
-the QIEDex router came from other addresses). What distinguishes `0x0766Ff82…` is its creator:
-a Fluenci key.
+the QIEDex router came from other addresses). What distinguishes both QIE Pass contracts is
+who created them: Fluenci keys.
 
 What it really is:
 
 ```
-Fluenci backend  ──►  pass-api.qie.digital        (QIE's real QIE Pass API, HMAC-SHA256)
-                 ◄──  signed credential + proof
-                      verify signature, expiry, revocation
-                 ──►  registerIdentity(wallet, true)
-                      on 0x0766Ff82…  (Fluenci's oracle bridge, written by the hot wallet)
+Fluenci backend    ──►  pass-api.qie.digital        (QIE's real QIE Pass API, HMAC-SHA256)
+                   ◄──  signed credential + proof
+                        verify signature, expiry, revocation
+                   ──►  registerIdentity(wallet, true)
+                        on 0x98EFC89f…  (QiePassAdapter, oracle or owner only)
 
-FluenciRegistry  ──►  verifyIdentity(wallet)  on 0x0766Ff82…
+FluenciRegistryV4  ──►  verifyIdentity(wallet)  on 0x98EFC89f…
 ```
 
 The verification itself is genuinely QIE's. The onchain record of it is Fluenci's, written by
-a Fluenci-controlled key. That is a legitimate oracle-bridge architecture and it is how the
-QIE Pass gate works today - but it should not be read as QIE having deployed a registry for
-us. If QIE ships a canonical onchain QIE Pass registry, `setQiePass()` repoints the registry
-at it with no migration.
+a Fluenci-controlled key. The backend signs `registerIdentity` with `AI_PRIVATE_KEY`, so that
+key must be the adapter's oracle; the owner can change the oracle with `setOracle()`. That is
+a legitimate oracle-bridge architecture and it is how the QIE Pass gate works today - but it
+should not be read as QIE having deployed a registry for us. If QIE ships a canonical onchain
+QIE Pass registry, `setQiePass()` repoints the registry at it with no migration.
 
 ### QIE Reputation - offchain, consumed via signed attestation
 
@@ -234,11 +245,14 @@ window. No KYC data, no documents, no underlying signals.
 |---|---|
 | **FluenciRegistryV4** (current) | [`0xCc92ab9B5D973ad9598C53aC28350C34895a2e33`](https://mainnet.qie.digital/address/0xCc92ab9B5D973ad9598C53aC28350C34895a2e33) |
 | **FluenciReputationAttestor** | [`0x1e89d42C5459b4E8e26b4991DA0f7E0C97CD33B7`](https://mainnet.qie.digital/address/0x1e89d42C5459b4E8e26b4991DA0f7E0C97CD33B7) |
+| **QiePassAdapter** - v4's QIE Pass oracle bridge (Fluenci-deployed, oracle-gated) | [`0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE`](https://mainnet.qie.digital/address/0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE) |
+| **FluenciAIAuditor** (v4, Fluenci Protect) | [`0xf6830f981043B4e3af5e8B80dBFe628F2D4E7592`](https://mainnet.qie.digital/address/0xf6830f981043B4e3af5e8B80dBFe628F2D4E7592) |
+| QIE Pass oracle and v4 AI worker (EOA) | `0xEE7D633AF4Fde1aD054244a2B888672211f61D5f` |
 | FluenciRegistry (v3, legacy) | [`0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9`](https://mainnet.qie.digital/address/0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9) |
-| FluenciAIAuditor | [`0xF38d9458d14d916B60026693a76FBe7cDEf651Fa`](https://mainnet.qie.digital/address/0xF38d9458d14d916B60026693a76FBe7cDEf651Fa) |
+| FluenciAIAuditor (v3, legacy) | [`0xF38d9458d14d916B60026693a76FBe7cDEf651Fa`](https://mainnet.qie.digital/address/0xF38d9458d14d916B60026693a76FBe7cDEf651Fa) |
 | FluenciRouter | [`0x75475647f52531D4086296415392E4AA94b92de7`](https://mainnet.qie.digital/address/0x75475647f52531D4086296415392E4AA94b92de7) |
-| QIE Pass oracle bridge (Fluenci-deployed, unverified) | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
-| AI worker hot wallet (EOA) | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
+| QIE Pass mock (**retired** - public setter; still read by v3) | [`0x0766Ff824376CEf38CFa5C155A51E90578096e38`](https://mainnet.qie.digital/address/0x0766Ff824376CEf38CFa5C155A51E90578096e38) |
+| v3 AI worker hot wallet (EOA) | `0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb` |
 
 The public app now serves v2 against v4; the v3 dashboard remains reachable at `/v1`. Historically v3 writes were frozen (`V3_WRITES_FROZEN`) while v4
 lands. Existing v3 streams keep settling.
@@ -291,17 +305,23 @@ npm start
 
 ```ini
 PORT=5001
+NODE_ENV=production
 RPC_URL=https://rpc1mainnet.qie.digital
-REGISTRY_ADDRESS=0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9
-AUDITOR_ADDRESS=0xF38d9458d14d916B60026693a76FBe7cDEf651Fa
-AI_PRIVATE_KEY=
+REGISTRY_ADDRESS=0xCc92ab9B5D973ad9598C53aC28350C34895a2e33   # FluenciRegistryV4
+AUDITOR_ADDRESS=0xf6830f981043B4e3af5e8B80dBFe628F2D4E7592    # FluenciAIAuditor for v4
+AI_PRIVATE_KEY=      # service key: the auditor's trustedAiWorker AND the QIE Pass adapter's oracle; keep it funded with QIE
+ADMIN_SECRET=
 OPENAI_API_KEY=
 QIEPASS_API_URL=https://pass-api.qie.digital
 QIEPASS_PUBLIC_KEY=
 QIEPASS_SECRET_KEY=
 QIEPASS_CLAIMS=firstName
-START_BLOCK=8320000
+START_BLOCK=10031934
 ```
+
+The QIE Pass adapter is read from the registry (`registry.qiePass()`), so there is no
+separate address to configure. `GET /status` reports `qiePassWriter`; verification only works
+while it shows `oracleOk: true` and `funded: true`.
 
 Move `REGISTRY_ADDRESS` and `START_BLOCK` together at cutover. Moving one without the other
 leaves the indexer scanning roughly 1.4M empty blocks.
@@ -343,7 +363,8 @@ Fluenci/
 │   │   ├── FluenciRegistry.sol            # v3, live on mainnet
 │   │   ├── FluenciAIAuditor.sol           # safety-pause authority
 │   │   ├── FluenciRouter.sol              # QIEDex swaps with onchain attribution
-│   │   └── Mock*.sol                      # qUSDC, QIE Pass, QIE Dex, reputation - tests only
+│   │   ├── QiePassAdapter.sol             # v4's QIE Pass bridge, oracle/owner-gated writer
+│   │   └── Mock*.sol                      # qUSDC, QIE Pass, QIE Dex, reputation - tests and local deploys
 │   ├── scripts/deployV4.ts
 │   └── test/                              # FluenciV4, FluenciV4.security, FluenciAttestation
 │

@@ -121,26 +121,20 @@ const STATUS_PILL = {
   ended: { cls: "fl-pill--off", label: "Cancelled" },
 };
 
-const GATE_QIE_ID = 1;
-const GATE_QIE_PASS = 2;
-const GATE_MIN_REPUTATION = 3;
-
 /**
- * Merchant verification line. Reputation has no onchain contract - it is
- * passed in from the off-chain service, so when it is missing we say so rather
- * than inventing a score.
+ * Merchant verification line, about the MERCHANT's own identity. `gate` is not
+ * used here: it is the merchant's rule for its subscribers, not its own status.
+ * sub.merchantPassVerified is the merchant's QIE Pass read from the adapter;
+ * when it has not been read we say nothing rather than guess. Reputation has no
+ * onchain contract - it comes from the off-chain service when it is present.
  */
 function verificationOf(sub) {
-  const gate = sub.gate === null || sub.gate === undefined ? null : Number(sub.gate);
-  if (gate === GATE_QIE_PASS) return { text: "QIE Pass verified", verified: true };
-  if (gate === GATE_QIE_ID) return { text: "QIE ID verified", verified: true };
-  if (gate === GATE_MIN_REPUTATION) {
-    if (sub.reputation === null || sub.reputation === undefined) {
-      return { text: "Reputation unavailable", verified: false };
-    }
-    return { text: `Reputation ${sub.reputation}`, verified: true };
+  if (sub.merchantPassVerified === true) return { text: "QIE Pass verified", verified: true };
+  if (sub.merchantPassVerified === false) return { text: "Not QIE Pass verified", verified: false };
+  if (sub.reputation !== null && sub.reputation !== undefined) {
+    return { text: `Reputation ${sub.reputation}`, verified: false };
   }
-  return { text: "Unverified merchant", verified: false };
+  return null;
 }
 
 function shortHash(h) {
@@ -386,10 +380,12 @@ export default function SubscriberDashboard({
                     <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis" }}>
                       {name}
                     </div>
-                    <div className="fl-row" style={{ gap: 5, marginTop: 3 }}>
-                      <IconCheck size={11} stroke={verification.verified ? "var(--fl-accent)" : "var(--fl-fg-3)"} />
-                      <span style={{ color: "var(--fl-fg-3)", fontSize: 11 }}>{verification.text}</span>
-                    </div>
+                    {verification && (
+                      <div className="fl-row" style={{ gap: 5, marginTop: 3 }}>
+                        <IconCheck size={11} stroke={verification.verified ? "var(--fl-accent)" : "var(--fl-fg-3)"} />
+                        <span style={{ color: "var(--fl-fg-3)", fontSize: 11 }}>{verification.text}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

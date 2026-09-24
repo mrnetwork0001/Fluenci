@@ -1,7 +1,21 @@
 import { ethers } from "hardhat";
 
 const GAS_PRICE = 1_500_000_000; // 1.5 Gwei
-const QIE_PASS_MAINNET = "0x0766Ff824376CEf38CFa5C155A51E90578096e38";
+const QIE_PASS_ADAPTER = "0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE"; // QiePassAdapter, oracle-gated writer
+// Retired QIE Pass mock: its registerIdentity is public, so any wallet can mark itself verified.
+const RETIRED_QIE_PASS = "0x0766Ff824376CEf38CFa5C155A51E90578096e38";
+
+function resolveQiePass(): string {
+  const value = process.env.QIE_PASS_ADDRESS || QIE_PASS_ADAPTER;
+  if (!ethers.isAddress(value)) throw new Error(`QIE_PASS_ADDRESS=${value} is not a valid address.`);
+  if (value.toLowerCase() === RETIRED_QIE_PASS.toLowerCase()) {
+    throw new Error(
+      `QIE_PASS_ADDRESS=${value} is the retired QIE Pass mock - its registerIdentity is public, ` +
+      `so any wallet can mark itself verified.\nSet QIE_PASS_ADDRESS=${QIE_PASS_ADAPTER} (QiePassAdapter) in contracts/.env.`
+    );
+  }
+  return ethers.getAddress(value);
+}
 
 async function waitForReceipt(provider: any, txHash: string, maxWaitMs = 300000): Promise<any> {
   const start = Date.now();
@@ -17,6 +31,7 @@ async function waitForReceipt(provider: any, txHash: string, maxWaitMs = 300000)
 }
 
 async function main() {
+  const QIE_PASS_MAINNET = resolveQiePass(); // before any tx, so a bad value costs no gas
   const [deployer] = await ethers.getSigners();
   const provider = ethers.provider;
 

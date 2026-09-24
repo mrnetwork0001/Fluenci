@@ -7,11 +7,11 @@ const MONTH = 2_592_000;
 export const sampleSubscriptions = [
   { id: "0x01", merchant: "0x4d21000000000000000000000000000000009c07", merchantName: "notion.qie",
     amountPerPeriod: U(20), periodSeconds: MONTH, active: true, pausedByAI: false, dispute: 0,
-    gate: 2, reputation: 842,
+    gate: 2, reputation: 842, merchantPassVerified: true,
     cap: { maxAmount: U(20), used: U(12), periodSeconds: MONTH } },
   { id: "0x02", merchant: "0x77aa000000000000000000000000000000001b34", merchantName: "cursor.qie",
     amountPerPeriod: U(20), periodSeconds: MONTH, active: true, pausedByAI: false, dispute: 0,
-    gate: 3, reputation: 812, cap: null },
+    gate: 3, reputation: 812, merchantPassVerified: true, cap: null },
   { id: "0x03", merchant: "0x91cc0000000000000000000000000000000042de", merchantName: "hosting.qie",
     amountPerPeriod: U(7), periodSeconds: MONTH, active: true, pausedByAI: false, dispute: 0,
     gate: 0, reputation: null,

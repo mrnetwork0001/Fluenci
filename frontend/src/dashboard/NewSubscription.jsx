@@ -3,6 +3,8 @@ import { ethers } from "ethers";
 import "./dashboard.css";
 import { EmptyState, Meter } from "./DashboardShell";
 import { IconChevronLeft, IconChevronDown, IconCheck, IconStore, IconShield } from "./icons";
+import { MerchantLogo } from "./merchantLogos";
+import { logoFor } from "./merchants";
 
 /* Billing periods. The consumer only ever sees these labels; periodSeconds is
    internal and goes straight to createSubscription(). One month is 30 days,
@@ -417,7 +419,7 @@ export default function NewSubscription({
             <div className="fl-lbl" style={{ marginBottom: 16 }}>Who you are paying</div>
 
             <div className="fl-row" style={{ gap: 13, marginBottom: 22 }}>
-              <div className="fl-avatar fl-avatar--lg">{initial}</div>
+              <MerchantLogo id={logoFor(address)} size={44} fallback={initial} />
               <div style={{ minWidth: 0 }}>
                 <div className="fl-h" style={{ color: "var(--fl-fg)", fontSize: 16, fontWeight: 600 }}>{displayName}</div>
                 <div className="fl-mono" style={{ color: "var(--fl-fg-3)", fontSize: 11.5, marginTop: 2 }}>{shortAddr(address)}</div>

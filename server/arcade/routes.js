@@ -87,8 +87,9 @@ function mountArcade(app, {
 
   const validAddress = (a) => typeof a === "string" && ethers.isAddress(a);
 
-  // A1: a one-time EIP-4361 message for the wallet to sign. A request never
-  // displaces a pending nonce: with 5 live for the wallet it is refused instead.
+  // A1: a one-time EIP-4361 message for the wallet to sign. Pending nonces are
+  // kept per (wallet, requester IP); a new request only displaces that same
+  // IP's own oldest attempt, never a pending sign-in from another IP.
   app.post("/auth/nonce", requireConfigured, perIp("nonce"), json(), (req, res) => {
     const address = req.body?.address;
     if (!validAddress(address)) return fail(res, 400, "bad_request", "A valid wallet address is required.");

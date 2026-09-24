@@ -315,6 +315,10 @@ test("F2: live Arcade passes are re-read newest first, 20 per check; cancelled o
   assert.match(logs[0], /5 live Arcade subscriptions over the per-check limit of 20/);
   chain.reset();
   assert.deepEqual(await checker.check(w), { valid: false, reason: "unavailable" });
+  assert.deepEqual(chain.calls, {}, "a budget-hit answer is cached like any other no");
+  clock.t += 16 * 1000;
+  chain.reset();
+  assert.deepEqual(await checker.check(w), { valid: false, reason: "unavailable" });
   assert.equal(chain.calls.getSubscription, 20, "at most 20 live passes are re-read per check");
 
   // 25 live passes where the newest is valid: valid, whatever the older ones are.

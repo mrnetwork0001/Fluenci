@@ -281,13 +281,20 @@ function createPassChecker({
       log.warn?.(`[ARCADE] pass check for ${address}: ${why}; answering unavailable`);
       return { valid: false, reason: "unavailable" };
     };
+    // Hitting a per-check budget is a finished answer, not a failed read: it is
+    // cached like any "no" so a wallet stuffed with passes can't force a full
+    // re-read on every request.
+    const overBudget = (why) => ({ ...incomplete(why), budget: true });
     const unreadNote = () => `${unread} of ${ids.length} subscriptions not read yet (${maxNewPerCheck} new ones per check)`;
     const skippedNote = () => `${skippedLive} live Arcade subscriptions over the per-check limit of ${maxArcadePerCheck}`;
     const arcade = r.arcadeSubscriptions([...live, ...ended], address);
     if (arcade.length === 0) {
       if (unread > 0) return incomplete(unreadNote());
-      if (skippedLive > 0) return incomplete(skippedNote());
-      return skippedEnded > 0 ? { valid: false, reason: "cancelled" } : { valid: false, reason: "no-subscription" };
+      if (skippedLive > 0) return overBudget(skippedNote());
+      // Unread ended passes may have closed since they were last read, which
+      // would make the browser say "no-subscription": don't guess.
+      if (skippedEnded > 0) return overBudget(`${skippedEnded} cancelled Arcade passes over the per-check limit of ${maxArcadePerCheck}`);
+      return { valid: false, reason: "no-subscription" };
     }
 
     // No fallbacks: a failed read must never be evaluated as "no cap" or "nothing owed".
@@ -306,7 +313,7 @@ function createPassChecker({
     }));
     if (results.some((x) => x.valid)) return { valid: true, reason: "ok" };
     if (unread > 0) return incomplete(unreadNote());
-    if (skippedLive > 0) return incomplete(skippedNote());
+    if (skippedLive > 0) return overBudget(skippedNote());
     // Ended passes past the re-read budget were still ended when last read.
     if (skippedEnded > 0) results.push({ valid: false, reason: "cancelled" });
     const worst = [...results].sort((a, b) => reasonRank(a.reason) - reasonRank(b.reason))[0];
@@ -328,7 +335,9 @@ function createPassChecker({
       } catch {
         result = { valid: false, reason: "unavailable" };
       }
-      const ttl = result.reason === "unavailable" ? 0 : result.valid ? cacheMs : negativeCacheMs;
+      const budgetHit = result.budget === true;
+      if (budgetHit) result = { valid: result.valid, reason: result.reason };
+      const ttl = result.reason === "unavailable" && !budgetHit ? 0 : result.valid ? cacheMs : negativeCacheMs;
       if (ttl > 0) {
         cache.delete(key);
         cache.set(key, { result, until: now() + ttl });

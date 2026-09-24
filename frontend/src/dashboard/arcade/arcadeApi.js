@@ -120,7 +120,6 @@ const SIGN_IN_COPY = {
   bad_signature: "The server couldn't match the signature to this wallet. Try again. Smart-contract wallets can't sign in to the Arcade.",
   bad_message: "The server didn't accept the signed sign-in message. Try again.",
   bad_request: "Sign-in didn't work for this wallet. Reconnect it and try again.",
-  rate_address: (d) => serverText(d) || "This wallet already has several sign-in requests waiting. Wait a few minutes and try again.",
   busy: (d) => serverText(d) || "Too many sign-ins are in progress on the Fluenci server. Try again in a few minutes.",
   rate_ip: (d) => serverText(d) || "Too many sign-ins from your network. Wait a few minutes and try again.",
 };
@@ -153,7 +152,7 @@ export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = S
   const held = pendingSignIns.get(pendingKey);
   let message;
   let nonce;
-  if (held && held.expiresAt - Date.now() > REUSE_MIN_MS) {
+  if (held && held.localDeadline - Date.now() > REUSE_MIN_MS) {
     ({ message, nonce } = held);
   } else {
     pendingSignIns.delete(pendingKey);
@@ -164,8 +163,10 @@ export async function signInToArcade({ apiBase, address, sign, signTimeoutMs = S
     if (typeof nonce !== "string" || !isSignInMessage(message, address, { nonce, ...(domains ? { domains } : {}) })) {
       return { ok: false, message: "The server sent an unexpected sign-in message, so nothing was signed." };
     }
-    const expiresAt = Date.parse(n.data?.expiresAt);
-    if (Number.isFinite(expiresAt)) pendingSignIns.set(pendingKey, { message, nonce, expiresAt });
+    // The message's lifetime, measured on this device's clock from now, so a
+    // clock that is off never reuses a message the server has already expired.
+    const lifetime = Date.parse(n.data?.expiresAt) - Date.parse(/Issued At: (\S+)/.exec(message)?.[1] || "");
+    if (Number.isFinite(lifetime) && lifetime > 0) pendingSignIns.set(pendingKey, { message, nonce, localDeadline: Date.now() + lifetime });
   }
 
   let signature;

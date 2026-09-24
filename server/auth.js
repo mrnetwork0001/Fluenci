@@ -98,12 +98,13 @@ const secretUsable = (secret) => typeof secret === "string" && secret.length >= 
  * Everything auth-related for one SESSION_SECRET. With no usable secret,
  * `configured` is false and nothing can be issued or verified.
  *
- * Nonces live in memory for 5 minutes. Each requester (IP) keeps at most
- * `maxPerAddress` pending nonces per wallet; a new one drops that requester's
- * OWN oldest attempt, never anyone else's, and verify finds nonces directly.
- * So nobody can refuse or cancel another person's sign-in by asking for nonces
- * for their wallet, and a person retrying after cancelling in the wallet is
- * never locked out. A full table (`maxNonces`) answers busy until some expire.
+ * Nonces live in memory for 5 minutes. Each requester IP keeps at most
+ * `maxPerAddress` pending nonces per wallet; a new one drops that IP's own
+ * oldest attempt, and verify finds nonces directly. So requests from other IPs
+ * can't refuse or cancel someone's sign-in, and a person retrying after
+ * cancelling in the wallet is never locked out (people sharing one IP, e.g.
+ * behind a NAT, share that budget). A full table (`maxNonces`) answers busy
+ * until some expire.
  */
 function createAuth({
   secret = "",

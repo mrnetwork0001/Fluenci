@@ -5,12 +5,31 @@ const { ethers } = require("ethers");
 const { OpenAI } = require("openai");
 const crypto = require("crypto");
 const net = require("net");
+const fs = require("fs");
+const path = require("path");
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+// /api/chat spends OpenAI credit, so browsers may only call it from Fluenci's
+// own origins, and it parses its own body with a tighter limit (see the chat
+// section). Every other route keeps open CORS and the default JSON parser.
+const CHAT_ALLOWED_ORIGINS = [...new Set([
+  "https://www.fluenci.xyz",
+  "https://fluenci.xyz",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  ...(process.env.CHAT_ALLOWED_ORIGINS || "").split(",").map((o) => o.trim().replace(/\/+$/, "")).filter(Boolean)
+])];
+// Express matches routes case-insensitively and ignores a trailing slash, so
+// "/API/chat/" must not slip past the chat-only CORS and body limit.
+const isChatPath = (p) => p.replace(/\/+$/, "").toLowerCase() === "/api/chat";
+const globalCors = cors();
+const chatCors = cors({ origin: CHAT_ALLOWED_ORIGINS, methods: ["POST"] });
+const globalJson = express.json();
+app.use((req, res, next) => (isChatPath(req.path) ? chatCors : globalCors)(req, res, next));
+app.use((req, res, next) => (isChatPath(req.path) ? next() : globalJson(req, res, next)));
 
 const PORT = process.env.PORT || 5001;
 
@@ -72,6 +91,8 @@ let dexContract = null;
 let fluenciRouterContract = null;
 let provider = null;
 let aiWallet = null;
+let aiSigner = null; // NonceManager over aiWallet; every tx from the AI key goes through sendFromAiSigner
+let aiSendQueue = Promise.resolve();
 let isSyncing = false;
 
 // Settings
@@ -88,6 +109,11 @@ const QIEPASS_API_URL = process.env.QIEPASS_API_URL || "https://pass-api.qie.dig
 const QIEPASS_PUBLIC_KEY = process.env.QIEPASS_PUBLIC_KEY || "";
 const QIEPASS_SECRET_KEY = process.env.QIEPASS_SECRET_KEY || "";
 const QIEPASS_CLAIMS = (process.env.QIEPASS_CLAIMS || "firstName,country").split(",").map(c => c.trim());
+const QIEPASS_REQUEST_ID_RE = /^pvr_[A-Za-z0-9_]+$/;
+const QIEPASS_REQUEST_ID_ANY = /pvr_[A-Za-z0-9_]+/g;
+// Never mark these as verified. 0xfe5F...a6bb is the old deployer, whose
+// private key is in public git history.
+const QIEPASS_DENYLIST = new Set(["0xfe5F1D13A31a5B86833ADF4486720331D6e4a6bb"].map((a) => a.toLowerCase()));
 
 // Admin-only gate for the dangerous control endpoints (/configure,
 // /trigger-anomaly, /arbitrate-dispute). Fail-closed: with no ADMIN_SECRET set
@@ -156,8 +182,11 @@ function logTelemetry(type, message, details = {}) {
 // Anonymize ALL sensitive hex data in a string for public display.
 // Masks any 0x-prefixed hex string of 20+ chars (covers wallet addresses,
 // tx hashes, stream/subscription IDs, KYC identifiers, contract addresses, etc.)
+// and QIE Pass request ids, which are handles to someone's verification.
 function anonymizeAddresses(str) {
-  return str.replace(/0x[a-fA-F0-9]{20,}/g, (match) => `0x${match.slice(2, 6)}••••${match.slice(-4)}`);
+  return str
+    .replace(/0x[a-fA-F0-9]{20,}/g, (match) => `0x${match.slice(2, 6)}••••${match.slice(-4)}`)
+    .replace(QIEPASS_REQUEST_ID_ANY, "pvr_••••");
 }
 
 // Anonymize a log entry for public display (landing page)
@@ -169,6 +198,34 @@ function anonymizeLog(log) {
     relatedAddresses: undefined // Strip wallet associations from public response
   };
 }
+
+// Protect pauses and QIE Pass writes share the AI key, so broadcasts are queued
+// one at a time through a NonceManager and can't take the same nonce. The
+// NonceManager counts a nonce before it knows the send worked, so a send that
+// fails (revert on estimate, no gas) resets it; otherwise it would leave a gap
+// that stalls every later tx from this key.
+function sendFromAiSigner(send) {
+  const run = aiSendQueue.then(async () => {
+    try {
+      return await send();
+    } catch (err) {
+      aiSigner?.reset();
+      throw err;
+    }
+  });
+  aiSendQueue = run.catch(() => {});
+  return run;
+}
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+const errText = (err) => err?.shortMessage || err?.reason || err?.message || String(err);
 
 // ==========================================
 // MULTI-AGENT SENTRY ARCHITECTURE DEFINITION
@@ -389,7 +446,7 @@ const DecisionAgent = {
       if (auditorContract && aiWallet) {
         try {
           // Send transaction containing IPFS CID of the audit report as the reason
-          const tx = await auditorContract.triggerSafetyPause(subId, ipfsCID);
+          const tx = await sendFromAiSigner(() => auditorContract.triggerSafetyPause(subId, ipfsCID));
           logTelemetry("DECISION_AGENT", `onchain safety pause tx broadcasted. Hash: ${tx.hash}`);
           const receipt = await tx.wait();
           logTelemetry("DECISION_AGENT", `Safety pause confirmed in block ${receipt.blockNumber}. Stream has been locked onchain.`);
@@ -823,11 +880,12 @@ async function connectBlockchain() {
 
       if (AI_PRIVATE_KEY) {
         aiWallet = new ethers.Wallet(AI_PRIVATE_KEY, provider);
+        aiSigner = new ethers.NonceManager(aiWallet);
         const AUDITOR_ABI = [
           "function triggerSafetyPause(bytes32 subId, string calldata reason) external",
           "event AnomalyReported(bytes32 indexed subId, string reason, uint256 timestamp)"
         ];
-        auditorContract = new ethers.Contract(AUDITOR_ADDRESS, AUDITOR_ABI, aiWallet);
+        auditorContract = new ethers.Contract(AUDITOR_ADDRESS, AUDITOR_ABI, aiSigner);
         logTelemetry("INFO", `AI Wallet loaded: ${aiWallet.address}. Node is in ACTIVE automated audit mode.`);
       } else {
         logTelemetry("WARNING", "AI_PRIVATE_KEY not provided. Node running in SIMULATION/TELEMETRY-ONLY mode.");
@@ -869,6 +927,16 @@ async function connectBlockchain() {
       } else {
         logTelemetry("INFO", "FLUENCI_ROUTER_ADDRESS not set. Swap attribution tracking disabled.");
       }
+
+      // Checked before the (slow) history sync so a QIE Pass writer that can't
+      // write shows up in the log straight away.
+      const writer = await checkQiePassWriter();
+      if (qiePassWriterReady(writer)) {
+        logTelemetry("INFO", `QIE Pass writer ready. Adapter: ${writer.adapter}, oracle signer: ${aiWallet.address}`);
+      } else {
+        logTelemetry("ERROR", `QIE Pass writer not ready (adapter: ${writer.adapter || "unreadable"}, oracle matches signer: ${writer.oracleOk}, signer holds 0.01+ QIE: ${writer.funded}). QIE Pass claims are refused until this is fixed.`);
+      }
+      retryPendingQiePassWrites().catch(() => {});
 
       await syncHistoricalEvents();
       await reconcileActiveStreams();
@@ -1137,6 +1205,8 @@ function setupEventListeners() {
 // ==========================================
 
 app.get("/status", (req, res) => {
+  // Served from cache; refreshed in the background at most once a minute.
+  if (Date.now() - qiePassWriterAt > 60 * 1000) checkQiePassWriter();
   res.json({
     status: "online",
     monitoringActive,
@@ -1145,7 +1215,12 @@ app.get("/status", (req, res) => {
       registry: REGISTRY_ADDRESS,
       auditor: AUDITOR_ADDRESS
     },
-    aiWorker: aiWallet ? aiWallet.address : "simulation-mode"
+    aiWorker: aiWallet ? aiWallet.address : "simulation-mode",
+    qiePassWriter: {
+      adapter: qiePassWriter.adapter,
+      oracleOk: qiePassWriter.oracleOk,
+      funded: qiePassWriter.funded
+    }
   });
 });
 
@@ -1359,155 +1434,454 @@ app.post("/trigger-anomaly", async (req, res) => {
 // QIE PASS KYC VERIFICATION ROUTES
 // ==========================================
 
+const QIEPASS_REQUEST_TTL_MS = 60 * 60 * 1000;
+const QIEPASS_REQUEST_MAX_TTL_MS = 24 * 60 * 60 * 1000; // QIE's claim window after consent
+const QIEPASS_MAX_REQUESTS = 10000;
+const QIEPASS_MIN_SIGNER_BALANCE = ethers.parseEther("0.01");
+const QIEPASS_TX_TIMEOUT_MS = 90 * 1000;
+const QIEPASS_RETRY_MS = 5 * 60 * 1000;
+const QIEPASS_REGISTRY_ABI = ["function qiePass() view returns (address)"];
+const QIEPASS_ADAPTER_ABI = [
+  "function oracle() view returns (address)",
+  "function verifyIdentity(address user) view returns (bool)",
+  "function registerIdentity(address user, bool status) external"
+];
+const QIEPASS_UNAVAILABLE = "Verification is temporarily unavailable. Please try again later.";
+const QIEPASS_UNREACHABLE = "Couldn't reach QIE Pass. Please try again later.";
+const QIEPASS_WRONG_WALLET = "This verification request belongs to a different wallet.";
+const QIEPASS_DENIED = "This wallet's key is known to be compromised, so Fluenci won't mark it as verified.";
+
+const HEX_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+function normalizeWallet(value) {
+  if (typeof value !== "string" || !HEX_ADDRESS_RE.test(value) || !ethers.isAddress(value)) return null;
+  return ethers.getAddress(value);
+}
+const sameWallet = (a, b) =>
+  typeof a === "string" && typeof b === "string" && HEX_ADDRESS_RE.test(a) && a.toLowerCase() === b.toLowerCase();
+const isDeniedWallet = (wallet) => QIEPASS_DENYLIST.has(wallet.toLowerCase());
+
+// QIE errors look like {success:false, error:"<summary>", message:"<detail>"}.
+function qieErrorText(data, response, fallback) {
+  const parts = [typeof data?.error === "string" ? data.error : data?.error?.message, data?.message]
+    .filter((p) => typeof p === "string" && p.trim());
+  const text = [...new Set(parts)].join(" - ") || response?.statusText || fallback;
+  return text.replace(QIEPASS_REQUEST_ID_ANY, "pvr_••••").slice(0, 300);
+}
+// Statuses that mean something to the caller pass through; QIE auth failures
+// or outages are ours to fix, so the browser sees a 502.
+function qieHttpStatus(status) {
+  return [400, 404, 409, 410, 422, 429].includes(status) ? status : 502;
+}
+
+async function fetchQiePassRequest(requestId) {
+  const response = await fetch(`${QIEPASS_API_URL}/api/v1/partners/verification-requests/${encodeURIComponent(requestId)}`, {
+    method: "GET",
+    headers: generateQiePassHeaders()
+  });
+  return { response, data: await response.json().catch(() => null) };
+}
+
+// requestId -> { wallet, createdAt, expiresAt, claiming }. The wallet is bound at
+// /qiepass/verify, where QIE confirms the request is for that wallet, so a claim
+// can only ever mark that wallet and never one named by the caller.
+const qiePassRequests = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, r] of qiePassRequests) {
+    if (r.expiresAt <= now && !r.claiming) qiePassRequests.delete(id);
+  }
+}, 10 * 60 * 1000).unref();
+
+// ---- On-chain writer --------------------------------------------------------
+
+let qiePassWriter = { adapter: null, oracleOk: false, funded: false };
+let qiePassWriterAt = 0;
+let qiePassWriterCheck = null;
+
+// The registry enforces whichever adapter registry.qiePass() points at, so that
+// is the one to write to, and the AI key must be its oracle with gas to spend.
+async function readQiePassWriter() {
+  const state = { adapter: null, oracleOk: false, funded: false };
+  if (!provider || !REGISTRY_ADDRESS) return state;
+  try {
+    const registry = new ethers.Contract(REGISTRY_ADDRESS, QIEPASS_REGISTRY_ABI, provider);
+    const adapter = await withTimeout(registry.qiePass(), 15000, "registry.qiePass()");
+    if (adapter === ethers.ZeroAddress) return state;
+    state.adapter = adapter;
+    if (aiWallet) {
+      const [oracle, balance] = await withTimeout(Promise.all([
+        new ethers.Contract(adapter, QIEPASS_ADAPTER_ABI, provider).oracle(),
+        provider.getBalance(aiWallet.address)
+      ]), 15000, "QIE Pass writer check");
+      state.oracleOk = oracle.toLowerCase() === aiWallet.address.toLowerCase();
+      state.funded = balance >= QIEPASS_MIN_SIGNER_BALANCE;
+    }
+  } catch (err) {
+    console.warn(`[QIEPASS] Writer check failed: ${errText(err)}`);
+  }
+  return state;
+}
+
+// Never rejects; concurrent callers share one read.
+function checkQiePassWriter() {
+  if (!qiePassWriterCheck) {
+    qiePassWriterCheck = readQiePassWriter()
+      .then((state) => {
+        qiePassWriter = state;
+        qiePassWriterAt = Date.now();
+        return state;
+      })
+      .finally(() => { qiePassWriterCheck = null; });
+  }
+  return qiePassWriterCheck;
+}
+
+const qiePassWriterReady = (w) => Boolean(w.adapter && w.oracleOk && w.funded);
+
+async function readQiePassVerified(adapter, wallet) {
+  try {
+    return await new ethers.Contract(adapter, QIEPASS_ADAPTER_ABI, provider).verifyIdentity(wallet);
+  } catch {
+    return false;
+  }
+}
+
+async function writeQiePass(wallet) {
+  if (isDeniedWallet(wallet)) throw new Error("wallet is on the denylist");
+  const writer = await checkQiePassWriter();
+  if (!writer.adapter) throw new Error("QIE Pass adapter unreadable");
+  const pass = new ethers.Contract(writer.adapter, QIEPASS_ADAPTER_ABI, provider);
+  if (await pass.verifyIdentity(wallet)) return null;
+  if (!qiePassWriterReady(writer) || !aiSigner) {
+    throw new Error(`writer not ready (oracle matches signer: ${writer.oracleOk}, funded: ${writer.funded})`);
+  }
+  const tx = await sendFromAiSigner(() => pass.connect(aiSigner).registerIdentity(wallet, true, { gasLimit: 100000n }));
+  const receipt = await tx.wait(1, QIEPASS_TX_TIMEOUT_MS); // throws on revert or timeout
+  if (!receipt || receipt.status !== 1) throw new Error(`registerIdentity failed (tx ${tx.hash})`);
+  if (!(await pass.verifyIdentity(wallet))) throw new Error(`adapter still reads unverified after tx ${tx.hash}`);
+  return tx.hash;
+}
+
+// Resolves to the tx hash, or null when the adapter already read true. Throws
+// unless the adapter reads true afterwards. One write per wallet at a time.
+const qiePassWrites = new Map();
+function registerQiePassOnchain(wallet) {
+  const key = wallet.toLowerCase();
+  if (!qiePassWrites.has(key)) {
+    qiePassWrites.set(key, writeQiePass(wallet).finally(() => qiePassWrites.delete(key)));
+  }
+  return qiePassWrites.get(key);
+}
+
+// ---- Pending writes (persisted) ---------------------------------------------
+
+// QIE consents are single-use, so a credential QIE accepted but we couldn't
+// record on-chain is kept here and retried rather than asking the user again.
+// `subjects` maps a QIE Pass ID to the wallets it verified, to spot reuse.
+const QIEPASS_DATA_FILE = path.join(__dirname, "data", "qiepass.json");
+
+function loadQiePassData() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(QIEPASS_DATA_FILE, "utf8"));
+    return { pending: raw?.pending || {}, subjects: raw?.subjects || {} };
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      console.error(`[QIEPASS] Could not read ${QIEPASS_DATA_FILE}: ${err.message}`);
+      // Keep the unreadable file for inspection instead of overwriting it.
+      try { fs.renameSync(QIEPASS_DATA_FILE, `${QIEPASS_DATA_FILE}.bad-${Date.now()}`); } catch { /* ignore */ }
+    }
+    return { pending: {}, subjects: {} };
+  }
+}
+let qiePassData = loadQiePassData();
+
+function saveQiePassData() {
+  try {
+    fs.mkdirSync(path.dirname(QIEPASS_DATA_FILE), { recursive: true });
+    const tmp = `${QIEPASS_DATA_FILE}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(qiePassData, null, 2));
+    fs.renameSync(tmp, QIEPASS_DATA_FILE);
+  } catch (err) {
+    console.error(`[QIEPASS] Could not save ${QIEPASS_DATA_FILE}: ${err.message}`);
+  }
+}
+
+function queuePendingQiePass(wallet, subject) {
+  const key = wallet.toLowerCase();
+  const prev = qiePassData.pending[key];
+  qiePassData.pending[key] = { wallet, subject: subject || prev?.subject || null, at: prev?.at || new Date().toISOString() };
+  saveQiePassData();
+}
+
+function clearPendingQiePass(wallet) {
+  const key = wallet.toLowerCase();
+  if (!qiePassData.pending[key]) return;
+  delete qiePassData.pending[key];
+  saveQiePassData();
+}
+
+// One person may run several merchant wallets, so reuse is only reported.
+function recordQiePassSubject(subject, wallet) {
+  if (typeof subject !== "string" || !subject) return;
+  const wallets = qiePassData.subjects[subject] || [];
+  if (wallets.some((w) => w.toLowerCase() === wallet.toLowerCase())) return;
+  if (wallets.length) {
+    console.warn(`[QIEPASS] A QIE Pass ID already linked to ${wallets.length} other wallet(s) also verified ${wallet}`);
+  }
+  qiePassData.subjects[subject] = [...wallets, wallet];
+  saveQiePassData();
+}
+
+let qiePassRetrying = false;
+async function retryPendingQiePassWrites() {
+  const entries = Object.values(qiePassData.pending);
+  if (qiePassRetrying || entries.length === 0) return;
+  qiePassRetrying = true;
+  try {
+    for (const entry of entries) {
+      if (!normalizeWallet(entry?.wallet) || isDeniedWallet(entry.wallet)) {
+        if (entry?.wallet) clearPendingQiePass(entry.wallet);
+        continue;
+      }
+      try {
+        const txHash = await registerQiePassOnchain(entry.wallet);
+        clearPendingQiePass(entry.wallet);
+        logTelemetry("QIEPASS", `Queued QIE Pass verification recorded onchain for ${entry.wallet}${txHash ? `. TX: ${txHash}` : " (already verified)"}`);
+      } catch (err) {
+        console.warn(`[QIEPASS] Retry for ${entry.wallet} failed: ${errText(err)}`);
+      }
+    }
+  } finally {
+    qiePassRetrying = false;
+  }
+}
+setInterval(() => { retryPendingQiePassWrites().catch(() => {}); }, QIEPASS_RETRY_MS).unref();
+
+// Finishes a claim QIE has accepted: 200 only once the chain reads verified,
+// otherwise the write is queued and the caller gets 202 pending.
+async function finishQiePassWrite(res, wallet, subject) {
+  try {
+    const txHash = await registerQiePassOnchain(wallet);
+    clearPendingQiePass(wallet);
+    logTelemetry("QIEPASS", txHash ? `Identity registered onchain for ${wallet}. TX: ${txHash}` : `${wallet} is already verified onchain`);
+    return res.json({ success: true, verified: true, onchain: true, txHash });
+  } catch (err) {
+    queuePendingQiePass(wallet, subject);
+    logTelemetry("ERROR", `QIE Pass accepted for ${wallet}, but the onchain write failed: ${errText(err)}. Queued for retry.`);
+    return res.status(202).json({
+      success: false,
+      verified: false,
+      pending: true,
+      error: "Your QIE Pass was accepted, but recording it onchain is still pending. Fluenci retries automatically, so check back later."
+    });
+  }
+}
+
+const QIEPASS_NOT_APPROVED = {
+  pending_kyc: "Finish your QIE Pass KYC in QIE Wallet first.",
+  pending_consent: "Approve the request in QIE Wallet first.",
+  consent_rejected: "The request was rejected in QIE Wallet.",
+  expired: "This verification request has expired. Please start verification again.",
+  failed: "QIE Pass could not verify your identity."
+};
+
+// ---- Routes -----------------------------------------------------------------
+
 // Create a QIE Pass verification request
 app.post("/qiepass/verify", async (req, res) => {
-  const { walletAddress } = req.body;
-  if (!walletAddress) {
-    return res.status(400).json({ success: false, error: "Missing walletAddress" });
+  const wallet = normalizeWallet(req.body?.walletAddress);
+  if (!wallet) {
+    return res.status(400).json({ success: false, error: "Missing or invalid walletAddress" });
+  }
+  if (isDeniedWallet(wallet)) {
+    logTelemetry("WARNING", `Refused QIE Pass request for compromised wallet ${wallet}`);
+    return res.status(403).json({ success: false, error: QIEPASS_DENIED });
   }
   if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
     return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
   }
 
   try {
-    const headers = generateQiePassHeaders();
-    const body = {
-      identifier: walletAddress,
-      requestedClaims: QIEPASS_CLAIMS
-    };
-
-    logTelemetry("QIEPASS", `Creating verification request for ${walletAddress}`, { claims: QIEPASS_CLAIMS });
+    logTelemetry("QIEPASS", `Creating verification request for ${wallet}`, { claims: QIEPASS_CLAIMS });
 
     const response = await fetch(`${QIEPASS_API_URL}/api/v1/partners/verification-requests`, {
       method: "POST",
-      headers,
-      body: JSON.stringify(body)
+      headers: generateQiePassHeaders(),
+      body: JSON.stringify({ identifier: wallet, requestedClaims: QIEPASS_CLAIMS })
     });
+    const data = await response.json().catch(() => null);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      logTelemetry("QIEPASS", `Verification request failed: ${data?.error?.message || response.statusText}`);
-      return res.status(response.status).json({ success: false, error: data?.error?.message || "QIE Pass API error" });
+    if (!response.ok || data?.success === false) {
+      const error = qieErrorText(data, response, "QIE Pass API error");
+      logTelemetry("QIEPASS", `Verification request failed for ${wallet}: ${error}`);
+      return res.status(response.ok ? 502 : qieHttpStatus(response.status)).json({ success: false, error });
     }
 
-    logTelemetry("QIEPASS", `Verification request created. RequestID: ${data.data?.requestId}, Status: ${data.data?.status}`);
+    const request = data?.data || {};
+    if (typeof request.requestId !== "string" || !QIEPASS_REQUEST_ID_RE.test(request.requestId)) {
+      logTelemetry("QIEPASS", `Verification request for ${wallet} came back without a usable request id`);
+      return res.status(502).json({ success: false, error: "QIE Pass returned an unexpected response. Please try again later." });
+    }
+    // The request is only usable if QIE says it is for this exact wallet.
+    if (!request.walletAddress) {
+      logTelemetry("QIEPASS", `Verification request for ${wallet} came back without a linked wallet; not used`);
+      return res.status(502).json({ success: false, error: "QIE Pass didn't confirm which wallet this request is for, so it can't be used. Please try again later." });
+    }
+    if (!sameWallet(request.walletAddress, wallet)) {
+      logTelemetry("QIEPASS", `Verification request for ${wallet} is linked to a different wallet; not used`);
+      return res.status(409).json({ success: false, error: "Your QIE Pass is linked to a different wallet. Connect that wallet and try again." });
+    }
+
+    // QIE hands back the same request while it is pending, so a repeat call
+    // just extends the binding. Kept until QIE's own expiry (1h minimum).
+    const now = Date.now();
+    const qieExpiry = Date.parse(request.expiresAt || "");
+    const expiresAt = Math.min(now + QIEPASS_REQUEST_MAX_TTL_MS, Math.max(now + QIEPASS_REQUEST_TTL_MS, Number.isFinite(qieExpiry) ? qieExpiry : 0));
+    const existing = qiePassRequests.get(request.requestId);
+    if (existing?.wallet === wallet) {
+      existing.expiresAt = Math.max(existing.expiresAt, expiresAt);
+    } else {
+      qiePassRequests.set(request.requestId, { wallet, createdAt: now, expiresAt, claiming: false });
+      while (qiePassRequests.size > QIEPASS_MAX_REQUESTS) qiePassRequests.delete(qiePassRequests.keys().next().value);
+    }
+
+    logTelemetry("QIEPASS", `Verification request created for ${wallet}. Status: ${request.status}`);
     res.json({
       success: true,
-      requestId: data.data?.requestId,
-      status: data.data?.status,
-      userStatus: data.data?.userStatus,
-      redirectUrl: data.data?.redirectUrl,
-      expiresAt: data.data?.expiresAt
+      requestId: request.requestId,
+      status: request.status,
+      userStatus: request.userStatus,
+      redirectUrl: request.redirectUrl,
+      expiresAt: request.expiresAt
     });
   } catch (err) {
-    logTelemetry("QIEPASS", `Verification request error: ${err.message}`);
-    res.status(500).json({ success: false, error: err.message });
+    logTelemetry("QIEPASS", `Verification request error for ${wallet}: ${errText(err)}`);
+    res.status(502).json({ success: false, error: QIEPASS_UNREACHABLE });
   }
 });
 
-// Poll QIE Pass verification status
+// Poll QIE Pass verification status. Returns only what the client needs to
+// decide when to claim: no wallet, DID or claims.
 app.get("/qiepass/status/:requestId", async (req, res) => {
   const { requestId } = req.params;
+  if (!QIEPASS_REQUEST_ID_RE.test(requestId)) {
+    return res.status(400).json({ success: false, error: "Invalid requestId" });
+  }
   if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
     return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
   }
 
   try {
-    const headers = generateQiePassHeaders();
-
-    const response = await fetch(`${QIEPASS_API_URL}/api/v1/partners/verification-requests/${requestId}`, {
-      method: "GET",
-      headers
-    });
-
-    const data = await response.json();
-
+    const { response, data } = await fetchQiePassRequest(requestId);
     if (!response.ok) {
-      return res.status(response.status).json({ success: false, error: data?.error?.message || "QIE Pass API error" });
+      return res.status(qieHttpStatus(response.status)).json({ success: false, error: qieErrorText(data, response, "QIE Pass API error") });
     }
-
-    res.json({
-      success: true,
-      requestId: data.data?.requestId,
-      status: data.data?.status,
-      walletAddress: data.data?.walletAddress,
-      did: data.data?.did,
-      vcMetadata: data.data?.vcMetadata
-    });
+    const ready = data?.data?.vcMetadata?.ready === true;
+    res.json({ success: true, status: data?.data?.status, ready, vcMetadata: { ready } });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.warn(`[QIEPASS] Status check failed: ${errText(err)}`);
+    res.status(502).json({ success: false, error: QIEPASS_UNREACHABLE });
   }
 });
 
-// Claim and verify QIE Pass credentials, then register identity onchain
+// Claim and verify QIE Pass credentials, then register the bound wallet onchain
 app.post("/qiepass/claim", async (req, res) => {
-  const { requestId, walletAddress } = req.body;
-  if (!requestId || !walletAddress) {
-    return res.status(400).json({ success: false, error: "Missing requestId or walletAddress" });
+  const { requestId, walletAddress } = req.body || {};
+  if (typeof requestId !== "string" || !QIEPASS_REQUEST_ID_RE.test(requestId)) {
+    return res.status(400).json({ success: false, error: "Missing or invalid requestId" });
+  }
+  const binding = qiePassRequests.get(requestId);
+  if (!binding || binding.expiresAt <= Date.now()) {
+    return res.status(400).json({ success: false, error: "This verification request has expired or is unknown. Please start verification again." });
+  }
+  // Always the wallet bound at /qiepass/verify; a body wallet may only confirm it.
+  const wallet = binding.wallet;
+  if (walletAddress != null && walletAddress !== "" && !sameWallet(walletAddress, wallet)) {
+    return res.status(403).json({ success: false, error: QIEPASS_WRONG_WALLET });
+  }
+  if (isDeniedWallet(wallet)) {
+    logTelemetry("WARNING", `Refused QIE Pass claim for compromised wallet ${wallet}`);
+    return res.status(403).json({ success: false, error: QIEPASS_DENIED });
   }
   if (!QIEPASS_PUBLIC_KEY || !QIEPASS_SECRET_KEY) {
     return res.status(500).json({ success: false, error: "QIE Pass API keys not configured" });
   }
+  if (binding.claiming) {
+    return res.status(409).json({ success: false, error: "This verification is already being processed." });
+  }
 
+  binding.claiming = true;
   try {
-    const headers = generateQiePassHeaders();
+    // QIE already accepted a credential for this wallet earlier: finish that
+    // write instead of spending another consent.
+    const pending = qiePassData.pending[wallet.toLowerCase()];
+    if (pending) {
+      return await finishQiePassWrite(res, wallet, pending.subject);
+    }
 
-    logTelemetry("QIEPASS", `Claiming credentials for request: ${requestId}`);
+    // Everything that could stop the on-chain write is checked before QIE's
+    // claim, which uses up the user's consent.
+    const writer = await checkQiePassWriter();
+    if (writer.adapter && await readQiePassVerified(writer.adapter, wallet)) {
+      logTelemetry("QIEPASS", `${wallet} is already verified onchain; nothing to claim`);
+      return res.json({ success: true, verified: true, onchain: true, txHash: null });
+    }
+    if (!qiePassWriterReady(writer)) {
+      logTelemetry("ERROR", `QIE Pass claim for ${wallet} refused: onchain writer not ready (adapter: ${writer.adapter || "unreadable"}, oracle matches signer: ${writer.oracleOk}, signer holds 0.01+ QIE: ${writer.funded})`);
+      return res.status(503).json({ success: false, error: QIEPASS_UNAVAILABLE });
+    }
 
+    const status = await fetchQiePassRequest(requestId);
+    if (!status.response.ok) {
+      return res.status(qieHttpStatus(status.response.status)).json({ success: false, error: qieErrorText(status.data, status.response, "QIE Pass API error") });
+    }
+    const request = status.data?.data || {};
+    if (request.walletAddress && !sameWallet(request.walletAddress, wallet)) {
+      logTelemetry("QIEPASS", `QIE Pass claim for ${wallet} refused: QIE links the request to a different wallet`);
+      return res.status(403).json({ success: false, error: QIEPASS_WRONG_WALLET });
+    }
+    if (request.status !== "consent_given") {
+      return res.status(409).json({ success: false, error: QIEPASS_NOT_APPROVED[request.status] || "This request hasn't been approved in QIE Wallet." });
+    }
+
+    logTelemetry("QIEPASS", `Claiming credentials for ${wallet}`);
     const response = await fetch(`${QIEPASS_API_URL}/api/v1/vc/partner/claim-and-verify`, {
       method: "POST",
-      headers,
+      headers: generateQiePassHeaders(),
       body: JSON.stringify({ requestId })
     });
+    const data = await response.json().catch(() => null);
 
-    const data = await response.json();
+    if (!response.ok || data?.success === false) {
+      const error = qieErrorText(data, response, "Claim failed");
+      logTelemetry("QIEPASS", `Claim failed for ${wallet}: ${error}`);
+      return res.status(response.ok ? 502 : qieHttpStatus(response.status)).json({ success: false, error });
+    }
+    // The consent is spent now, so the request can't be claimed again.
+    qiePassRequests.delete(requestId);
 
-    if (!response.ok) {
-      logTelemetry("QIEPASS", `Claim failed: ${data?.error?.message || response.statusText}`);
-      return res.status(response.status).json({ success: false, error: data?.error?.message || "Claim failed" });
+    const v = data?.verification;
+    const kycVerified = data?.publicClaims?.kyc_verified === true;
+    if (!v?.signatureValid || !v?.commitmentValid || !v?.notExpired || !v?.notRevoked || !kycVerified) {
+      logTelemetry("QIEPASS", `Credential checks failed for ${wallet}`, {
+        signatureValid: v?.signatureValid === true,
+        commitmentValid: v?.commitmentValid === true,
+        notExpired: v?.notExpired === true,
+        notRevoked: v?.notRevoked === true,
+        kycVerified
+      });
+      return res.status(400).json({ success: false, error: "QIE Pass returned a credential that didn't pass verification, so this wallet was not marked as verified." });
     }
 
-    // Verify the cryptographic proof is valid
-    const verification = data.verification;
-    if (!verification?.signatureValid || !verification?.notExpired || !verification?.notRevoked) {
-      logTelemetry("QIEPASS", `Credential verification failed for ${walletAddress}`, verification);
-      return res.status(400).json({ success: false, error: "Credential verification failed" });
-    }
-
-    logTelemetry("QIEPASS", `Credentials verified for ${walletAddress}. Registering identity onchain...`, {
-      claims: Object.keys(data.requestedClaims || {})
-    });
-
-    // Register identity onchain via the QiePass contract
-    let txHash = null;
-    if (aiWallet && provider) {
-      try {
-        const QIEPASS_CONTRACT = process.env.QIEPASS_CONTRACT || "0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE";
-        const qiePassContract = new ethers.Contract(
-          QIEPASS_CONTRACT,
-          ["function registerIdentity(address user, bool status) external"],
-          aiWallet
-        );
-        const tx = await qiePassContract.registerIdentity(walletAddress, true, { gasLimit: 100000n });
-        await tx.wait();
-        txHash = tx.hash;
-        logTelemetry("QIEPASS", `Identity registered onchain for ${walletAddress}. TX: ${txHash}`);
-      } catch (chainErr) {
-        logTelemetry("QIEPASS", `onchain registration failed: ${chainErr.message}. KYC still valid via API.`);
-      }
-    }
-
-    res.json({
-      success: true,
-      verified: true,
-      claims: data.requestedClaims,
-      proof: data.proof,
-      txHash
-    });
+    recordQiePassSubject(data.subject, wallet);
+    logTelemetry("QIEPASS", `Credentials verified for ${wallet}. Registering identity onchain...`);
+    return await finishQiePassWrite(res, wallet, data.subject);
   } catch (err) {
-    logTelemetry("QIEPASS", `Claim error: ${err.message}`);
-    res.status(500).json({ success: false, error: err.message });
+    logTelemetry("QIEPASS", `Claim error for ${wallet}: ${errText(err)}`);
+    res.status(502).json({ success: false, error: QIEPASS_UNREACHABLE });
+  } finally {
+    binding.claiming = false;
   }
 });
 
@@ -1516,7 +1890,7 @@ const FLUENCI_SYSTEM_PROMPT = `You are Fluenci AI, the assistant inside the Flue
 
 What Fluenci is:
 - Stripe-style subscriptions for Web3, built on QIE Blockchain (EVM-compatible, chain ID 1990).
-- Plans are priced in plain dollars per period (for example $20/month) and settled in qUSDC, or in bridged USDC/USDT.
+- Plans are priced in plain dollars per period (for example $20/month) and settled in qUSDC. The Fluenci Arcade Pass also accepts USDC/USDT bridged from Ethereum.
 - Subscriptions are non-custodial and pull-based: funds stay in the subscriber's own wallet until the merchant claims what has accrued.
 - Subscribers set a spending cap that only they can raise; any claim above the cap is clamped to it.
 - Subscribers can cancel anytime. Accrual stops immediately and only the final settled amount is owed.
@@ -1599,34 +1973,41 @@ function sanitizeChatMessages(raw) {
     .slice(-CHAT_MAX_MESSAGES);
 }
 
-// Route-scoped parser. The app-wide express.json() runs first and has usually
-// consumed the body already, so the handler re-checks the size below as well.
-app.post("/api/chat", express.json({ limit: CHAT_BODY_LIMIT_BYTES }), async (req, res) => {
+// Every /api/chat error body is {error, code} so the client can word each case.
+function chatError(res, status, code, error) {
+  return res.status(status).json({ error, code });
+}
+
+// Runs before the body is parsed, so oversized and malformed requests still
+// count against the per-IP limit.
+function chatGate(req, res, next) {
   if (process.env.CHAT_DISABLED === "true") {
-    return res.status(503).json({ error: "Chat is temporarily disabled." });
+    return chatError(res, 503, "disabled", "Chat is temporarily disabled.");
   }
+  if (!chatIpAllowed(chatClientIp(req), Date.now())) {
+    return chatError(res, 429, "rate_ip", "Too many chat requests. Please wait a few minutes and try again.");
+  }
+  next();
+}
 
-  let bodySize = 0;
-  try {
-    bodySize = JSON.stringify(req.body ?? {}).length;
-  } catch {
-    return res.status(400).json({ error: "Invalid request body." });
-  }
-  if (bodySize > CHAT_BODY_LIMIT_BYTES) {
-    return res.status(413).json({ error: "Request body too large." });
-  }
+// Route-scoped parser. The app-wide express.json() skips /api/chat, so this
+// byte limit is the one that applies.
+const chatJson = express.json({ limit: CHAT_BODY_LIMIT_BYTES });
+function parseChatBody(req, res, next) {
+  chatJson(req, res, (err) => {
+    if (!err) return next();
+    if (err.type === "entity.too.large") return chatError(res, 413, "too_large", "Request body too large.");
+    return chatError(res, 400, "bad_request", "Invalid request body.");
+  });
+}
 
-  const now = Date.now();
-  if (!chatIpAllowed(chatClientIp(req), now)) {
-    return res.status(429).json({ error: "Too many chat requests. Please wait a few minutes and try again." });
-  }
-
+app.post("/api/chat", chatGate, parseChatBody, async (req, res) => {
   const messages = sanitizeChatMessages(req.body?.messages);
   if (!messages) {
-    return res.status(400).json({ error: "messages array required" });
+    return chatError(res, 400, "bad_request", "messages array required");
   }
   if (messages.length === 0) {
-    return res.status(400).json({ error: "No valid user or assistant messages provided." });
+    return chatError(res, 400, "bad_request", "No valid user or assistant messages provided.");
   }
   // Long conversations keep working: drop the oldest turns until the total fits.
   let totalChars = messages.reduce((sum, m) => sum + m.content.length, 0);
@@ -1635,17 +2016,17 @@ app.post("/api/chat", express.json({ limit: CHAT_BODY_LIMIT_BYTES }), async (req
   }
 
   if (!openai) {
-    return res.status(503).json({ error: "OpenAI not configured" });
+    return chatError(res, 503, "not_configured", "OpenAI not configured");
   }
 
   // Global daily budget, counted only for calls that actually reach OpenAI.
-  const today = new Date(now).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
   if (today !== chatDay) {
     chatDay = today;
     chatDayCount = 0;
   }
   if (chatDayCount >= CHAT_DAILY_MAX) {
-    return res.status(429).json({ error: "Daily chat limit reached. Please try again tomorrow." });
+    return chatError(res, 429, "rate_daily", "Daily chat limit reached. It resets at midnight UTC.");
   }
   chatDayCount += 1;
 
@@ -1662,7 +2043,7 @@ app.post("/api/chat", express.json({ limit: CHAT_BODY_LIMIT_BYTES }), async (req
   } catch (err) {
     // Log status/message only; the client gets a generic error with no internals.
     console.error("Chat error:", err?.status || "", err?.message || err);
-    res.status(502).json({ error: "AI service temporarily unavailable" });
+    chatError(res, 502, "upstream", "AI service temporarily unavailable");
   }
 });
 
@@ -1767,6 +2148,19 @@ app.get("/reputation/attest/:address", async (req, res) => {
   } catch (e) {
     res.status(e.status || 502).json({ error: { message: e.message } });
   }
+});
+
+// Last-resort handler (body-parser errors on the other routes end up here):
+// JSON only, never a stack trace.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = Number.isInteger(err?.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
+  if (status >= 500) console.error("Unhandled error:", errText(err));
+  const error = status === 413 ? "Request body too large." : status < 500 ? "Invalid request." : "Internal server error.";
+  if (isChatPath(req.path)) {
+    return res.status(status).json({ error, code: status === 413 ? "too_large" : status < 500 ? "bad_request" : "upstream" });
+  }
+  res.status(status).json({ success: false, error });
 });
 
 app.listen(PORT, async () => {

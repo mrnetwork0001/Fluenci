@@ -3,6 +3,9 @@ import { API_BASE_URL } from "../config";
 
 const ARCADE_MERCHANT = "0xfe5f1d13a31a5b86833adf4486720331d6e4a6bb";
 const STORAGE_KEY = "fluenci_chat_sessions";
+// /api/chat now answers only a wallet signed in to the Fluenci Arcade with an
+// active Arcade Pass; this v1 chat can't sign in, so it points there instead.
+const ARCADE_ONLY = "The AI assistant is part of the Fluenci Arcade Pass now. Get the pass and sign in on the Arcade page to keep chatting.";
 
 // Local fallback responses
 const AI_RESPONSES = [
@@ -190,6 +193,11 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: history })
       });
+      if (res.status === 401 || res.status === 403) {
+        setMessages(prev => [...prev, { role: "ai", text: ARCADE_ONLY, link: "/arcade", time: new Date().toISOString() }]);
+        setIsTyping(false);
+        return;
+      }
       if (!res.ok) throw new Error("API unavailable");
       const data = await res.json();
       setMessages(prev => [...prev, { role: "ai", text: data.reply, time: new Date().toISOString() }]);
@@ -351,6 +359,12 @@ export function FluenciAIChat({ subscriberStreams, createSubscription, terminate
                     fontSize: "0.85rem", lineHeight: "1.45"
                   }}>
                     {msg.text}
+                    {msg.link && (
+                      <>
+                        {" "}
+                        <a href={msg.link} style={{ color: "inherit", fontWeight: "bold", textDecoration: "underline" }}>Open the Arcade</a>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

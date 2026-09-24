@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "test": "node --test test/*.test.js test/*.test.mjs",
     "test:integration": "node test/integration/arcade.integration.js",
+    "test:integration:app": "node test/integration/arcadeApp.integration.mjs",
     "sync:snake": "node scripts/sync-snake-core.js"
   },
   "dependencies": {

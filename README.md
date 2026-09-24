@@ -373,6 +373,18 @@ also checks the pass rules against the frontend's. `npm run test:integration` ru
 flow against a local Hardhat node (instructions at the top of
 `server/test/integration/arcade.integration.js`).
 
+In the app (`frontend/src/dashboard/Arcade.jsx` and `dashboard/arcade/`), only a wallet whose
+pass is valid is offered "Sign in to the Arcade": one `personal_sign` through the connected
+wallet, from a click. The token is kept in memory and in `sessionStorage` for that wallet
+(this tab only), and dropped on a wallet switch, at expiry or on any `401`. Signed in, the
+AI assistant sends it, and each Snake round asks for a ticket first, plays the server's seed and
+sends its turn log at the end. Free rounds, and rounds by a pass holder who never signs in,
+never talk to the server. `arcadeApi.js` (requests and wording) and `snakeRound.js` (turn
+buffer and log) have no React, so `server/test/arcadeClient.test.mjs` runs the app's own code
+against the routes, and `server/test/integration/arcadeApp.integration.mjs` plays real-time
+rounds against `server.js` on a Hardhat node. The v1 chat (`components/FluenciAIChat.jsx`)
+can't sign in, so it now links to the Arcade when `/api/chat` refuses it.
+
 ### Frontend
 
 ```bash
@@ -429,6 +441,7 @@ Fluenci/
 │   │   ├── SpendingLimits.jsx             # per-merchant caps
 │   │   ├── Protect.jsx                    # Fluenci Protect, one surface
 │   │   ├── SubscriberDashboard.jsx  MerchantDashboardV2.jsx  Swap.jsx
+│   │   ├── Arcade.jsx  arcade/            # Fluenci Arcade: Snake, AI assistant, sign-in, weekly board
 │   │   ├── qieName.js                     # .qie forward + reverse resolution
 │   │   ├── v4Config.js                    # v4 addresses and ABI, all env-driven
 │   │   └── useFluenciV4.js
@@ -443,8 +456,10 @@ Fluenci/
 └── ROADMAP.md
 ```
 
-The Snake arcade and the AI chat are demos of micro-streaming and nothing more. They are not
-product features and are not on the roadmap.
+The v1 Snake game and AI chat in `components/` are demos of micro-streaming and nothing more.
+They are not product features and are not on the roadmap. The v2 Fluenci Arcade
+(`dashboard/Arcade.jsx`) is where Snake and the AI assistant live now, behind the $1/month
+Arcade Pass.
 
 ---
 

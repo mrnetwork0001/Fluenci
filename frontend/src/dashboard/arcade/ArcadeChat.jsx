@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PASS_REASON_COPY } from "../arcadePass";
 
 // Mirrors the server's /api/chat limits so a request is never rejected (or
 // silently truncated) for something the client could have caught first.
@@ -23,6 +24,15 @@ const NOTICE_BY_CODE = {
   upstream: NOTICE_FAILED,
 };
 const NOTICE_RATE = "The AI chat is busy right now. Wait a few minutes and try again.";
+// /api/chat answers only a signed-in wallet (401 unauthorized) that the server
+// itself sees holding a valid Arcade Pass (403 no_pass, with the pass `reason`).
+const NOTICE_SIGNED_OUT = "Your Arcade sign-in has ended. Sign in again, then resend your message.";
+const NO_PASS_GENERIC = "The server doesn't see a valid Arcade Pass for this wallet yet. If you just started or fixed your pass, wait a minute and try again.";
+function noPassNotice(reason) {
+  if (reason === "unavailable") return "Couldn't check your Arcade Pass on the server just now. Try again in a minute.";
+  if (["no-subscription", "wrong-merchant", "wrong-subscriber", "not-configured"].includes(reason)) return NO_PASS_GENERIC;
+  return PASS_REASON_COPY[reason] || NO_PASS_GENERIC;
+}
 
 // Only real turns are persisted; a stale "unavailable" notice on reload would
 // be misleading.
@@ -63,11 +73,16 @@ function toPayload(messages) {
 }
 
 /**
- * Arcade AI chat for the v2 dashboard. Access (QIE Pass + subscription) is
- * decided by the parent; this component only talks to /api/chat and never
- * invents an answer when that call fails.
+ * Arcade AI chat for the v2 dashboard. Access (the Arcade Pass) is decided by
+ * the parent; this component only talks to /api/chat and never invents an
+ * answer when that call fails. The server answers a signed-in wallet only:
+ * `token` is its Arcade session, and without one the chat asks the player to
+ * sign in (`onSignIn`, from a click). `onUnauthorized(token)` hears a 401.
  */
-export default function ArcadeChat({ apiBase = null, disabled = false }) {
+export default function ArcadeChat({
+  apiBase = null, disabled = false,
+  token = null, onSignIn = null, signingIn = false, signInError = "", onUnauthorized = null,
+}) {
   const [messages, setMessages] = useState(() => loadMessages());
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -80,7 +95,8 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
   const genRef = useRef(0);
 
   const noBackend = !apiBase;
-  const locked = disabled || noBackend;
+  const needsSignIn = !disabled && !noBackend && !token;
+  const locked = disabled || noBackend || !token;
   const text = input.trim();
   const canSend = !locked && !pending && text.length > 0;
 
@@ -119,12 +135,14 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
     abortRef.current = ctrl;
     const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
 
+    const sentWith = token;
     let reply = null;
     let notice = null;
+    let unauthorized = false;
     try {
       const res = await fetch(`${apiBase}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sentWith}` },
         body: JSON.stringify({ messages: toPayload(next) }),
         signal: ctrl.signal,
       });
@@ -132,7 +150,14 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
         const body = await res.json().catch(() => null);
         // A 429 without a code (an older server) still says which limit it was.
         const serverText = typeof body?.error === "string" && body.error.length < 160 ? body.error : null;
-        notice = NOTICE_BY_CODE[body?.code] || (res.status === 429 ? serverText || NOTICE_RATE : NOTICE_FAILED);
+        if (res.status === 401) {
+          unauthorized = true;
+          notice = NOTICE_SIGNED_OUT;
+        } else if (body?.code === "no_pass") {
+          notice = noPassNotice(body.reason);
+        } else {
+          notice = NOTICE_BY_CODE[body?.code] || (res.status === 429 ? serverText || NOTICE_RATE : NOTICE_FAILED);
+        }
       } else {
         const data = await res.json().catch(() => null);
         if (typeof data?.reply === "string" && data.reply.trim()) reply = data.reply;
@@ -144,6 +169,8 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
       clearTimeout(timer);
     }
 
+    // The token is dead whether or not this reply is still wanted.
+    if (unauthorized) onUnauthorized?.(sentWith);
     if (gen !== genRef.current) return; // cleared or unmounted meanwhile
     abortRef.current = null;
     setMessages((prev) => [
@@ -182,7 +209,7 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
         <div className="fl-row" style={{ gap: 8, minWidth: 0 }}>
           <span className="fl-lbl">AI chat</span>
           <span className={`fl-pill ${locked ? "fl-pill--off" : "fl-pill--on"}`}>
-            {noBackend ? "Offline" : disabled ? "Locked" : "Live"}
+            {noBackend ? "Offline" : disabled ? "Locked" : needsSignIn ? "Signed out" : "Live"}
           </span>
         </div>
         <button className="fl-link" onClick={clear}
@@ -230,34 +257,53 @@ export default function ArcadeChat({ apiBase = null, disabled = false }) {
         )}
       </div>
 
-      {/* input */}
+      {/* input, or the sign-in it needs first */}
       <div style={styles.footer}>
-        <div className="fl-inner" style={styles.inputWrap}>
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={input}
-            maxLength={MAX_CHARS}
-            disabled={locked}
-            placeholder={locked ? (noBackend ? "Chat is offline" : "Chat is locked") : "Message the Arcade AI…"}
-            onChange={(e) => setInput(e.target.value.slice(0, MAX_CHARS))}
-            onKeyDown={onKeyDown}
-            style={styles.textarea}
-          />
-          <button className="fl-btn fl-btn--primary" style={{ padding: "9px 14px", flexShrink: 0 }}
-                  disabled={!canSend} onClick={send}>
-            Send
-          </button>
-        </div>
-        <div className="fl-row--between" style={{ marginTop: 6, minHeight: 15 }}>
-          <span style={{ color: "var(--fl-fg-3)", fontSize: 11 }}>Enter to send · Shift+Enter for a new line</span>
-          {input.length >= COUNTER_FROM && (
-            <span className="fl-mono"
-                  style={{ fontSize: 11, color: remaining <= 50 ? "var(--fl-warn)" : "var(--fl-fg-3)" }}>
-              {input.length}/{MAX_CHARS}
-            </span>
-          )}
-        </div>
+        {needsSignIn ? (
+          <div className="fl-inner" style={styles.signIn}>
+            <div style={{ color: "var(--fl-fg-2)", fontSize: 12.5, lineHeight: 1.55 }}>
+              Sign in to the Arcade to use the AI assistant. It's one signature in your wallet - no transaction and no gas.
+            </div>
+            {onSignIn && (
+              <button className="fl-btn fl-btn--primary" style={{ marginTop: 10, padding: "8px 14px", fontSize: 13 }}
+                      disabled={signingIn} onClick={onSignIn}>
+                {signingIn ? "Check your wallet…" : "Sign in to the Arcade"}
+              </button>
+            )}
+            {signInError && (
+              <div style={{ color: "var(--fl-warn)", fontSize: 12, lineHeight: 1.5, marginTop: 8 }}>{signInError}</div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="fl-inner" style={styles.inputWrap}>
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={input}
+                maxLength={MAX_CHARS}
+                disabled={locked}
+                placeholder={locked ? (noBackend ? "Chat is offline" : "Chat is locked") : "Message the Arcade AI…"}
+                onChange={(e) => setInput(e.target.value.slice(0, MAX_CHARS))}
+                onKeyDown={onKeyDown}
+                style={styles.textarea}
+              />
+              <button className="fl-btn fl-btn--primary" style={{ padding: "9px 14px", flexShrink: 0 }}
+                      disabled={!canSend} onClick={send}>
+                Send
+              </button>
+            </div>
+            <div className="fl-row--between" style={{ marginTop: 6, minHeight: 15 }}>
+              <span style={{ color: "var(--fl-fg-3)", fontSize: 11 }}>Enter to send · Shift+Enter for a new line</span>
+              {input.length >= COUNTER_FROM && (
+                <span className="fl-mono"
+                      style={{ fontSize: 11, color: remaining <= 50 ? "var(--fl-warn)" : "var(--fl-fg-3)" }}>
+                  {input.length}/{MAX_CHARS}
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -287,6 +333,7 @@ const styles = {
   },
   footer: { padding: "12px 16px", borderTop: "1px solid var(--fl-border)", flexShrink: 0 },
   inputWrap: { display: "flex", alignItems: "flex-end", gap: 8, padding: 6, paddingLeft: 12 },
+  signIn: { padding: "12px 14px" },
   textarea: {
     flex: 1, minWidth: 0, resize: "none", background: "none", border: "none", outline: "none",
     color: "var(--fl-fg)", fontFamily: "inherit", fontSize: 14, lineHeight: 1.45, padding: "7px 0",

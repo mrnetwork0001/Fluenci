@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ethers } from "ethers";
 import SnakeGame from "./arcade/SnakeGame";
 import ArcadeChat from "./arcade/ArcadeChat";
+import Leaderboard from "./arcade/Leaderboard";
+import { useArcadeSession } from "./arcade/useArcadeSession";
+import { useLeaderboard } from "./arcade/useLeaderboard";
+import { startSnakeRound, finishSnakeRound } from "./arcade/arcadeApi";
 import FundWallet from "./FundWallet";
 import { IconCheck } from "./icons";
 import {
@@ -108,6 +112,11 @@ const Note = ({ tone = "muted", children }) => (
  *
  * `flow` lives in the parent so a purchase still in flight survives leaving
  * and re-opening the Arcade; it is tagged with the account that started it.
+ *
+ * The server checks the pass too. A pass holder signs in once (one wallet
+ * signature, from a click) to use the AI assistant and to put Snake rounds on
+ * the weekly board; everyone else - and a pass holder who never signs in - can
+ * still play Snake, those rounds just never reach the server.
  */
 export default function Arcade({
   account = null,
@@ -165,6 +174,40 @@ export default function Arcade({
   const refreshV4 = v4?.refresh;
   const v4Loading = Boolean(v4?.loading);
   const passValid = ready && pass.valid;
+
+  // --- Arcade sign-in: the server-side pass, the Snake board, the AI assistant ---
+  const session = useArcadeSession({ apiBase, account, signMessage: v4?.signMessage });
+  // Read at the moment a round starts or ends, not when the callbacks were made.
+  const sessionRef = useRef(session);
+  useEffect(() => { sessionRef.current = session; });
+  // Only a pass holder is ever asked to sign in.
+  const canSignIn = configured && passValid && session.available;
+  const scored = canSignIn && session.signedIn;
+  const board = useLeaderboard({ apiBase, token: session.token, enabled: configured && tab === "snake" });
+  const refreshBoard = board.refresh;
+
+  const startRound = useCallback(async () => {
+    const s = sessionRef.current;
+    if (!s.signedIn) return { ok: false, message: "Sign in to the Arcade to play a scored round." };
+    const r = await startSnakeRound({ apiBase, token: s.token });
+    if (r.unauthorized) s.expire(s.token);
+    return r.ok ? { ...r, owner: s.address } : r;
+  }, [apiBase]);
+
+  const finishRound = useCallback(async ({ ticket, owner, inputs, score, durationMs }) => {
+    const s = sessionRef.current;
+    if (!s.signedIn || !sameAddress(s.address, owner)) {
+      return { ok: false, message: "You signed out or switched wallets during this round, so the score wasn't sent." };
+    }
+    const r = await finishSnakeRound({ apiBase, token: s.token, ticket, inputs, score, durationMs });
+    if (r.unauthorized) s.expire(s.token);
+    refreshBoard();
+    return r;
+  }, [apiBase, refreshBoard]);
+
+  const scoring = useMemo(() => (scored && apiBase ? { start: startRound, finish: finishRound } : null),
+    [scored, apiBase, startRound, finishRound]);
+  const weekBest = scored ? (board.you ? board.you.best : (board.youKnown ? 0 : null)) : null;
 
   // --- pass status: fresh subscription state + cap + balances on every check ---
   const checkPass = useCallback(async () => {
@@ -514,6 +557,46 @@ export default function Arcade({
     </>
   );
 
+  const signInLabel = session.signing ? "Check your wallet…" : "Sign in to the Arcade";
+  // Shown inside the active-pass card only.
+  const signInBlock = canSignIn && (
+    <div style={{ borderTop: "1px solid var(--fl-border)", marginTop: 16, paddingTop: 14 }}>
+      {session.signedIn ? (
+        <>
+          <div className="fl-row--between" style={{ marginBottom: 4 }}>
+            <span style={{ color: "var(--fl-fg)", fontSize: 13, fontWeight: 600 }}>Signed in to the Arcade</span>
+            <button className="fl-link" style={{ fontSize: 12 }} onClick={session.signOut}>Sign out</button>
+          </div>
+          <div style={{ color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.55 }}>
+            Your Snake scores now count for the weekly board, and you can use the AI assistant.
+            The sign-in lasts up to 12 hours in this tab.
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ color: "var(--fl-fg-2)", fontSize: 12.5, lineHeight: 1.6, marginBottom: 12 }}>
+            Sign in to put your Snake scores on the weekly board and use the AI assistant.
+            It's one signature in your wallet - no transaction and no gas.
+          </div>
+          <button className="fl-btn fl-btn--primary fl-btn--block" disabled={session.signing} onClick={session.signIn}>
+            {signInLabel}
+          </button>
+          {session.error && <Note tone="warn">{session.error}</Note>}
+        </>
+      )}
+    </div>
+  );
+
+  // Under the board for a pass holder who hasn't signed in.
+  const snakeNote = canSignIn && !session.signedIn && (session.signing
+    ? "Check your wallet to finish signing in."
+    : (
+      <>
+        <button className="fl-link" style={{ fontSize: 12, padding: 0 }} onClick={session.signIn}>{signInLabel}</button>
+        {" "}to put your scores on the weekly board.
+      </>
+    ));
+
   const card = (children) => <div className="fl-card">{children}</div>;
   const retryPanel = (body, onRetry, retrying) => card(
     <>
@@ -626,6 +709,7 @@ export default function Arcade({
             {ARCADE.priceLabel}{token ? `, paid in ${token.symbol}` : ""}. Billed as it runs; cancel anytime from your dashboard.
           </div>
           <button className="fl-link" style={{ fontSize: 12.5 }} onClick={() => onNavigate?.("dashboard")}>Manage subscription &rarr;</button>
+          {signInBlock}
         </>
       );
     }
@@ -814,15 +898,28 @@ export default function Arcade({
             <TabButton active={tab === "chat"} label="AI Assistant" onSelect={() => setTab("chat")} />
           </div>
           {tab === "snake" ? (
-            <SnakeGame disabled={snakeLocked} startLabel={snakeLabel} onStart={markFreeRound} />
+            <SnakeGame disabled={snakeLocked} startLabel={snakeLabel} onStart={markFreeRound}
+                       scoring={scoring} weekBest={weekBest} note={snakeNote || null} />
           ) : (
-            <ArcadeChat apiBase={apiBase} disabled={!passValid} />
+            <ArcadeChat apiBase={apiBase} disabled={!passValid}
+                        token={session.token}
+                        onSignIn={canSignIn ? session.signIn : null}
+                        signingIn={session.signing}
+                        signInError={session.error}
+                        onUnauthorized={session.expire} />
           )}
           {!passValid && tab === "chat" && (
             <div style={{ color: "var(--fl-fg-3)", fontSize: 12, marginTop: 10 }}>The AI assistant unlocks with the Arcade Pass.</div>
           )}
         </div>
-        <div>{PassPanel()}</div>
+        <div>
+          {PassPanel()}
+          {configured && apiBase && tab === "snake" && (
+            <Leaderboard status={board.status} week={board.week} entries={board.entries} you={board.you}
+                         youKnown={board.youKnown} names={board.names} account={account}
+                         signedIn={session.signedIn} passValid={passValid} onRetry={refreshBoard} />
+          )}
+        </div>
       </div>
     </>
   );

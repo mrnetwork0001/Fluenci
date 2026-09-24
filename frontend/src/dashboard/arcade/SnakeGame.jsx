@@ -1,36 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { COLS, ROWS, DIRS, initialSnake } from "./snakeCore";
+import { newRound, queueTurn, advance, localSeed } from "./snakeRound";
 
 /**
  * Fluenci Arcade: Snake for the v2 dashboard.
  *
- * Ported from the v1 game in components/QieDoodleGame.jsx, with everything about
- * payments removed. Access (QIE Pass, subscription) is the parent's job; this
- * component only plays and reports. `disabled` is the one lever the parent has.
+ * The rules (board, food, speed, collisions) are snakeCore.js, the same code the
+ * server replays a scored round with; snakeRound.js adds the buffered turns and
+ * the turn log. This component draws, takes input and reports. Access is the
+ * parent's job: `disabled` is its lever, and `scoring` is how a round goes on
+ * the weekly board. With `scoring` null (a free round, or a player who isn't
+ * signed in) a round never talks to the server and plays fine offline.
  *
  *   <SnakeGame disabled={!hasAccess} onGameOver={({ score, durationMs }) => ...} />
+ *
+ *   scoring = {
+ *     start:  () => Promise<{ ok: true, ticket, seed, owner } | { ok: false, message }>,
+ *     finish: ({ ticket, owner, inputs, score, durationMs }) =>
+ *               Promise<{ ok: true, score, best, rank } | { ok: false, message }>,
+ *   }
  */
 
-// Same board as v1 so scores stay comparable across the two versions.
-const COLS = 20;
-const ROWS = 25;
 const CELL = 16;               // logical px; the canvas is scaled to fit, this only fixes the aspect
 const BOARD_W = COLS * CELL;   // 320
 const BOARD_H = ROWS * CELL;   // 400
 const MAX_W = 420;
 
 const BEST_KEY = "fluenci_snake_best";
-const POINTS = 10;
-const START_SPEED = 220;       // ms per step
-const MIN_SPEED = 90;
-const SPEED_STEP = 8;          // faster by this much every 5 food
 const SWIPE_MIN = 20;          // css px before a touch counts as a swipe
 
-const DIR = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
 const KEY_DIR = {
-  ArrowUp: DIR.UP, w: DIR.UP, W: DIR.UP,
-  ArrowDown: DIR.DOWN, s: DIR.DOWN, S: DIR.DOWN,
-  ArrowLeft: DIR.LEFT, a: DIR.LEFT, A: DIR.LEFT,
-  ArrowRight: DIR.RIGHT, d: DIR.RIGHT, D: DIR.RIGHT,
+  ArrowUp: "up", w: "up", W: "up",
+  ArrowDown: "down", s: "down", S: "down",
+  ArrowLeft: "left", a: "left", A: "left",
+  ArrowRight: "right", d: "right", D: "right",
 };
 
 const C = {
@@ -47,63 +50,8 @@ const readBest = () => {
   try { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10) || 0; } catch { return 0; }
 };
 
-const initialSnake = () => {
-  const x = Math.floor(COLS / 2);
-  const y = Math.floor(ROWS / 2);
-  return [{ x, y }, { x: x - 1, y }, { x: x - 2, y }];
-};
-
 // Drawn behind the "ready" overlay so the board never looks empty or broken.
-const PREVIEW = { snake: initialSnake(), dir: DIR.RIGHT, food: null, pulse: 0 };
-
-// Random probing is fine while the board is mostly empty; the scan fallback keeps
-// a near-full board from spinning forever (v1's do/while could).
-const spawnFood = (snake) => {
-  const taken = (x, y) => snake.some((p) => p.x === x && p.y === y);
-  for (let i = 0; i < 60; i++) {
-    const x = Math.floor(Math.random() * COLS);
-    const y = Math.floor(Math.random() * ROWS);
-    if (!taken(x, y)) return { x, y };
-  }
-  const free = [];
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!taken(x, y)) free.push({ x, y });
-  return free.length ? free[Math.floor(Math.random() * free.length)] : null;
-};
-
-// Up to two buffered turns, each checked against the one before it, so a quick
-// "up, left" inside one step is not lost and can never fold the snake onto itself.
-const queueTurn = (s, d) => {
-  if (s.queue.length >= 2) return;
-  const last = s.queue.length ? s.queue[s.queue.length - 1] : s.dir;
-  if (d[0] === last[0] && d[1] === last[1]) return;
-  if (d[0] === -last[0] && d[1] === -last[1]) return;
-  s.queue.push(d);
-};
-
-// One movement step. Returns { alive, ate }.
-const step = (s) => {
-  if (s.queue.length) s.dir = s.queue.shift();
-  const head = { x: s.snake[0].x + s.dir[0], y: s.snake[0].y + s.dir[1] };
-
-  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return { alive: false, ate: false };
-
-  const ate = !!s.food && head.x === s.food.x && head.y === s.food.y;
-  // The tail moves out of the way this step unless we grow, so it is not an obstacle.
-  const body = ate ? s.snake : s.snake.slice(0, -1);
-  if (body.some((p) => p.x === head.x && p.y === head.y)) return { alive: false, ate: false };
-
-  s.snake.unshift(head);
-  if (ate) {
-    s.eaten += 1;
-    s.score += POINTS;
-    if (s.eaten % 5 === 0 && s.speed > MIN_SPEED) s.speed = Math.max(MIN_SPEED, s.speed - SPEED_STEP);
-    s.food = spawnFood(s.snake);
-    if (!s.food) return { alive: false, ate }; // board is full: nothing left to eat
-  } else {
-    s.snake.pop();
-  }
-  return { alive: true, ate };
-};
+const PREVIEW = { round: { game: { snake: initialSnake(), dir: "right", food: null } }, pulse: 0 };
 
 const roundRect = (ctx, x, y, w, h, r) => {
   ctx.beginPath();
@@ -125,22 +73,40 @@ const PHASE_PILL = {
   gameover: { cls: "fl-pill--warn", text: "Game over" },
 };
 
-export default function SnakeGame({ disabled = false, onGameOver, onStart, startLabel = "Play" }) {
+const IDLE_SUBMIT = { status: "idle" };
+const FINISH_FAILED = "Couldn't send this score to the board.";
+
+export default function SnakeGame({
+  disabled = false, onGameOver, onStart, startLabel = "Play",
+  scoring = null, weekBest = null, note = null,
+}) {
   const [phase, setPhase] = useState("ready"); // ready | playing | gameover
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(readBest);
   const [newBest, setNewBest] = useState(false);
+  const [starting, setStarting] = useState(false);
+  // The round on screen: scored or not, and why not when a scored start failed.
+  const [roundInfo, setRoundInfo] = useState({ scored: false, notice: "" });
+  const [submit, setSubmit] = useState(IDLE_SUBMIT);
 
   const canvasRef = useRef(null);
   const stateRef = useRef(null);     // mutable game state; the loop never goes through React
   const bestRef = useRef(best);
   const onGameOverRef = useRef(onGameOver);
   const onStartRef = useRef(onStart);
+  const scoringRef = useRef(scoring);
+  const roundId = useRef(0);
+  const mounted = useRef(true);
 
-  // The loop is started once per game, so it reads the latest callback through a ref
-  // instead of capturing whatever the parent passed when the game began.
+  // The loop is started once per game, so it reads the latest callbacks through
+  // refs instead of capturing whatever the parent passed when the game began.
   useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
   useEffect(() => { onStartRef.current = onStart; }, [onStart]);
+  useEffect(() => { scoringRef.current = scoring; }, [scoring]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -148,6 +114,7 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const s = stateRef.current || PREVIEW;
+    const g = s.round.game;
 
     // Backing store is css size x devicePixelRatio; draw in logical board units.
     const sx = canvas.width / BOARD_W;
@@ -164,20 +131,20 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
     for (let y = 1; y < ROWS; y++) { ctx.moveTo(0, y * CELL); ctx.lineTo(BOARD_W, y * CELL); }
     ctx.stroke();
 
-    if (s.food) {
+    if (g.food) {
       const pulse = 1 + Math.sin(s.pulse) * 0.15;
       ctx.shadowColor = C.foodGlow;
       ctx.shadowBlur = 8;
       ctx.fillStyle = C.food;
       ctx.beginPath();
-      ctx.arc(s.food.x * CELL + CELL / 2, s.food.y * CELL + CELL / 2, (CELL / 2 - 2) * pulse, 0, Math.PI * 2);
+      ctx.arc(g.food.x * CELL + CELL / 2, g.food.y * CELL + CELL / 2, (CELL / 2 - 2) * pulse, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
     }
 
-    const len = s.snake.length;
+    const len = g.snake.length;
     for (let i = len - 1; i >= 0; i--) { // tail first so the head paints on top
-      const seg = s.snake[i];
+      const seg = g.snake[i];
       const t = i / Math.max(len - 1, 1); // 0 = head, 1 = tail
       if (i === 0) {
         ctx.shadowColor = "rgba(10, 182, 216, 0.5)";
@@ -190,7 +157,7 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
       ctx.shadowBlur = 0;
 
       if (i === 0) {
-        const [dx, dy] = s.dir;
+        const [dx, dy] = DIRS[g.dir];
         ctx.fillStyle = C.eye;
         ctx.beginPath();
         if (dx !== 0) {
@@ -237,10 +204,21 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
     };
   }, [draw]);
 
+  // A scored round's turn log goes to the server, which replays it from the seed.
+  const sendScore = useCallback((s, finalScore, durationMs) => {
+    setSubmit({ status: "sending" });
+    const shown = (r) => { if (stateRef.current === s) setSubmit(r); };
+    Promise.resolve()
+      .then(() => s.finish({ ticket: s.ticket, owner: s.owner, inputs: s.round.inputs, score: finalScore, durationMs }))
+      .then((r) => shown(r?.ok ? { status: "ok", score: r.score, best: r.best, rank: r.rank }
+                                : { status: "failed", message: r?.message || FINISH_FAILED }))
+      .catch(() => shown({ status: "failed", message: FINISH_FAILED }));
+  }, []);
+
   const finish = useCallback((s) => {
     if (s.over) return; // exactly one onGameOver per game
     s.over = true;
-    const finalScore = s.score;
+    const finalScore = s.round.game.score;
     const durationMs = Math.max(0, Math.round(performance.now() - s.startedAt));
     const isBest = finalScore > bestRef.current;
     if (isBest) {
@@ -252,30 +230,46 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
     setScore(finalScore);
     setPhase("gameover");
     onGameOverRef.current?.({ score: finalScore, durationMs });
-  }, []);
+    if (s.ticket) sendScore(s, finalScore, durationMs);
+  }, [sendScore]);
 
-  const start = useCallback(() => {
-    if (disabled) return;
-    // Fired when a game begins (not when it ends), so a round counts even if
-    // the player leaves mid-game - e.g. to reuse a one-time free round.
-    onStartRef.current?.();
-    const snake = initialSnake();
+  const begin = useCallback((seed, ticket, owner, finishFn, notice) => {
     stateRef.current = {
-      snake,
-      dir: DIR.RIGHT,
-      queue: [],
-      food: spawnFood(snake),
-      score: 0,
-      eaten: 0,
-      speed: START_SPEED,
+      round: newRound(seed),
+      ticket,
+      owner,
+      finish: finishFn,
       pulse: 0,
       over: false,
       startedAt: performance.now(),
     };
+    setRoundInfo({ scored: Boolean(ticket), notice });
+    setSubmit(IDLE_SUBMIT);
     setScore(0);
     setNewBest(false);
     setPhase("playing");
-  }, [disabled]);
+  }, []);
+
+  const start = useCallback(async () => {
+    if (disabled || starting) return;
+    // Fired when a game begins (not when it ends), so a round counts even if
+    // the player leaves mid-game - e.g. to reuse a one-time free round.
+    onStartRef.current?.();
+    const my = ++roundId.current;
+    const scorer = scoringRef.current;
+    if (!scorer) {
+      begin(localSeed(), null, null, null, "");
+      return;
+    }
+    // A scored round plays the server's seed; if there's no ticket, it still plays, just unscored.
+    setStarting(true);
+    let r;
+    try { r = await scorer.start(); } catch { r = { ok: false, message: "" }; }
+    if (!mounted.current || my !== roundId.current) return;
+    setStarting(false);
+    if (r?.ok) begin(r.seed, r.ticket, r.owner, scorer.finish, "");
+    else begin(localSeed(), null, null, null, r?.message || "The server couldn't start a scored round right now.");
+  }, [disabled, starting, begin]);
 
   // Game loop: rAF for smooth rendering, movement gated by the current speed.
   useEffect(() => {
@@ -288,11 +282,11 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
       s.pulse = (s.pulse + 0.05) % (Math.PI * 2);
       // First step waits one full interval so the player sees the board before it moves.
       if (last === null) last = t;
-      if (t - last >= s.speed) {
+      if (t - last >= s.round.game.speed) {
         last = t;
-        const { alive, ate } = step(s);
-        if (ate) setScore(s.score);
-        if (!alive) {
+        const { ate } = advance(s.round);
+        if (ate) setScore(s.round.game.score);
+        if (!s.round.game.alive) {
           draw();
           finish(s);
           return;
@@ -316,7 +310,7 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
       const d = KEY_DIR[e.key];
       if (d) {
         if (e.key.startsWith("Arrow")) e.preventDefault();
-        if (stateRef.current) queueTurn(stateRef.current, d);
+        if (stateRef.current) queueTurn(stateRef.current.round, d);
       } else if (e.key === " ") {
         e.preventDefault();
       }
@@ -331,11 +325,11 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
     const canvas = canvasRef.current;
     if (phase !== "playing" || !canvas) return undefined;
     let from = null;
-    const onStart = (e) => {
+    const onTouchStart = (e) => {
       const t = e.touches[0];
       from = t ? { x: t.clientX, y: t.clientY } : null;
     };
-    const onEnd = (e) => {
+    const onTouchEnd = (e) => {
       const t = e.changedTouches[0];
       const s = stateRef.current;
       if (!from || !t || !s) { from = null; return; }
@@ -343,23 +337,48 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
       const dy = t.clientY - from.y;
       from = null;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return;
-      if (Math.abs(dx) > Math.abs(dy)) queueTurn(s, dx > 0 ? DIR.RIGHT : DIR.LEFT);
-      else queueTurn(s, dy > 0 ? DIR.DOWN : DIR.UP);
+      if (Math.abs(dx) > Math.abs(dy)) queueTurn(s.round, dx > 0 ? "right" : "left");
+      else queueTurn(s.round, dy > 0 ? "down" : "up");
     };
-    canvas.addEventListener("touchstart", onStart, { passive: true });
-    canvas.addEventListener("touchend", onEnd, { passive: true });
+    canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+    canvas.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
-      canvas.removeEventListener("touchstart", onStart);
-      canvas.removeEventListener("touchend", onEnd);
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchend", onTouchEnd);
     };
   }, [phase]);
 
   const pill = PHASE_PILL[phase];
+  const showWeek = Boolean(scoring) || roundInfo.scored;
+
+  // One line under the board: what this round counts for, or the parent's hint.
+  let footNote = null;
+  if (phase !== "ready" && roundInfo.notice) {
+    footNote = <span style={{ color: "var(--fl-warn)" }}>This round isn't scored: {roundInfo.notice}</span>;
+  } else if (phase === "playing" && roundInfo.scored) {
+    footNote = "This round counts for this week's board once the server has checked it.";
+  } else if (phase !== "playing" && note) {
+    footNote = note;
+  }
+
+  let result = null;
+  if (submit.status === "sending") {
+    result = <span style={{ color: "var(--fl-fg-3)" }}>Checking your score…</span>;
+  } else if (submit.status === "ok") {
+    result = submit.rank
+      ? <span style={{ color: "var(--fl-fg-2)" }}>
+          {submit.best === submit.score && submit.score > 0 ? "Your best this week" : `Best this week ${submit.best}`}
+          {" · "}#{submit.rank} on the board
+        </span>
+      : <span style={{ color: "var(--fl-fg-3)" }}>Eat at least one dot to get on the board.</span>;
+  } else if (submit.status === "failed") {
+    result = <span style={{ color: "var(--fl-warn)" }}>{submit.message}</span>;
+  }
 
   return (
     <div className="fl-card" style={{ padding: 20 }}>
       <div className="fl-row--between" style={{ marginBottom: 14, flexWrap: "wrap" }}>
-        <div className="fl-row" style={{ gap: 26 }}>
+        <div className="fl-row" style={{ gap: 26, flexWrap: "wrap", rowGap: 10 }}>
           <div>
             <div className="fl-lbl">Score</div>
             <div className="fl-mono" style={{ color: "var(--fl-accent)", fontSize: 21, fontWeight: 600, marginTop: 3 }}>
@@ -372,6 +391,14 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
               {best}
             </div>
           </div>
+          {showWeek && (
+            <div>
+              <div className="fl-lbl">Best this week</div>
+              <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 21, fontWeight: 600, marginTop: 3 }}>
+                {weekBest ?? "-"}
+              </div>
+            </div>
+          )}
         </div>
         <span className={`fl-pill ${pill.cls}`} aria-live="polite">{pill.text}</span>
       </div>
@@ -409,8 +436,8 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
                   Eat the amber dots. Every five makes you faster. Don't hit a wall or yourself.
                 </div>
                 <button type="button" className="fl-btn fl-btn--primary" style={{ minWidth: 140 }}
-                        disabled={disabled} onClick={start}>
-                  {startLabel}
+                        disabled={disabled || starting} onClick={start}>
+                  {starting ? "Starting…" : startLabel}
                 </button>
               </>
             ) : (
@@ -419,16 +446,21 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
                 <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 38, fontWeight: 600, margin: "6px 0 4px" }}>
                   {score}
                 </div>
-                <div style={{ marginBottom: 18, minHeight: 20 }}>
+                <div style={{ marginBottom: result ? 8 : 18, minHeight: 20 }}>
                   {newBest && score > 0 ? (
                     <span className="fl-pill fl-pill--warn">New best</span>
                   ) : (
                     <span className="fl-mono" style={{ color: "var(--fl-fg-3)", fontSize: 12 }}>Best {best}</span>
                   )}
                 </div>
+                {result && (
+                  <div style={{ fontSize: 12, lineHeight: 1.5, maxWidth: 260, marginBottom: 16 }} aria-live="polite">
+                    {result}
+                  </div>
+                )}
                 <button type="button" className="fl-btn fl-btn--primary" style={{ minWidth: 140 }}
-                        disabled={disabled} onClick={start}>
-                  Play again
+                        disabled={disabled || starting} onClick={start}>
+                  {starting ? "Starting…" : "Play again"}
                 </button>
               </>
             )}
@@ -439,6 +471,11 @@ export default function SnakeGame({ disabled = false, onGameOver, onStart, start
       <div className="fl-mono" style={{ textAlign: "center", color: "var(--fl-fg-3)", fontSize: 11, marginTop: 12 }}>
         Arrow keys or WASD · swipe on touch
       </div>
+      {footNote && (
+        <div style={{ textAlign: "center", color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.5, marginTop: 8 }}>
+          {footNote}
+        </div>
+      )}
     </div>
   );
 }

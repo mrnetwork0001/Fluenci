@@ -407,6 +407,23 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
     await ensureChain(wallet);
   }, [getWallet, ensureChain]);
 
+  /**
+   * personal_sign (EIP-191) of a plain-text message by the connected wallet -
+   * the Arcade sign-in. No transaction and no gas, so no chain switch either.
+   * The text goes over as hex-encoded UTF-8, the form every wallet accepts.
+   */
+  const signMessage = useCallback(async (message) => {
+    const wallet = getWallet();
+    if (!wallet) throw new Error("No wallet found");
+    if (!account) throw new Error("Connect a wallet first");
+    const signature = await wallet.request({
+      method: "personal_sign",
+      params: [ethers.hexlify(ethers.toUtf8Bytes(message)), account],
+    });
+    if (typeof signature !== "string" || !signature) throw new Error("Your wallet didn't return a signature.");
+    return signature;
+  }, [account, getWallet]);
+
   const createSubscription = useCallback(
     ({ merchant, amountPerPeriod, periodSeconds, cliffTime = 0, stopTime = 0, token }) =>
       run("create", "Approve and start subscription", async () => {
@@ -509,7 +526,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
     loaded: Boolean(current),
     loadFailed: Boolean(account) && loadFailedFor === account,
     tokenAddress, ensureAllowance, readTokenState, readStablecoinBalances, readProvider,
-    readSubscription, readSubscriberSubscriptions, readSpendCap, reapprove, ensureWalletChain,
+    readSubscription, readSubscriberSubscriptions, readSpendCap, reapprove, ensureWalletChain, signMessage,
     refresh, fetchReputation, fetchReputationAttestation, submitAttestation, verifyReputation,
     createSubscription, setSpendCap, clearSpendCap, setMerchantPolicy,
     claimStream, terminateStream, openDispute,

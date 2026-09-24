@@ -14,7 +14,7 @@ import { useFluenciV4 } from "./useFluenciV4";
 import ConnectWalletV2 from "./ConnectWalletV2";
 import TransactionModal from "../components/TransactionModal";
 import { resolveQieName, resolveQieNameByHistory } from "./qieName";
-import { GATE, QUSDC_DECIMALS, MAINNET_RPC, QIE_PASS, QIE_PASS_ABI, V4_TOKEN, LOW_GAS_QIE, EXPECTED_CHAIN_ID } from "./v4Config";
+import { GATE, QUSDC_DECIMALS, MAINNET_RPC, V4_TOKEN, LOW_GAS_QIE, EXPECTED_CHAIN_ID } from "./v4Config";
 import { sampleSubscriptions, sampleLimits, sampleActivity, sampleMerchant } from "./sampleData";
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../config";
@@ -249,15 +249,10 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
 
     const identityProvider = new ethers.JsonRpcProvider(MAINNET_RPC);
 
-    // QIE Pass status was previously hardcoded false and never queried, so every
-    // merchant read "Not verified" regardless of their actual status.
-    try {
-      const pass = new ethers.Contract(QIE_PASS, QIE_PASS_ABI, identityProvider);
-      const verified = await pass.verifyIdentity(address);
-      setMerchantPreview((m) => (m && m.address === address ? { ...m, qiePassVerified: Boolean(verified) } : m));
-    } catch {
-      // Leave it false; an unreachable adapter must not read as verified.
-    }
+    // Read the adapter the registry enforces, not a hardcoded one. An
+    // unreadable result (null) stays false: it must not read as verified.
+    const verified = await v4.readMerchantPass(address);
+    setMerchantPreview((m) => (m && m.address === address ? { ...m, qiePassVerified: verified === true } : m));
 
     // If the merchant has a primary .qie name, prefer it over what was typed.
     if (!base.name) {
@@ -396,7 +391,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               settledAllTime={merchantData.settledAllTime}
               subscriberCount={merchantData.subscriberCount}
               reputationScore={merchantData.reputationScore}
-              qiePassVerified={usingSample ? true : Boolean(v4.merchantVerified)}
+              qiePassVerified={usingSample ? true : Boolean(v4.merchantVerified || fluenci?.qiePassVerified)}
               kycRequired={usingSample ? false : Boolean(v4.kycRequired)}
               merchantName={merchantData.merchantName}
               gate={v4.policy.gate}
@@ -414,6 +409,10 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
               })}
               onVerify={() => fluenci?.startKycVerification?.()}
               verifying={["creating", "pending_kyc", "pending_consent", "claiming"].includes(fluenci?.kycState?.status)}
+              verifyStatus={fluenci?.kycState?.status || "idle"}
+              verifyMessage={fluenci?.kycState?.message || fluenci?.kycState?.error || ""}
+              verifyUrl={fluenci?.kycState?.redirectUrl || ""}
+              onCheckVerify={() => fluenci?.checkKycStatus?.()}
               onSavePolicy={guard((gate, minRep) => v4.setMerchantPolicy(gate, minRep ?? 0))}
               // Copy what the screen displayed and handed over, rather than
               // rebuilding a second URL here that can differ from it.

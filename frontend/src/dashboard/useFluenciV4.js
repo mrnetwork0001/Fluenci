@@ -150,13 +150,24 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
       // address instead meant the Claim button stayed disabled while the
       // registry considered the merchant perfectly verified.
       let verified = false;
+      let pass = null;
       try {
         const passAddr = await reg.qiePass();
         if (passAddr && passAddr !== ethers.ZeroAddress) {
-          const pass = new ethers.Contract(passAddr, QIE_PASS_ABI, readProvider());
+          pass = new ethers.Contract(passAddr, QIE_PASS_ABI, readProvider());
           verified = Boolean(await pass.verifyIdentity(account));
         }
       } catch { verified = false; }
+
+      // Each merchant's own QIE Pass, for the subscriber's list. A failed read
+      // stays undefined, so it never shows as "not verified".
+      const merchantPass = new Map();
+      if (pass) {
+        await Promise.all([...new Set(mine.map((s) => String(s.merchant).toLowerCase()))].map(async (m) => {
+          try { merchantPass.set(m, Boolean(await pass.verifyIdentity(m))); } catch { /* unknown */ }
+        }));
+      }
+      const mineRows = mine.map((s) => ({ ...s, merchantPassVerified: merchantPass.get(String(s.merchant).toLowerCase()) }));
       let kyc = true;
       try { kyc = await reg.requireMerchantKyc(); } catch { kyc = true; }
 
@@ -177,7 +188,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
       setKycRequired(kyc);
       setSnapshot({
         account,
-        subscriptions: mine,
+        subscriptions: mineRows,
         merchantStreams: theirs,
         limits: caps,
         policy: { gate: Number(gate), minReputation: minRep },
@@ -467,6 +478,19 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
     }
   }, [readRegistry, account]);
 
+  /** Is `address` verified on the QIE Pass adapter THIS registry enforces? null when unreadable. */
+  const readMerchantPass = useCallback(async (address) => {
+    const reg = readRegistry();
+    if (!reg || !address) return null;
+    try {
+      const passAddr = await reg.qiePass();
+      if (!passAddr || passAddr === ethers.ZeroAddress) return false;
+      return Boolean(await new ethers.Contract(passAddr, QIE_PASS_ABI, readProvider()).verifyIdentity(address));
+    } catch {
+      return null;
+    }
+  }, [readRegistry, readProvider]);
+
   // Gross accrued, and what is actually withdrawable once caps are applied.
   const claimableGross = useMemo(
     () => merchantStreams.reduce((acc, s) => acc + (s.owed ?? 0n), 0n),
@@ -481,7 +505,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider
     decimals: QUSDC_DECIMALS,
     loading, busy, error, txState, resetTx,
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
-    reputationGateAvailable, idGateAvailable, checkMerchantPolicy, claimable, claimableGross, merchantVerified, kycRequired,
+    reputationGateAvailable, idGateAvailable, checkMerchantPolicy, readMerchantPass, claimable, claimableGross, merchantVerified, kycRequired,
     loaded: Boolean(current),
     loadFailed: Boolean(account) && loadFailedFor === account,
     tokenAddress, ensureAllowance, readTokenState, readStablecoinBalances, readProvider,

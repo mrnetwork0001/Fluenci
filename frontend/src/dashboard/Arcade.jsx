@@ -6,7 +6,7 @@ import FundWallet from "./FundWallet";
 import { IconCheck } from "./icons";
 import {
   ARCADE, QIEDEX_ROUTER, QIEDEX_ROUTER_ABI, WQIE, V4_TOKEN,
-  LOW_GAS_QIE, GAS_RESERVE_QIE, stablecoinOf,
+  LOW_GAS_QIE, GAS_RESERVE_QIE, stablecoinOf, isStablecoin,
 } from "./v4Config";
 import {
   evaluatePass, arcadeSubscriptions, hasEnded, monthlyUnits, runwayUnits,
@@ -181,7 +181,11 @@ export default function Arcade({
         // Re-read: owed, stopTime, pause and dispute change without a refresh.
         const s = await readSubscription(s0.id);
         if (!s) throw new Error("Subscription unreadable");
-        return { ...evaluatePass(s, await readTokenState(s.tokenAddress, account), { cap, account }), sub: s };
+        // Token state only matters when the solvency rule can be reached; reading
+        // it for a record in a non-token address would throw and hide every pass.
+        const needsTokenState = s.active && !hasEnded(s) && isStablecoin(s.tokenAddress);
+        const tokenState = needsTokenState ? await readTokenState(s.tokenAddress, account) : { balance: 0n, allowance: 0n };
+        return { ...evaluatePass(s, tokenState, { cap, account }), sub: s };
       }));
       const ok = results.find((r) => r.valid);
       if (ok) { commit({ checked: true, valid: true, reason: "ok", sub: ok.sub }); return; }
@@ -370,7 +374,12 @@ export default function Arcade({
       setFlow("idle", "Couldn't get a fresh swap price. Try again in a moment.");
       return null;
     }
-    if (shortfall === 0n) return loadStables(); // already holds enough
+    if (shortfall === 0n) {
+      // Already holds enough. A null here must still release the flow.
+      const rows = await loadStables();
+      if (!rows) setFlow("idle", "You already hold enough qUSDC, but your balances couldn't be read just now. Try again in a moment.");
+      return rows;
+    }
     if (qieWeiBalance < wei + reserveWei) {
       setFlow("idle", `The price moved: ${monthsLabel(m)} now needs about ${qie(wei)} QIE plus ${GAS_RESERVE_QIE} QIE for fees, and you have ${qie(qieWeiBalance)} QIE.`);
       return null;

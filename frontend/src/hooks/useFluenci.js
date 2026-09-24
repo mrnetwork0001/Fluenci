@@ -182,8 +182,10 @@ export function useFluenci() {
     error: ""
   });
 
+  // title/note belong to the step that set them (e.g. the QIE Pass result);
+  // a later step of another transaction must not inherit them.
   const setTxStep = (status, extra = {}) => {
-    setTxState(prev => ({ ...prev, status, ...extra }));
+    setTxState(prev => ({ ...prev, title: undefined, note: undefined, status, ...extra }));
   };
 
   const resetTx = () => {
@@ -642,6 +644,20 @@ export function useFluenci() {
     }
   };
 
+  // Drop a flow and its in-progress status, so reconnecting that wallet later
+  // doesn't show a request that nothing is polling any more.
+  const abandonKyc = (ctx) => {
+    if (kycCtxRef.current === ctx) stopKycFlow();
+    setKycState((prev) => (sameAddress(prev.account, ctx.wallet) ? IDLE_KYC : prev));
+  };
+
+  // Switching wallets abandons the running flow; the server bound it to the old one.
+  useEffect(() => {
+    const ctx = kycCtxRef.current;
+    if (ctx && !sameAddress(account, ctx.wallet)) abandonKyc(ctx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a wallet change should abandon
+  }, [account]);
+
   const failKyc = (ctx, status, message) => {
     if (!isLiveFlow(ctx)) return;
     stopKycFlow();
@@ -728,7 +744,7 @@ export function useFluenci() {
   const advanceKyc = async (ctx, { manual = false } = {}) => {
     if (kycCtxRef.current !== ctx || ctx.busy) return;
     if (!sameAddress(accountRef.current, ctx.wallet)) {
-      stopKycFlow();
+      abandonKyc(ctx);
       return;
     }
     ctx.busy = true;

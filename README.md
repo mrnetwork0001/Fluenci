@@ -329,6 +329,8 @@ QIEPASS_PUBLIC_KEY=  # pk_live_... (a pk_test_ key is refused)
 QIEPASS_SECRET_KEY=
 QIEPASS_CLAIMS=firstName
 START_BLOCK=10031934
+SESSION_SECRET=      # 32+ characters (openssl rand -hex 32); signs Arcade sign-in tokens
+ARCADE_MERCHANT=0x07F3D74e8BC5fdbfc02a3187DbD6cd08E96C05a8   # same as the frontend's VITE_ARCADE_MERCHANT
 ```
 
 The QIE Pass adapter is read from the registry (`registry.qiePass()`), so there is no
@@ -338,6 +340,38 @@ is for local chains only; leave it out of a mainnet `.env` (see the QIE Pass sec
 
 Move `REGISTRY_ADDRESS` and `START_BLOCK` together at cutover. Moving one without the other
 leaves the indexer scanning roughly 1.4M empty blocks.
+
+#### Fluenci Arcade: sign-in and the server-side pass
+
+The Arcade Pass ($1/month subscription to `ARCADE_MERCHANT`) is checked on the server, not
+only in the browser. A wallet signs in once (a free signature, no transaction), and the
+server reads its pass from the registry at `REGISTRY_ADDRESS` with the same rules as
+`frontend/src/dashboard/arcadePass.js`.
+
+| Variable | |
+|---|---|
+| `SESSION_SECRET` | Required, 32+ characters. Signs session tokens (HMAC-SHA256, 12 hours). Without it every route below and `/api/chat` answer `503 not_configured`. Changing it signs everyone out. |
+| `ARCADE_MERCHANT` | The Arcade merchant wallet (same as `VITE_ARCADE_MERCHANT`). Unset: no pass is valid, and `/api/chat` and Snake scores answer `503 not_configured`. |
+| `ARCADE_STABLECOINS` | Tests only. Token addresses that replace the pass's stablecoin allowlist on a local chain. Ignored on QIE mainnet (1990) and while the chain id is unknown. |
+
+Routes (CORS: the same origin allowlist as `/api/chat`; every error body is `{error, code}`):
+
+| Route | |
+|---|---|
+| `POST /auth/nonce {address}` | `{message, nonce, expiresAt}`. The message to sign with `personal_sign`; single-use, 5 minutes. |
+| `POST /auth/verify {address, signature}` | `{token, address, expiresAt}`, or `401` `bad_signature` / `expired_nonce`. Plain wallets (EOAs) only. |
+| `GET /arcade/pass` | `{valid, reason}` for the signed-in wallet, cached about 60 s (a missing or lapsed pass 15 s). A failed chain read is `{valid: false, reason: "unavailable"}`. |
+| `POST /api/chat` | Now needs `Authorization: Bearer <token>` (`401 unauthorized`) and a valid pass (`403 no_pass`, with `reason`), plus a per-wallet limit (`429 rate_address`: 20 per 10 minutes, 100 per UTC day) on top of the per-IP and global ones. |
+| `POST /arcade/snake/start` | Needs a valid pass. `{ticket, seed, issuedAt}`: a single-use ticket for this wallet (30 minutes; 60 starts per wallet per hour). |
+| `POST /arcade/snake/finish {ticket, inputs, score, durationMs}` | `inputs` is `[[step, dir], ...]`. The server replays the game from the seed with `server/arcade/snakeCore.js` and records only a score the replay reaches, no faster than the steps can be played: `{accepted: true, score, best, rank, week}` or `400 {accepted: false, code}` with `bad_ticket`, `mismatch`, `too_fast` or `too_long`. |
+| `GET /arcade/leaderboard` | `{week, entries, you}`: this ISO week's (UTC) top 20 best scores, and with a token the caller's own `{best, rank}`. Kept in `server/data/arcade.json`, last 8 weeks. No prizes. |
+
+The Snake rules live in one file, `frontend/src/dashboard/arcade/snakeCore.js`. The server's
+CommonJS copy is generated from it: after editing the frontend file, run
+`npm run sync:snake` in `server/`. `npm test` in `server/` fails while the copies differ, and
+also checks the pass rules against the frontend's. `npm run test:integration` runs the whole
+flow against a local Hardhat node (instructions at the top of
+`server/test/integration/arcade.integration.js`).
 
 ### Frontend
 
@@ -383,6 +417,9 @@ Fluenci/
 │
 ├── server/
 │   ├── server.js                          # event indexer, Protect loop, QIE Pass bridge, telemetry
+│   ├── auth.js                            # Arcade wallet sign-in (signed message -> session token)
+│   ├── arcade/                            # server-side pass check, Snake replay, leaderboard
+│   ├── test/                              # npm test; test/integration needs a Hardhat node
 │   └── check_subscriptions.js
 │
 ├── frontend/src/

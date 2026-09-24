@@ -8,13 +8,23 @@ const net = require("net");
 const fs = require("fs");
 const path = require("path");
 
+const { createAuth, secretUsable } = require("./auth");
+const { mountArcade } = require("./arcade/routes");
+const { createPassChecker } = require("./arcade/pass");
+const { createSnakeService } = require("./arcade/snake");
+const { createLeaderboard } = require("./arcade/leaderboard");
+const { createWindowLimiter, createDailyLimiter } = require("./arcade/rateLimit");
+
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 const app = express();
 
 // /api/chat spends OpenAI credit, so browsers may only call it from Fluenci's
 // own origins, and it parses its own body with a tighter limit (see the chat
-// section). Every other route keeps open CORS and the default JSON parser.
+// section). The Arcade's sign-in and pass-gated routes (/auth/*, /arcade/*)
+// use the same origin allowlist; /arcade/snake/finish parses its own, larger
+// body (a game's turn log). Every other route keeps open CORS and the default
+// JSON parser.
 const CHAT_ALLOWED_ORIGINS = [...new Set([
   "https://www.fluenci.xyz",
   "https://fluenci.xyz",
@@ -24,12 +34,16 @@ const CHAT_ALLOWED_ORIGINS = [...new Set([
 ])];
 // Express matches routes case-insensitively and ignores a trailing slash, so
 // "/API/chat/" must not slip past the chat-only CORS and body limit.
-const isChatPath = (p) => p.replace(/\/+$/, "").toLowerCase() === "/api/chat";
+const normalizedPath = (p) => p.replace(/\/+$/, "").toLowerCase();
+const isChatPath = (p) => normalizedPath(p) === "/api/chat";
+const isArcadePath = (p) => /^\/(auth|arcade)\//.test(normalizedPath(p));
+const isSnakeFinishPath = (p) => normalizedPath(p) === "/arcade/snake/finish";
 const globalCors = cors();
-const chatCors = cors({ origin: CHAT_ALLOWED_ORIGINS, methods: ["POST"] });
+const chatCors = cors({ origin: CHAT_ALLOWED_ORIGINS, methods: ["POST"], allowedHeaders: ["Content-Type", "Authorization"] });
+const arcadeCors = cors({ origin: CHAT_ALLOWED_ORIGINS, methods: ["GET", "POST"], allowedHeaders: ["Content-Type", "Authorization"] });
 const globalJson = express.json();
-app.use((req, res, next) => (isChatPath(req.path) ? chatCors : globalCors)(req, res, next));
-app.use((req, res, next) => (isChatPath(req.path) ? next() : globalJson(req, res, next)));
+app.use((req, res, next) => (isChatPath(req.path) ? chatCors : isArcadePath(req.path) ? arcadeCors : globalCors)(req, res, next));
+app.use((req, res, next) => (isChatPath(req.path) || isSnakeFinishPath(req.path) ? next() : globalJson(req, res, next)));
 
 const PORT = process.env.PORT || 5001;
 
@@ -2000,6 +2014,49 @@ app.post("/qiepass/claim", async (req, res) => {
   }
 });
 
+// ==========================================
+// FLUENCI ARCADE: SIGN-IN, PASS, SNAKE SCORES
+// ==========================================
+
+// Sign-in tokens are HMAC'd with SESSION_SECRET (32+ characters). Without it,
+// sign-in and every route that needs it (the pass check, Snake scores and
+// /api/chat) answer 503 not_configured.
+const SESSION_SECRET = process.env.SESSION_SECRET || "";
+// The Arcade merchant wallet (same as the frontend's VITE_ARCADE_MERCHANT).
+const ARCADE_MERCHANT = (process.env.ARCADE_MERCHANT || "").trim();
+// Replaces the pass's stablecoin allowlist on a local test chain; ignored on
+// QIE mainnet and while the chain is unknown (see arcade/pass.js).
+const ARCADE_STABLECOINS = process.env.ARCADE_STABLECOINS || "";
+
+const arcadeAuth = createAuth({ secret: SESSION_SECRET });
+const arcadePass = createPassChecker({
+  merchant: ethers.isAddress(ARCADE_MERCHANT) ? ethers.getAddress(ARCADE_MERCHANT) : "",
+  stablecoinsEnv: ARCADE_STABLECOINS,
+  getProvider: () => provider,
+  getRegistryAddress: () => REGISTRY_ADDRESS,
+  getChainId: () => (connectedChain && connectedChain.provider === provider ? connectedChain.chainId : null),
+});
+const arcadeSnake = createSnakeService();
+const arcadeLeaderboard = createLeaderboard({ file: path.join(__dirname, "data", "arcade.json") });
+const arcade = mountArcade(app, {
+  auth: arcadeAuth,
+  passChecker: arcadePass,
+  snake: arcadeSnake,
+  leaderboard: arcadeLeaderboard,
+  clientIp: (req) => chatClientIp(req),
+});
+
+// Logged once at boot. Never the secret itself.
+if (!secretUsable(SESSION_SECRET)) {
+  console.warn("[ARCADE] SESSION_SECRET is missing or shorter than 32 characters: sign-in, the Arcade Pass check, Snake scores and /api/chat answer 503.");
+}
+if (!ethers.isAddress(ARCADE_MERCHANT)) {
+  console.warn("[ARCADE] ARCADE_MERCHANT is not set to a wallet address: no Arcade Pass can be valid, so /api/chat and Snake scores answer 503.");
+}
+if (ARCADE_STABLECOINS) {
+  console.warn("[ARCADE] ARCADE_STABLECOINS is set. It is for local test chains only and is ignored on QIE mainnet (1990).");
+}
+
 // ===== FLUENCI AI CHAT ENDPOINT =====
 const FLUENCI_SYSTEM_PROMPT = `You are Fluenci AI, the assistant inside the Fluenci app.
 
@@ -2020,7 +2077,9 @@ How to answer:
 - If you are unsure or a detail is not listed above, say so plainly instead of inventing features, numbers, addresses, or links.`;
 
 // Abuse limits for /api/chat. Every call spends OpenAI credit, so the route is
-// capped per client and globally; all state is in memory (single VPS process).
+// open only to a signed-in wallet holding a valid Arcade Pass (checked on chain),
+// and capped per client IP, per wallet and globally; all state is in memory
+// (single VPS process).
 const CHAT_BODY_LIMIT_BYTES = 32 * 1024;
 const CHAT_MAX_MESSAGES = 12;
 const CHAT_MAX_MSG_CHARS = 1000;
@@ -2028,6 +2087,10 @@ const CHAT_MAX_TOTAL_CHARS = 6000;
 const CHAT_IP_WINDOW_MS = 10 * 60 * 1000;
 const CHAT_IP_MAX = 20;
 const CHAT_DAILY_MAX = 2000;
+const CHAT_WALLET_WINDOW_MAX = 20;  // per CHAT_IP_WINDOW_MS, so one pass can't be spread over many IPs
+const CHAT_WALLET_DAILY_MAX = 100;  // per UTC day
+const chatWalletWindow = createWindowLimiter({ windowMs: CHAT_IP_WINDOW_MS, max: CHAT_WALLET_WINDOW_MAX });
+const chatWalletDaily = createDailyLimiter({ max: CHAT_WALLET_DAILY_MAX });
 
 const chatIpHits = new Map(); // ip -> array of request timestamps inside the window
 let chatDay = new Date().toISOString().slice(0, 10); // UTC date the counter belongs to
@@ -2116,7 +2179,22 @@ function parseChatBody(req, res, next) {
   });
 }
 
-app.post("/api/chat", chatGate, parseChatBody, async (req, res) => {
+// Per-wallet limits, after the pass check (req.session is the signed-in wallet).
+function chatWalletGate(req, res, next) {
+  const wallet = req.session.address.toLowerCase();
+  const now = Date.now();
+  if (!chatWalletWindow.allow(wallet, now)) {
+    return chatError(res, 429, "rate_address", "This wallet has sent a lot of chat messages recently. Wait a few minutes and try again.");
+  }
+  if (!chatWalletDaily.allow(wallet, now)) {
+    return chatError(res, 429, "rate_address", "This wallet has reached today's chat limit. It resets at midnight UTC.");
+  }
+  next();
+}
+
+// Order: kill switch and per-IP limit, then sign-in (401/503), body (413/400),
+// a valid Arcade Pass (403 no_pass), per-wallet limits, then the model.
+app.post("/api/chat", chatGate, arcade.requireSession, parseChatBody, arcade.requirePass, chatWalletGate, async (req, res) => {
   const messages = sanitizeChatMessages(req.body?.messages);
   if (!messages) {
     return chatError(res, 400, "bad_request", "messages array required");
@@ -2272,7 +2350,7 @@ app.use((err, req, res, next) => {
   const status = Number.isInteger(err?.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
   if (status >= 500) console.error("Unhandled error:", errText(err));
   const error = status === 413 ? "Request body too large." : status < 500 ? "Invalid request." : "Internal server error.";
-  if (isChatPath(req.path)) {
+  if (isChatPath(req.path) || isArcadePath(req.path)) {
     return res.status(status).json({ error, code: status === 413 ? "too_large" : status < 500 ? "bad_request" : "upstream" });
   }
   res.status(status).json({ success: false, error });

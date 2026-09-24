@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import { StatCard, EmptyState, Meter } from "./DashboardShell";
 import { IconShield, IconPlus } from "./icons";
+import { MerchantLogo } from "./merchantLogos";
+import { logoFor } from "./merchants";
 
 /* ---------------------------------------------------------------------------
    Spending limits (subscriber).
@@ -242,9 +244,7 @@ export default function SpendingLimits({
       <div className="fl-card" key={key}>
         <div className="fl-row--between" style={{ marginBottom: isEditing ? 0 : 18, alignItems: "center" }}>
           <div className="fl-row">
-            <div className="fl-avatar" style={{ width: 36, height: 36, borderRadius: 9, fontSize: 13 }}>
-              {initial(row)}
-            </div>
+            <MerchantLogo id={logoFor(row.merchant)} size={36} fallback={initial(row)} style={{ fontSize: 13 }} />
             <div>
               <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 14 }}>{label(row)}</div>
               <div style={{ fontSize: 11.5, marginTop: 2, color: warn ? "var(--fl-warn)" : "var(--fl-fg-3)" }}>
@@ -297,9 +297,8 @@ export default function SpendingLimits({
       <div className="fl-card fl-card--dashed" key={key}>
         <div className="fl-row--between" style={{ alignItems: "center" }}>
           <div className="fl-row">
-            <div className="fl-avatar" style={{ width: 36, height: 36, borderRadius: 9, fontSize: 13, color: "var(--fl-fg-3)" }}>
-              {initial(row)}
-            </div>
+            <MerchantLogo id={logoFor(row.merchant)} size={36} fallback={initial(row)}
+                          style={{ fontSize: 13, color: "var(--fl-fg-3)" }} />
             <div>
               <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 14 }}>{label(row)}</div>
               <div style={{ color: "var(--fl-fg-3)", fontSize: 11.5, marginTop: 2 }}>

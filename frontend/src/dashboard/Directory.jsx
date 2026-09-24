@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { DIRECTORY } from "./merchants";
 import { MAINNET_RPC, QIE_PASS, QIE_PASS_ABI } from "./v4Config";
 import { IconStore } from "./icons";
+import { MerchantLogo } from "./merchantLogos";
 
 /**
  * Merchant directory. The "Verified" badge is a live on-chain read of the QIE
@@ -35,7 +36,7 @@ export default function Directory({ onOpen = null, onBecomeMerchant = null }) {
             <div key={m.id} className="fl-card" style={{ display: "flex", flexDirection: "column", gap: 12, opacity: live ? 1 : 0.72 }}>
               <div className="fl-row--between" style={{ alignItems: "flex-start" }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <div className="fl-avatar">{m.name.charAt(0)}</div>
+                  <MerchantLogo id={m.logo} size={44} fallback={m.name.charAt(0)} />
                   <div>
                     <div style={{ color: "var(--fl-fg)", fontSize: 14.5, fontWeight: 600 }}>{m.name}</div>
                     <div style={{ color: "var(--fl-fg-3)", fontSize: 11.5 }}>{m.category}</div>

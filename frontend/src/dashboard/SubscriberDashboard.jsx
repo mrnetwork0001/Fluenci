@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 import { StatCard, EmptyState, Meter } from "./DashboardShell";
 import { IconPlus, IconDots, IconCheck, IconPulse, IconShield, IconRepeat } from "./icons";
+import { MerchantLogo } from "./merchantLogos";
+import { logoFor } from "./merchants";
 
 /* qUSDC is a 6-decimal token. Everything that crosses this component's props is
    raw base units; nothing below the helpers here ever shows a raw unit to the
@@ -375,7 +377,7 @@ export default function SubscriberDashboard({
             return (
               <div key={rowKey} className="fl-trow" style={{ gridTemplateColumns: COLS }}>
                 <div className="fl-row">
-                  <div className="fl-avatar">{initial}</div>
+                  <MerchantLogo id={logoFor(sub.merchant)} size={32} fallback={initial} />
                   <div style={{ minWidth: 0 }}>
                     <div className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis" }}>
                       {name}

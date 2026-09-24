@@ -111,7 +111,8 @@ async function main() {
     console.log(`wired     : registry.setAIAuditor(${auditor})`);
   } else {
     console.log("skipped   : setAIAuditor - Protect pauses and disputes are inactive until you deploy");
-    console.log(`            FluenciAIAuditor(${registryAddr}) and call registry.setAIAuditor(it)`);
+    console.log(`            FluenciAIAuditor(${registryAddr}), call registry.setAIAuditor(it), then`);
+    console.log("            auditor.setAiWorker(<service key>) - until then every pause and dispute reverts");
   }
 
   const modelVersion = process.env.REQUIRED_MODEL_VERSION;

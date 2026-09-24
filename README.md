@@ -305,18 +305,23 @@ npm start
 
 ```ini
 PORT=5001
+NODE_ENV=production
 RPC_URL=https://rpc1mainnet.qie.digital
-REGISTRY_ADDRESS=0xddB7398B6bA13641eC66D9beFb67BA3F765c57C9
-AUDITOR_ADDRESS=0xF38d9458d14d916B60026693a76FBe7cDEf651Fa
-AI_PRIVATE_KEY=
+REGISTRY_ADDRESS=0xCc92ab9B5D973ad9598C53aC28350C34895a2e33   # FluenciRegistryV4
+AUDITOR_ADDRESS=0xf6830f981043B4e3af5e8B80dBFe628F2D4E7592    # FluenciAIAuditor for v4
+AI_PRIVATE_KEY=      # service key: the auditor's trustedAiWorker AND the QIE Pass adapter's oracle; keep it funded with QIE
+ADMIN_SECRET=
 OPENAI_API_KEY=
 QIEPASS_API_URL=https://pass-api.qie.digital
 QIEPASS_PUBLIC_KEY=
 QIEPASS_SECRET_KEY=
 QIEPASS_CLAIMS=firstName
-QIEPASS_CONTRACT=0x98EFC89fA1539B35A6152c35e60BCbbe07a44BbE   # QiePassAdapter; AI_PRIVATE_KEY must be its oracle
-START_BLOCK=8320000
+START_BLOCK=10031934
 ```
+
+The QIE Pass adapter is read from the registry (`registry.qiePass()`), so there is no
+separate address to configure. `GET /status` reports `qiePassWriter`; verification only works
+while it shows `oracleOk: true` and `funded: true`.
 
 Move `REGISTRY_ADDRESS` and `START_BLOCK` together at cutover. Moving one without the other
 leaves the indexer scanning roughly 1.4M empty blocks.

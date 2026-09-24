@@ -3,17 +3,48 @@ import { ethers } from "ethers";
 import {
   REGISTRY_V4_ABI, ATTESTOR_ABI, ERC20_ABI, V4_REGISTRY, V4_ATTESTOR, V4_TOKEN,
   V4_CONFIGURED, REPUTATION_API, REPUTATION_LIVE, QUSDC_DECIMALS, QIE_PASS_ABI,
+  EXPECTED_CHAIN_ID, STABLECOINS,
 } from "./v4Config";
 
 const RPC = import.meta.env.VITE_V4_RPC_URL || "https://rpc1mainnet.qie.digital";
+
+/** One registry subscription, shaped for the UI. Shared by the bulk refresh and single re-reads. */
+function toSub(id, s, owed) {
+  return {
+    id,
+    merchant: s.merchant,
+    subscriber: s.subscriber,
+    merchantName: null, // resolved separately via .qie lookup
+    tokenAddress: s.tokenAddress,
+    cliffTime: Number(s.cliffTime),
+    amountPerPeriod: s.amountPerPeriod,
+    periodSeconds: Number(s.periodSeconds),
+    active: s.active,
+    pausedByAI: s.pausedByAI,
+    dispute: Number(s.dispute),
+    stopTime: Number(s.stopTime),
+    settledAmount: s.settledAmount,
+    owed,
+  };
+}
+
+/** A mined-but-reverted transaction must not be reported as done. */
+function assertMined(receipt) {
+  if (receipt && Number(receipt.status) === 0) throw new Error("The transaction was reverted on-chain.");
+  return receipt;
+}
 
 /**
  * v4-specific chain access, layered beside useFluenci rather than inside it.
  * Keeping them separate means the live v1 dashboard is untouched while v2 is
  * reviewed, and v4 can be pointed at a local node without disturbing anything.
  */
-export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
+export function useFluenciV4({ account, tokenAddress: tokenOverride, getProvider = null }) {
   const tokenAddress = tokenOverride || V4_TOKEN;
+  // Held in a ref so a new function identity from the caller never re-creates
+  // every write callback below.
+  const getProviderRef = useRef(getProvider);
+  useEffect(() => { getProviderRef.current = getProvider; }, [getProvider]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [merchantStreams, setMerchantStreams] = useState([]);
   const [limits, setLimits] = useState([]);
@@ -29,6 +60,10 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   const [error, setError] = useState(null);
   const [txState, setTxState] = useState({ status: "idle", action: "", hash: "", error: "" });
   const resetTx = useCallback(() => setTxState({ status: "idle", action: "", hash: "", error: "" }), []);
+  // Which account the last completed refresh was for. Screens that gate on
+  // subscriptions (the Arcade pass) wait on this so they never offer "buy" to
+  // someone whose existing subscription simply hasn't loaded yet.
+  const [loadedFor, setLoadedFor] = useState(null);
   const providerRef = useRef(null);
 
   const readProvider = useCallback(() => {
@@ -40,13 +75,6 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     () => (V4_CONFIGURED ? new ethers.Contract(V4_REGISTRY, REGISTRY_V4_ABI, readProvider()) : null),
     [readProvider]
   );
-
-  const writeRegistry = useCallback(async () => {
-    const injected = window.ethereum;
-    if (!injected) throw new Error("No wallet found");
-    const signer = await new ethers.BrowserProvider(injected).getSigner();
-    return new ethers.Contract(V4_REGISTRY, REGISTRY_V4_ABI, signer);
-  }, []);
 
   // --- reads ---------------------------------------------------------------
   const refresh = useCallback(async () => {
@@ -69,20 +97,7 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
 
       const hydrate = async (id) => {
         const [s, owed] = await Promise.all([reg.getSubscription(id), reg.previewOwed(id).catch(() => 0n)]);
-        return {
-          id,
-          merchant: s.merchant,
-          subscriber: s.subscriber,
-          merchantName: null, // resolved separately via .qie lookup
-          amountPerPeriod: s.amountPerPeriod,
-          periodSeconds: Number(s.periodSeconds),
-          active: s.active,
-          pausedByAI: s.pausedByAI,
-          dispute: Number(s.dispute),
-          stopTime: Number(s.stopTime),
-          settledAmount: s.settledAmount,
-          owed,
-        };
+        return toSub(id, s, owed);
       };
 
       const mine = await Promise.all(mineIds.map(hydrate));
@@ -136,8 +151,26 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
       setError(e?.shortMessage || e?.message || String(e));
     } finally {
       setLoading(false);
+      // Mark loaded even on error, so gated screens never spin forever.
+      setLoadedFor(account);
     }
   }, [account, readRegistry]);
+
+  /** Fresh read of one subscription (owed, stopTime, pause and dispute change without events we listen to). */
+  const readSubscription = useCallback(async (id) => {
+    const reg = readRegistry();
+    if (!reg || !id) return null;
+    const [s, owed] = await Promise.all([reg.getSubscription(id), reg.previewOwed(id).catch(() => 0n)]);
+    return toSub(id, s, owed);
+  }, [readRegistry]);
+
+  /** The subscriber's spending cap on `merchant` ({ set, maxAmount, periodSeconds }). */
+  const readSpendCap = useCallback(async (merchant, owner = account) => {
+    const reg = readRegistry();
+    if (!reg || !merchant || !owner) return { set: false, maxAmount: 0n, periodSeconds: 0 };
+    const c = await reg.spendCaps(owner, merchant);
+    return { set: c.set, maxAmount: c.maxAmount, periodSeconds: Number(c.periodSeconds) };
+  }, [readRegistry, account]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -182,17 +215,57 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
   const erc20Iface = useMemo(() => new ethers.Interface(ERC20_ABI), []);
   const attestorIface = useMemo(() => new ethers.Interface(ATTESTOR_ABI), []);
 
+  /** The wallet the user connected - never assume window.ethereum (QIE Mobile / WalletConnect). */
+  const getWallet = useCallback(() => {
+    const fromCaller = typeof getProviderRef.current === "function" ? getProviderRef.current() : null;
+    return fromCaller || (typeof window !== "undefined" ? window.ethereum : null) || null;
+  }, []);
+
+  /**
+   * Refuse to sign on the wrong chain. eth_sendTransaction carries no chainId,
+   * so a MetaMask user sitting on Ethereum would otherwise sign a QIE call
+   * against Ethereum. Switch first; add QIE only if the wallet has never seen it.
+   */
+  const ensureChain = useCallback(async (wallet) => {
+    const want = "0x" + EXPECTED_CHAIN_ID.toString(16);
+    const current = async () => Number(await wallet.request({ method: "eth_chainId" }));
+    if ((await current()) === EXPECTED_CHAIN_ID) return;
+    try {
+      await wallet.request({ method: "wallet_switchEthereumChain", params: [{ chainId: want }] });
+    } catch (e) {
+      const unknownChain = e?.code === 4902 || e?.data?.originalError?.code === 4902 ||
+        /unrecognized|not been added|unknown chain/i.test(e?.message || "");
+      if (!unknownChain || EXPECTED_CHAIN_ID !== 1990) {
+        throw new Error("Switch your wallet to QIE Mainnet to continue.", { cause: e });
+      }
+      await wallet.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: want,
+          chainName: "QIE Mainnet",
+          nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
+          rpcUrls: ["https://rpc1mainnet.qie.digital"],
+          blockExplorerUrls: ["https://mainnet.qie.digital/"],
+        }],
+      });
+    }
+    if ((await current()) !== EXPECTED_CHAIN_ID) {
+      throw new Error("Switch your wallet to QIE Mainnet to continue.");
+    }
+  }, []);
+
   const sendDirect = useCallback(async (to, iface, method, args, gasLimit) => {
-    const injected = window.ethereum;
-    if (!injected) throw new Error("No wallet found");
+    const wallet = getWallet();
+    if (!wallet) throw new Error("No wallet found");
+    await ensureChain(wallet);
     const data = iface.encodeFunctionData(method, args);
-    const hash = await injected.request({
+    const hash = await wallet.request({
       method: "eth_sendTransaction",
       params: [{ from: account, to, data, gas: "0x" + BigInt(gasLimit).toString(16) }],
     });
     if (!hash) throw new Error("Wallet did not return a transaction hash");
     return hash;
-  }, [account]);
+  }, [account, getWallet, ensureChain]);
 
   const run = useCallback(async (key, action, fn) => {
     setBusy(key);
@@ -201,7 +274,9 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     try {
       const hash = await fn();
       setTxState({ status: "confirming", action, hash, error: "" });
-      await readProvider().waitForTransaction(hash);
+      // A reverted transaction is still mined; without this check a failed
+      // spend-cap write read as success and the flow went on to subscribe uncapped.
+      assertMined(await readProvider().waitForTransaction(hash));
       setTxState({ status: "confirmed", action, hash, error: "" });
       await refresh();
       return true;
@@ -242,27 +317,62 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     return att;
   }, [account, fetchReputationAttestation, submitAttestation]);
 
-  /** Approve the registry to pull `needed` of the token, if the allowance is short. */
-  const ensureAllowance = useCallback(async (needed) => {
-    const token = new ethers.Contract(tokenAddress, ERC20_ABI, readProvider());
-    const current = await token.allowance(account, V4_REGISTRY);
+  /**
+   * Approve the registry to pull `needed` of `token`, if the allowance is short.
+   * Takes the token explicitly: approving the default qUSDC while subscribing in
+   * a bridged stablecoin would leave the real token unapproved and every claim reverting.
+   */
+  const ensureAllowance = useCallback(async (needed, token = tokenAddress) => {
+    const erc20 = new ethers.Contract(token, ERC20_ABI, readProvider());
+    const current = await erc20.allowance(account, V4_REGISTRY);
     if (current >= needed) return;
-    const hash = await sendDirect(tokenAddress, erc20Iface, "approve", [V4_REGISTRY, needed], 80000n);
-    await readProvider().waitForTransaction(hash);
+    const hash = await sendDirect(token, erc20Iface, "approve", [V4_REGISTRY, needed], 80000n);
+    assertMined(await readProvider().waitForTransaction(hash));
   }, [account, tokenAddress, erc20Iface, sendDirect, readProvider]);
+
+  /** Re-grant the registry's allowance on `token` (fixes a pass that lapsed for lack of approval). */
+  const reapprove = useCallback((token, amount) =>
+    run("approve", "Approve subscription payments", () =>
+      sendDirect(token, erc20Iface, "approve", [V4_REGISTRY, BigInt(amount)], 80000n)),
+  [run, sendDirect, erc20Iface]);
+
+  /** Put the connected wallet on the v4 chain, for flows that send outside sendDirect (e.g. swaps). */
+  const ensureWalletChain = useCallback(async () => {
+    const wallet = getWallet();
+    if (!wallet) throw new Error("No wallet found");
+    await ensureChain(wallet);
+  }, [getWallet, ensureChain]);
 
   const createSubscription = useCallback(
     ({ merchant, amountPerPeriod, periodSeconds, cliffTime = 0, stopTime = 0, token }) =>
       run("create", "Approve and start subscription", async () => {
+        const payToken = token || tokenAddress;
         const amt = BigInt(amountPerPeriod);
         const per = BigInt(periodSeconds);
         const headroom = (amt * 31_536_000n) / (per > 0n ? per : 1n);
-        await ensureAllowance(headroom > 0n ? headroom : amt);
+        await ensureAllowance(headroom > 0n ? headroom : amt, payToken);
         return sendDirect(V4_REGISTRY, registryIface, "createSubscription",
-          [merchant, token || tokenAddress, amt, per, BigInt(cliffTime || 0), BigInt(stopTime || 0)], 400000n);
+          [merchant, payToken, amt, per, BigInt(cliffTime || 0), BigInt(stopTime || 0)], 400000n);
       }),
     [run, tokenAddress, ensureAllowance, sendDirect, registryIface]
   );
+
+  /** Balance and registry allowance of one ERC-20 for `owner` (defaults to the connected account). */
+  const readTokenState = useCallback(async (token, owner = account) => {
+    if (!token || !owner) return { balance: 0n, allowance: 0n };
+    const erc20 = new ethers.Contract(token, ERC20_ABI, readProvider());
+    const [balance, allowance] = await Promise.all([
+      erc20.balanceOf(owner).catch(() => 0n),
+      erc20.allowance(owner, V4_REGISTRY).catch(() => 0n),
+    ]);
+    return { balance, allowance };
+  }, [account, readProvider]);
+
+  /** Balances of every accepted stablecoin, so the UI can pay with whichever one the user holds. */
+  const readStablecoinBalances = useCallback(async (owner = account) => {
+    const rows = await Promise.all(STABLECOINS.map(async (t) => ({ ...t, ...(await readTokenState(t.address, owner)) })));
+    return rows;
+  }, [account, readTokenState]);
 
   const setSpendCap = useCallback(
     (merchant, maxAmount, periodSeconds) =>
@@ -315,7 +425,9 @@ export function useFluenciV4({ account, tokenAddress: tokenOverride }) {
     loading, busy, error, txState, resetTx,
     subscriptions, merchantStreams, limits, policy, protocolFeeBps,
     reputationGateAvailable, idGateAvailable, checkMerchantPolicy, claimable, claimableGross, merchantVerified, kycRequired,
-    tokenAddress, ensureAllowance,
+    loaded: Boolean(account) && loadedFor === account,
+    tokenAddress, ensureAllowance, readTokenState, readStablecoinBalances, readProvider,
+    readSubscription, readSpendCap, reapprove, ensureWalletChain,
     refresh, fetchReputation, fetchReputationAttestation, submitAttestation, verifyReputation,
     createSubscription, setSpendCap, clearSpendCap, setMerchantPolicy,
     claimStream, terminateStream, openDispute,

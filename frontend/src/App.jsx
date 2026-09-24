@@ -428,6 +428,8 @@ export default function App() {
         : { view: 'dashboard', tab: 'subscriber' };
       case 'swap': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'swap' };
       case 'limits': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'limits' };
+      case 'arcade': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'arcade' };
+      case 'discover': return { view: 'v2', tab: 'subscriber', role: 'subscriber', v2tab: 'merchants' };
       case 'docs': return { view: 'docsite', tab: 'subscriber' };
       // Escape hatches: /v1 always the old dashboard, /v2 always the new one.
       case 'v1': return { view: 'dashboard', tab: 'subscriber' };
@@ -487,7 +489,7 @@ export default function App() {
       // v2 owns its own sub-navigation and pushes its own paths; only the
       // entry path is set here, and anything under it is left alone.
       const entry = activeTab === 'merchant' ? '/merchants' : '/subscription';
-      targetPath = ['/subscription', '/merchants', '/security', '/swap', '/limits', '/v2']
+      targetPath = ['/subscription', '/merchants', '/security', '/swap', '/limits', '/v2', '/arcade', '/discover']
         .includes(window.location.pathname) ? window.location.pathname : entry;
     } else if (viewMode === 'dashboard') {
       switch (activeTab) {

@@ -12,6 +12,7 @@ export const IconShield = (p) => <S {...p}><path d="M10 3l6 2.5V10c0 3.5-2.5 6-6
 export const IconPulse = (p) => <S {...p}><path d="M2 10h3.5l2-5 3 10 2.5-5H18" /></S>;
 export const IconSwap = (p) => <S {...p}><path d="M4 7h11l-3-3m3 9H4l3 3" /></S>;
 export const IconCheck = (p) => <S width={2} {...p}><path d="M4 10l4 4 8-9" /></S>;
+export const IconGamepad = (p) => <S {...p}><path d="M6.5 6h7a4 4 0 013.9 4.9l-.8 3.4a1.9 1.9 0 01-3.3.8L12 13.5H8l-1.3 1.6a1.9 1.9 0 01-3.3-.8l-.8-3.4A4 4 0 016.5 6z" /><path d="M6.5 9v2.5M5.25 10.25h2.5" /><circle cx="13" cy="9.6" r=".6" /><circle cx="14.6" cy="11.2" r=".6" /></S>;
 export const IconPlus = (p) => <S width={1.9} {...p}><path d="M10 4v12M4 10h12" /></S>;
 export const IconChevronLeft = (p) => <S width={1.7} {...p}><path d="M12 5l-5 5 5 5" /></S>;
 export const IconChevronDown = (p) => <S width={1.7} {...p}><path d="M5 8l5 5 5-5" /></S>;

@@ -4,6 +4,7 @@ const cors = require("cors");
 const { ethers } = require("ethers");
 const { OpenAI } = require("openai");
 const crypto = require("crypto");
+const net = require("net");
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -1511,41 +1512,147 @@ app.post("/qiepass/claim", async (req, res) => {
 });
 
 // ===== FLUENCI AI CHAT ENDPOINT =====
-const FLUENCI_SYSTEM_PROMPT = `You are Fluenci AI, the official assistant for the Fluenci protocol — an AI-shielded real-time streaming payment platform built on QIE Blockchain.
+const FLUENCI_SYSTEM_PROMPT = `You are Fluenci AI, the assistant inside the Fluenci app.
 
-Key facts you know:
-- Fluenci enables pay-per-second streaming payments using QUSDC (QIE stablecoin)
-- Every subscription is minted as an ERC-721 NFT that can be traded
-- The AI Sentry Network uses multi-agent GPT-4o analysis to detect and pause suspicious streams
-- Fluenci integrates QIE Pass (KYC), QIEDex (swaps), QIE Domains (.qie names), QIE Wallet
-- FluenciRegistry contract handles stream creation, claiming, disputes, and termination
-- FluenciAIAuditor contract enables autonomous safety pauses with EIP-712 signatures
-- FluenciRouter wraps QIEDex swaps with on-chain Fluenci attribution
-- Stream rate example: 0.0001 QUSDC/sec = 0.36 QUSDC/hr
-- Protocol fee: 0.5% on claims (99.5% to merchant)
-- terminateStream auto-settles accumulated QUSDC to the merchant
-- QIE Blockchain: EVM-compatible, Chain ID 1990 (mainnet), Chain ID 1983 (testnet)
-- The Fluenci Arcade demonstrates streaming payments via a Snake game and this AI Chat
+What Fluenci is:
+- Stripe-style subscriptions for Web3, built on QIE Blockchain (EVM-compatible, chain ID 1990).
+- Plans are priced in plain dollars per period (for example $20/month) and settled in qUSDC, or in bridged USDC/USDT.
+- Subscriptions are non-custodial and pull-based: funds stay in the subscriber's own wallet until the merchant claims what has accrued.
+- Subscribers set a spending cap that only they can raise; any claim above the cap is clamped to it.
+- Subscribers can cancel anytime. Accrual stops immediately and only the final settled amount is owed.
+- Each merchant chooses one access gate for their subscribers: Open, QIE ID required, QIE Pass verified, or Minimum reputation (based on QIE's live Reputation Score API).
+- Fluenci Protect monitors active subscriptions and can pause anomalous ones.
+- The Fluenci Arcade Pass costs $1/month and unlocks the Snake arcade and this AI chat.
 
-You are helpful, concise, and enthusiastic about blockchain and DeFi. Keep responses under 3 sentences unless the user asks for detail. Use emoji sparingly.`;
+How to answer:
+- Be friendly and concise: at most 4 short sentences unless the user asks for more detail.
+- Never give financial or investment advice, price predictions, or token recommendations.
+- Never ask for, accept, or repeat private keys, seed phrases, or passwords. If a user offers one, tell them to keep it secret.
+- If you are unsure or a detail is not listed above, say so plainly instead of inventing features, numbers, addresses, or links.`;
 
-app.post("/api/chat", async (req, res) => {
+// Abuse limits for /api/chat. Every call spends OpenAI credit, so the route is
+// capped per client and globally; all state is in memory (single VPS process).
+const CHAT_BODY_LIMIT_BYTES = 32 * 1024;
+const CHAT_MAX_MESSAGES = 12;
+const CHAT_MAX_MSG_CHARS = 1000;
+const CHAT_MAX_TOTAL_CHARS = 6000;
+const CHAT_IP_WINDOW_MS = 10 * 60 * 1000;
+const CHAT_IP_MAX = 20;
+const CHAT_DAILY_MAX = 2000;
+
+const chatIpHits = new Map(); // ip -> array of request timestamps inside the window
+let chatDay = new Date().toISOString().slice(0, 10); // UTC date the counter belongs to
+let chatDayCount = 0;
+
+// The VPS sits behind a local TLS proxy (nginx) that appends the real client
+// address as the LAST X-Forwarded-For entry. Earlier entries are whatever the
+// client sent, so trusting the first one would let anyone dodge the limit by
+// sending a fresh fake IP per request. The header is only honoured when the
+// socket peer is the local proxy; direct connections use the socket address.
+const CHAT_MAX_TRACKED_IPS = 50000;
+function isLoopback(addr) {
+  return addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1";
+}
+function chatClientIp(req) {
+  const peer = req.socket?.remoteAddress || "";
+  if (isLoopback(peer)) {
+    const xff = req.headers["x-forwarded-for"];
+    const last = typeof xff === "string" ? xff.split(",").pop().trim() : "";
+    if (net.isIP(last)) return last;
+  }
+  return peer || "unknown";
+}
+
+// Sliding-window check; records the hit only when it is allowed.
+function chatIpAllowed(ip, now) {
+  const recent = (chatIpHits.get(ip) || []).filter((t) => now - t < CHAT_IP_WINDOW_MS);
+  if (recent.length >= CHAT_IP_MAX) {
+    chatIpHits.set(ip, recent);
+    return false;
+  }
+  recent.push(now);
+  chatIpHits.delete(ip); // re-insert so Map order tracks recency
+  chatIpHits.set(ip, recent);
+  // Hard ceiling between prunes: evict the least recently seen IPs.
+  while (chatIpHits.size > CHAT_MAX_TRACKED_IPS) {
+    chatIpHits.delete(chatIpHits.keys().next().value);
+  }
+  return true;
+}
+
+// Drop IPs with no hits in the window so the map can't grow without bound.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, hits] of chatIpHits) {
+    if (!hits.length || now - hits[hits.length - 1] >= CHAT_IP_WINDOW_MS) chatIpHits.delete(ip);
+  }
+}, 60 * 1000).unref();
+
+// Only well-formed user/assistant turns reach the model; a client-supplied
+// "system" role would let a caller override the prompt.
+function sanitizeChatMessages(raw) {
+  if (!Array.isArray(raw)) return null;
+  return raw
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .map((m) => ({ role: m.role, content: m.content.slice(0, CHAT_MAX_MSG_CHARS) }))
+    .filter((m) => m.content.trim().length > 0)
+    .slice(-CHAT_MAX_MESSAGES);
+}
+
+// Route-scoped parser. The app-wide express.json() runs first and has usually
+// consumed the body already, so the handler re-checks the size below as well.
+app.post("/api/chat", express.json({ limit: CHAT_BODY_LIMIT_BYTES }), async (req, res) => {
+  if (process.env.CHAT_DISABLED === "true") {
+    return res.status(503).json({ error: "Chat is temporarily disabled." });
+  }
+
+  let bodySize = 0;
   try {
-    const { messages } = req.body;
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "messages array required" });
-    }
+    bodySize = JSON.stringify(req.body ?? {}).length;
+  } catch {
+    return res.status(400).json({ error: "Invalid request body." });
+  }
+  if (bodySize > CHAT_BODY_LIMIT_BYTES) {
+    return res.status(413).json({ error: "Request body too large." });
+  }
 
-    if (!openai) {
-      return res.status(503).json({ error: "OpenAI not configured" });
-    }
+  const now = Date.now();
+  if (!chatIpAllowed(chatClientIp(req), now)) {
+    return res.status(429).json({ error: "Too many chat requests. Please wait a few minutes and try again." });
+  }
 
+  const messages = sanitizeChatMessages(req.body?.messages);
+  if (!messages) {
+    return res.status(400).json({ error: "messages array required" });
+  }
+  if (messages.length === 0) {
+    return res.status(400).json({ error: "No valid user or assistant messages provided." });
+  }
+  // Long conversations keep working: drop the oldest turns until the total fits.
+  let totalChars = messages.reduce((sum, m) => sum + m.content.length, 0);
+  while (totalChars > CHAT_MAX_TOTAL_CHARS && messages.length > 1) {
+    totalChars -= messages.shift().content.length;
+  }
+
+  if (!openai) {
+    return res.status(503).json({ error: "OpenAI not configured" });
+  }
+
+  // Global daily budget, counted only for calls that actually reach OpenAI.
+  const today = new Date(now).toISOString().slice(0, 10);
+  if (today !== chatDay) {
+    chatDay = today;
+    chatDayCount = 0;
+  }
+  if (chatDayCount >= CHAT_DAILY_MAX) {
+    return res.status(429).json({ error: "Daily chat limit reached. Please try again tomorrow." });
+  }
+  chatDayCount += 1;
+
+  try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: FLUENCI_SYSTEM_PROMPT },
-        ...messages.slice(-20) // keep last 20 messages for context window
-      ],
+      messages: [{ role: "system", content: FLUENCI_SYSTEM_PROMPT }, ...messages],
       max_tokens: 300,
       temperature: 0.7
     });
@@ -1553,8 +1660,9 @@ app.post("/api/chat", async (req, res) => {
     const reply = completion.choices[0]?.message?.content || "I'm having trouble thinking right now. Try again!";
     res.json({ reply });
   } catch (err) {
-    console.error("Chat error:", err.message);
-    res.status(500).json({ error: "AI service temporarily unavailable" });
+    // Log status/message only; the client gets a generic error with no internals.
+    console.error("Chat error:", err?.status || "", err?.message || err);
+    res.status(502).json({ error: "AI service temporarily unavailable" });
   }
 });
 

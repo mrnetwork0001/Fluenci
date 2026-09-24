@@ -6,13 +6,15 @@ import SpendingLimits from "./SpendingLimits";
 import MerchantDashboardV2 from "./MerchantDashboardV2";
 import Protect from "./Protect";
 import Swap from "./Swap";
+import Arcade from "./Arcade";
+import Directory from "./Directory";
 import { EmptyState } from "./DashboardShell";
 import { IconStore } from "./icons";
 import { useFluenciV4 } from "./useFluenciV4";
 import ConnectWalletV2 from "./ConnectWalletV2";
 import TransactionModal from "../components/TransactionModal";
 import { resolveQieName, resolveQieNameByHistory } from "./qieName";
-import { GATE, QUSDC_DECIMALS, MAINNET_RPC, QIE_PASS, QIE_PASS_ABI, V4_TOKEN } from "./v4Config";
+import { GATE, QUSDC_DECIMALS, MAINNET_RPC, QIE_PASS, QIE_PASS_ABI, V4_TOKEN, LOW_GAS_QIE, EXPECTED_CHAIN_ID } from "./v4Config";
 import { sampleSubscriptions, sampleLimits, sampleActivity, sampleMerchant } from "./sampleData";
 import { ethers } from "ethers";
 import { API_BASE_URL } from "../config";
@@ -31,6 +33,8 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
   const [collapsed, setCollapsed] = useState(false);
   const [merchantPreview, setMerchantPreview] = useState(null);
   const [myReputation, setMyReputation] = useState(null);
+  // A directory listing opened for subscribing: merchant + plan, prefilled.
+  const [prefill, setPrefill] = useState(null);
 
   const account = fluenci?.account ?? null;
   // Deliberately NOT fluenci.contracts.qusdc: that map falls back to the
@@ -38,8 +42,11 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
   // the local registry has never seen.
   const tokenAddress = V4_TOKEN;
 
-  const v4 = useFluenciV4({ account, tokenAddress });
+  // getActiveProvider: send v4 writes through the wallet the user actually
+  // connected (QIE Mobile / WalletConnect included), not window.ethereum.
+  const v4 = useFluenciV4({ account, tokenAddress, getProvider: fluenci?.getActiveProvider });
   const usingSample = !v4.configured;
+  const lowGas = Boolean(account) && !usingSample && Number(fluenci?.qieBalance || 0) < LOW_GAS_QIE;
 
   // Reset the nav when switching roles: the two role navs share only some keys.
   const firstRender = useRef(true);
@@ -131,7 +138,8 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
   const navigate = useCallback((key) => {
     setActive(key);
     const path = { dashboard: role === "merchant" ? "/merchants" : "/subscription",
-                   protect: "/security", swap: "/swap", limits: "/limits" }[key];
+                   protect: "/security", swap: "/swap", limits: "/limits",
+                   arcade: "/arcade", merchants: role === "merchant" ? null : "/discover" }[key];
     if (path && window.location.pathname !== path) window.history.pushState({}, "", path);
   }, [role]);
 
@@ -267,12 +275,15 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
 
   const shell = {
     role, onRoleChange: setRole,
-    active, onNavigate: navigate,
+    // Leaving through the nav drops a directory prefill, so "New subscription" opens blank.
+    active, onNavigate: (key) => { setPrefill(null); navigate(key); },
     collapsed, onToggleCollapse: () => setCollapsed((c) => !c),
     account,
     qusdcBalance: fluenci?.qusdcBalance ?? (usingSample ? "248.60" : "0.00"),
-    networkOk: fluenci?.chainId === 1990,
-    networkLabel: fluenci?.chainId === 1990 ? "QIE Mainnet" : "Wrong network",
+    qieBalance: account ? (fluenci?.qieBalance ?? "0") : null,
+    onSwitchNetwork: () => fluenci?.switchToQieMainnet?.(),
+    networkOk: fluenci?.chainId === EXPECTED_CHAIN_ID,
+    networkLabel: fluenci?.chainId === EXPECTED_CHAIN_ID ? "QIE Mainnet" : "Wrong network",
     domainName: fluenci?.accountDomain ?? null,
     qieName,
     onHome,
@@ -332,6 +343,7 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
           swapping={fluenci?.txState?.status === "preparing" || fluenci?.txState?.status === "broadcasting"}
           qieBalance={fluenci?.qieBalance ?? "0"}
           qusdcBalance={fluenci?.qusdcBalance ?? "0"}
+          account={account}
           error={fluenci?.error ?? null}
           quote={quote}
           quoting={quoting}
@@ -460,10 +472,34 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
             protocolFeeBps={v4.protocolFeeBps}
             resolveMerchant={resolveMerchant}
             onMerchantChange={handleMerchantChange}
-            initialMerchant={payMerchant}
+            // Remount per listing so a new prefill replaces the previous one.
+            key={prefill?.id || "new"}
+            initialMerchant={prefill?.merchant || payMerchant}
+            initialAmount={prefill?.amount || ""}
+            initialPeriod={prefill?.period || null}
+            lowGas={lowGas}
+            onFund={() => navigate("swap")}
             onSubmit={handleCreate}
-            onBack={() => setActive("dashboard")}
-            onBrowseMerchants={() => setActive("merchants")}
+            onBack={() => { setPrefill(null); setActive("dashboard"); }}
+            onBrowseMerchants={() => navigate("merchants")}
+          />
+        );
+      case "arcade":
+        return (
+          <Arcade
+            account={account}
+            onConnect={() => setWalletOpen(true)}
+            v4={v4}
+            qieBalance={fluenci?.qieBalance ?? "0"}
+            onSwapQie={async (amount) => {
+              const ok = await fluenci?.swapQieForTokens?.("QIE", "QUSDC", amount);
+              // The Arcade shows its own progress; don't leave the global swap popup open.
+              if (ok) fluenci?.resetTx?.();
+              return Boolean(ok);
+            }}
+            apiBase={API_BASE_URL}
+            onNavigate={navigate}
+            unavailable={usingSample}
           />
         );
       case "limits":
@@ -479,12 +515,14 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
         );
       case "merchants":
         return (
-          <EmptyState
-            icon={<IconStore size={26} stroke="#333333" />}
-            title="Merchant directory is not built yet"
-            body="Discovering verified businesses that accept Fluenci is the next phase. For now, subscribe using a merchant's .qie name directly."
-            actionLabel="Start a subscription"
-            onAction={() => setActive("subscriptions")}
+          <Directory
+            onOpen={(target, listing) => {
+              if (target === "arcade") { navigate("arcade"); return; }
+              // Generic listing: open the subscribe form at that merchant's plan.
+              setPrefill({ id: listing.id, merchant: listing.merchant, amount: listing.amount, period: listing.period });
+              navigate("subscriptions");
+            }}
+            onBecomeMerchant={() => setRole("merchant")}
           />
         );
       default:
@@ -502,7 +540,8 @@ export default function DashboardV2({ fluenci, initialRole = "subscriber", initi
         );
     }
   }, [role, active, v4, subscriptions, subscriptionRows, limits, merchantPreview, merchantData, protect, quote, quoting,
-      requestQuote, usingSample, tokenAddress, fluenci, account, walletUnits, handleCreate, resolveMerchant]);
+      requestQuote, usingSample, tokenAddress, fluenci, account, walletUnits, handleCreate, resolveMerchant,
+      prefill, lowGas, navigate]);
 
   return (
     <>

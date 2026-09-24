@@ -3,13 +3,14 @@ import "./dashboard.css";
 import FluenciLogo from "../assets/fluenci-logo.png";
 import {
   IconGrid, IconRepeat, IconStore, IconShield, IconPulse, IconSwap,
-  IconChevronLeft, IconMenu,
+  IconChevronLeft, IconMenu, IconGamepad,
 } from "./icons";
 
 export const SUBSCRIBER_NAV = [
   { key: "dashboard", label: "Dashboard", Icon: IconGrid },
   { key: "subscriptions", label: "Subscriptions", Icon: IconRepeat },
   { key: "merchants", label: "Merchants", Icon: IconStore },
+  { key: "arcade", label: "Arcade", Icon: IconGamepad },
   { key: "limits", label: "Spending Limits", Icon: IconShield },
   { key: "protect", label: "Protect", Icon: IconPulse },
   { key: "swap", label: "Swap", Icon: IconSwap },
@@ -38,6 +39,8 @@ export default function DashboardShell({
   onToggleCollapse,
   account,
   qusdcBalance = "0.00",
+  qieBalance = null,
+  onSwitchNetwork = null,
   networkLabel = "QIE Mainnet",
   networkOk = true,
   domainName,
@@ -140,6 +143,10 @@ export default function DashboardShell({
               </div>
               <button className="fl-link" style={{ fontSize: 11 }} onClick={onDisconnect}>Disconnect</button>
             </div>
+            {!networkOk && onSwitchNetwork && (
+              <button className="fl-btn fl-btn--primary fl-btn--block" onClick={onSwitchNetwork}
+                      style={{ padding: "7px 0", fontSize: 12, marginBottom: 10 }}>Switch to QIE Mainnet</button>
+            )}
             {qieName || domainName ? (
               <div className="fl-wallet-name" style={{ marginBottom: 4 }} title={account}>
                 <span className="fl-wallet-name__qie">{qieName || domainName}</span>
@@ -155,6 +162,13 @@ export default function DashboardShell({
               <span className="fl-mono" style={{ color: "var(--fl-fg)", fontSize: 19, fontWeight: 600 }}>{qusdcBalance}</span>
               <span className="fl-mono" style={{ color: "var(--fl-fg-3)", fontSize: 11 }}>qUSDC</span>
             </div>
+            {qieBalance !== null && (
+              // Gas matters as much as the stablecoin: with 0 QIE nothing can be signed.
+              <div className="fl-mono" title="Native QIE, used for network fees"
+                   style={{ color: Number(qieBalance) < 0.002 ? "var(--fl-warn)" : "var(--fl-fg-3)", fontSize: 11, marginTop: 4 }}>
+                {Number(qieBalance).toFixed(4).replace(/\.?0+$/, "") || "0"} QIE for gas
+              </div>
+            )}
           </div>
         )}
       </aside>

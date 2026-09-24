@@ -93,6 +93,10 @@ export default function NewSubscription({
   onMerchantChange = null,
   onSubmit = null,
   initialMerchant = "",
+  initialAmount = "",      // prefill in dollars, e.g. from a directory listing
+  initialPeriod = null,    // "minute" | "day" | "week" | "month"
+  lowGas = false,          // true when the wallet can't pay network fees
+  onFund = null,
   onBack = null,
   onBrowseMerchants = null,
 }) {
@@ -100,8 +104,8 @@ export default function NewSubscription({
   const [status, setStatus] = useState("idle"); // idle | resolving | resolved | error
   const [address, setAddress] = useState(null);
 
-  const [amount, setAmount] = useState("");
-  const [periodKey, setPeriodKey] = useState(defaultPeriod);
+  const [amount, setAmount] = useState(initialAmount ? cleanAmount(String(initialAmount)) : "");
+  const [periodKey, setPeriodKey] = useState(initialPeriod && PERIODS.some((p) => p.key === initialPeriod) ? initialPeriod : defaultPeriod);
 
   const [capOn, setCapOn] = useState(true);
   const [capAmount, setCapAmount] = useState("");
@@ -164,7 +168,8 @@ export default function NewSubscription({
   };
   const policyBlocked = identityReady && merchant && merchant.meetsPolicy === false;
   const policyMessage = policyBlocked ? (GATE_MSG[merchant.gate] || "You do not meet this merchant's access policy.") : null;
-  const canConfirm = identityReady && amountUnits !== null && capReady && !submitting && !policyBlocked;
+  // With no QIE for gas the wallet rejects the transaction anyway; say why up front.
+  const canConfirm = identityReady && amountUnits !== null && capReady && !submitting && !policyBlocked && !lowGas;
 
   const name = merchant?.name || (status === "resolved" && query.trim().toLowerCase().endsWith(".qie") ? query.trim() : null);
   const displayName = name || shortAddr(address);
@@ -320,6 +325,17 @@ export default function NewSubscription({
                         style={{ marginTop: 10, padding: "9px 14px", fontSize: 12.5 }}>
                   {verifyingReputation ? "Recording your score…" : "Verify my reputation"}
                 </button>
+              )}
+            </div>
+          )}
+          {lowGas && (
+            <div className="fl-inner" style={{ padding: "12px 14px", marginBottom: 12, borderColor: "var(--fl-warn)" }}>
+              <span style={{ color: "var(--fl-warn)", fontSize: 12.5, lineHeight: 1.5 }}>
+                You need a little QIE for network fees before you can subscribe.
+              </span>
+              {onFund && (
+                <button type="button" className="fl-link" onClick={onFund}
+                        style={{ display: "block", marginTop: 6, fontSize: 12.5, padding: 0 }}>How to get QIE &rarr;</button>
               )}
             </div>
           )}

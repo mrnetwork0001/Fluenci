@@ -145,6 +145,12 @@ export function useFluenci() {
 
   const activeProviderRef = useRef(null);
 
+  // The wallet the user actually connected (QIE extension, WalletConnect/QIE
+  // Mobile, or another EIP-6963 wallet). Exposed so the v2 hooks send through
+  // it instead of window.ethereum - otherwise QIE Mobile users could connect
+  // but never sign an approve or subscribe. Stable identity on purpose.
+  const getActiveProvider = useCallback(() => activeProviderRef.current || window.ethereum || null, []);
+
   const getProviderAndSigner = async () => {
     const injected = activeProviderRef.current || window.ethereum;
     if (!injected) throw new Error("No Web3 wallet detected");
@@ -175,6 +181,10 @@ export function useFluenci() {
         try {
           const receipt = await readProvider.getTransactionReceipt(tx.hash);
           if (receipt && receipt.blockNumber) {
+            // A reverted transaction is still mined - don't report it as done.
+            if (receipt.status === 0) {
+              return reject(new Error(`Transaction ${tx.hash.slice(0, 10)}… failed on-chain, so it had no effect. Only the network fee was used.`));
+            }
             return resolve(receipt);
           }
         } catch (e) {
@@ -195,25 +205,44 @@ export function useFluenci() {
   };
 
   // Switch network to QIE Mainnet and force RPC sync
+  // Switch first (works when the wallet already knows QIE, which is the common
+  // case); only add the network when the wallet reports it has never seen it.
+  // Calling wallet_addEthereumChain alone fails or no-ops in several wallets.
   const switchToQieMainnet = async () => {
     const injected = activeProviderRef.current || window.ethereum;
-    if (!injected) return;
+    if (!injected) return false;
     try {
-      await injected.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: "0x7C6",
-          chainName: "QIE Mainnet",
-          nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
-          rpcUrls: ["https://rpc1mainnet.qie.digital"],
-          blockExplorerUrls: ["https://mainnet.qie.digital/"]
-        }]
-      });
-      setError("");
-    } catch (err) {
-      console.error("Failed to add or sync QIE Mainnet network", err);
-      setError("Failed to add or sync QIE Mainnet. Please check MetaMask.");
+      await injected.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x7c6" }] });
+    } catch (switchErr) {
+      const unknownChain = switchErr?.code === 4902 || switchErr?.data?.originalError?.code === 4902 ||
+        /unrecognized|not been added|unknown chain/i.test(switchErr?.message || "");
+      if (!unknownChain) {
+        setError("Switch your wallet to QIE Mainnet to continue.");
+        return false;
+      }
+      try {
+        await injected.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x7C6",
+            chainName: "QIE Mainnet",
+            nativeCurrency: { name: "QIE", symbol: "QIE", decimals: 18 },
+            rpcUrls: ["https://rpc1mainnet.qie.digital"],
+            blockExplorerUrls: ["https://mainnet.qie.digital/"]
+          }]
+        });
+      } catch (err) {
+        console.error("Failed to add QIE Mainnet", err);
+        setError("Could not add QIE Mainnet to your wallet. Add it manually and try again.");
+        return false;
+      }
     }
+    try {
+      const hex = await injected.request({ method: "eth_chainId" });
+      setChainId(Number(hex));
+    } catch { /* the chainChanged listener will catch up */ }
+    setError("");
+    return true;
   };
 
   const connectWallet = async (providerDetail = null) => {
@@ -768,8 +797,19 @@ export function useFluenci() {
     setLoading(true);
     setTxState({ status: "preparing", action: `Swapping ${amount} ${fromToken} → ${toToken}`, hash: "", error: "" });
     try {
+      // Sending a QIE-chain swap from another network would go to the wrong
+      // contract (or fail with a confusing wallet error), so switch first.
+      const wallet = activeProviderRef.current || window.ethereum;
+      if (!wallet) throw new Error("No Web3 wallet detected");
+      if (Number(await wallet.request({ method: "eth_chainId" })) !== 1990) {
+        const switched = await switchToQieMainnet();
+        if (!switched || Number(await wallet.request({ method: "eth_chainId" })) !== 1990) {
+          throw new Error("Switch your wallet to QIE Mainnet to swap.");
+        }
+      }
+
       const isReverse = fromToken === "QUSDC";
-      
+
       const path = isReverse 
         ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // QUSDC → WQIE
         : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc]; // WQIE → qUSDC
@@ -883,10 +923,13 @@ export function useFluenci() {
 
       await fetchAccountState();
       setLoading(false);
+      return true;
     } catch (err) {
       setError(err.message);
       setTxStep("error", { error: err.message });
       setLoading(false);
+      // Callers chaining swap -> subscribe need to know the swap failed.
+      return false;
     }
   };
 
@@ -1482,6 +1525,7 @@ export function useFluenci() {
     terminateStream,
     updateContractAddresses,
     switchToQieMainnet,
+    getActiveProvider,
     refreshData: () => {
       fetchAccountState();
       fetchSubscriptions();

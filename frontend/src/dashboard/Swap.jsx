@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { IconSwap, IconChevronDown } from "./icons";
+import { IconSwap } from "./icons";
+import FundWallet from "./FundWallet";
+import { GAS_RESERVE_QIE, LOW_GAS_QIE } from "./v4Config";
 
 const PAIR = {
   QIE:   { symbol: "QIE",   decimals: 18, name: "QIE" },
@@ -28,6 +30,7 @@ export default function Swap({
   onQuote = null,
   onSwap = null,
   onFund = null,
+  account = null,
 }) {
   const [reverse, setReverse] = useState(false); // false: QIE -> qUSDC
   const [amount, setAmount] = useState("");
@@ -40,6 +43,12 @@ export default function Swap({
   const amountNum = Number(amount);
   const overBalance = Number.isFinite(amountNum) && amountNum > Number(fromBalance || 0);
   const canSwap = Number.isFinite(amountNum) && amountNum > 0 && !overBalance && !swapping;
+  // Swapping ALL of your QIE leaves nothing for gas, and the next approve or
+  // subscribe then fails. "Use max" keeps a small reserve back; typing more is
+  // allowed but warned about.
+  const spendableQie = Math.max(0, Number(qieBalance || 0) - GAS_RESERVE_QIE);
+  const eatsGas = !reverse && !overBalance && Number.isFinite(amountNum) && amountNum > spendableQie;
+  const maxAmount = reverse ? String(fromBalance || 0) : String(Number(spendableQie.toFixed(6)));
 
   const flip = () => {
     setReverse((r) => !r);
@@ -70,7 +79,7 @@ export default function Swap({
           <div className="fl-row--between" style={{ marginBottom: 9 }}>
             <span className="fl-lbl">You pay</span>
             <button className="fl-link" style={{ fontSize: 11.5 }}
-                    onClick={() => setAndQuote(String(fromBalance || 0))}>
+                    onClick={() => setAndQuote(maxAmount)}>
               Balance {trim(fromBalance, from.decimals === 6 ? 2 : 4)} - use max
             </button>
           </div>
@@ -124,6 +133,11 @@ export default function Swap({
               That is more {from.symbol} than you hold.
             </div>
           )}
+          {eatsGas && (
+            <div style={{ color: "var(--fl-warn)", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
+              Leave about {GAS_RESERVE_QIE} QIE for network fees, or your next transaction will fail.
+            </div>
+          )}
           {error && (
             <div style={{ color: "var(--fl-warn)", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>{error}</div>
           )}
@@ -139,7 +153,13 @@ export default function Swap({
           </div>
         </div>
 
-        {Number(qusdcBalance || 0) === 0 && (
+        {Number(qieBalance || 0) < LOW_GAS_QIE && (
+          // Too little QIE means no gas: nothing on this screen (either direction) can be signed.
+          <div style={{ marginTop: 12 }}>
+            <FundWallet account={account} qieBalance={qieBalance} />
+          </div>
+        )}
+        {Number(qusdcBalance || 0) === 0 && Number(qieBalance || 0) >= LOW_GAS_QIE && (
           <div className="fl-inner" style={{ padding: "14px 16px", marginTop: 12 }}>
             <div style={{ color: "var(--fl-fg-3)", fontSize: 12, lineHeight: 1.6 }}>
               You hold no qUSDC yet, so you cannot start a subscription. Swap a little QIE here

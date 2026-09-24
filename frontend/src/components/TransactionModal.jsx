@@ -35,6 +35,10 @@ export default function TransactionModal({ txState, onClose }) {
   const currentStep = getStepIndex(status);
   const isFinished = status === "confirmed" || status === "error";
   const isVisible = txState && status !== "idle";
+  // Optional wording for flows that are not the user's own transaction (QIE
+  // Pass verification is written by Fluenci's oracle, sometimes with no tx at all).
+  const title = isFinished && txState?.title ? txState.title : "";
+  const note = isFinished && txState?.note ? txState.note : "";
 
   // Elapsed time counter
   useEffect(() => {
@@ -99,18 +103,18 @@ export default function TransactionModal({ txState, onClose }) {
           </div>
           <div className="tx-modal-header-text">
             <h3 className="tx-modal-title">
-              {status === "confirmed"
+              {title || (status === "confirmed"
                 ? "Transaction Confirmed"
                 : status === "error"
                 ? "Transaction Failed"
-                : action || "Processing Transaction"}
+                : action || "Processing Transaction")}
             </h3>
             <p className="tx-modal-subtitle">
-              {status === "confirmed"
+              {note || (status === "confirmed"
                 ? "Your transaction was successfully confirmed onchain."
                 : status === "error"
                 ? "Something went wrong during the transaction."
-                : "Please wait while your transaction is processed."}
+                : "Please wait while your transaction is processed.")}
             </p>
           </div>
         </div>

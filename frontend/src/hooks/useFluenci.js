@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import EthereumProvider from "@walletconnect/ethereum-provider";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL, V3_WRITES_FROZEN } from "../config";
 import { resolveQieAddress, resolveQieName } from "../dashboard/qieName";
+import { V4_REGISTRY } from "../dashboard/v4Config";
 
 // ABI definitions
 const REGISTRY_ABI = [
@@ -63,6 +64,69 @@ const CONTRACT_ADDRESSES_BY_CHAIN = {
   }
 };
 
+const MAINNET_CHAIN_ID = 1990;
+const MAINNET_RPC_URL = "https://rpc1mainnet.qie.digital";
+const MAINNET = CONTRACT_ADDRESSES_BY_CHAIN[MAINNET_CHAIN_ID];
+const WQIE = "0x0087904D95BEe9E5F24dc8852804b547981A9139";
+
+// One shared mainnet provider, pinned to chain 1990. Swaps use it instead of
+// getReadProvider(), whose chainId comes from the render that created the
+// closure and is stale right after the wallet is switched to mainnet.
+let mainnetRpc = null;
+const mainnetProvider = () => {
+  if (!mainnetRpc) mainnetRpc = new ethers.JsonRpcProvider(MAINNET_RPC_URL, MAINNET_CHAIN_ID, { staticNetwork: true });
+  return mainnetRpc;
+};
+
+// QIE Pass status is read from the adapter the v4 registry enforces, over the
+// same RPC the v2 dashboard reads it with, so v1 and v2 can never disagree and
+// a re-pointed adapter is picked up without a code change.
+const V4_RPC_URL = import.meta.env.VITE_V4_RPC_URL || MAINNET_RPC_URL;
+let identityRpc = null;
+const identityProvider = () => {
+  if (V4_RPC_URL === MAINNET_RPC_URL) return mainnetProvider();
+  if (!identityRpc) identityRpc = new ethers.JsonRpcProvider(V4_RPC_URL);
+  return identityRpc;
+};
+
+async function readQiePassVerified(address) {
+  const rp = identityProvider();
+  const passAddr = await new ethers.Contract(V4_REGISTRY, REGISTRY_ABI, rp).qiePass();
+  if (!passAddr || passAddr === ethers.ZeroAddress) return false;
+  return Boolean(await new ethers.Contract(passAddr, QIEPASS_ABI, rp).verifyIdentity(address));
+}
+
+const sameAddress = (a, b) => Boolean(a && b) && a.toLowerCase() === b.toLowerCase();
+
+// Error pages and empty bodies should surface as "no data", not as a JSON parse error.
+const readJson = async (res) => {
+  try { return (await res.json()) || {}; } catch { return {}; }
+};
+
+const IDLE_KYC = { status: "idle", requestId: null, redirectUrl: null, error: null, message: null, txHash: null, account: null };
+
+const KYC_POLL_MS = 10000;
+// QIE's requests expire after about an hour; stop asking well before that.
+const KYC_MAX_WAIT_MS = 30 * 60 * 1000;
+const CLAIM_RETRY_MS = 15000;
+const CLAIM_MAX_WAIT_MS = 10 * 60 * 1000;
+const NOT_ONCHAIN_YET = "Your verification is not recorded on-chain yet. Checking again shortly.";
+
+// QIE statuses that end a request. Anything else keeps the poll going.
+const KYC_TERMINAL = {
+  consent_rejected: { status: "error", error: "The request was declined in QIE Wallet. Start again to verify." },
+  expired: { status: "expired", error: "This QIE Pass request expired. Start a new one to verify." },
+  failed: { status: "error", error: "QIE Pass reported this request as failed. Start a new one to verify." },
+};
+
+// v3's owner key is burned and its QIE Pass gate is the retired self-grant mock,
+// so nothing new goes into it. Cancelling and revoking stay open.
+const V3_FROZEN = {
+  create: "New streams on the legacy registry are closed. Existing streams can still be cancelled here.",
+  approve: "New approvals to the legacy registry are closed. You can still revoke an existing approval.",
+  claim: "Claiming from the legacy registry is turned off while it is retired.",
+};
+
 export function useFluenci() {
   const [account, setAccount] = useState("");
   const [chainId, setChainId] = useState(0);
@@ -72,7 +136,12 @@ export function useFluenci() {
   const [qusdcBalance, setQusdcBalance] = useState("0");
   const [qusdcAllowance, setQusdcAllowance] = useState("0");
 
-  const [qiePassVerified, setQiePassVerified] = useState(false);
+  // Tagged with the wallet it was read for, so a newly connected wallet never
+  // inherits the previous one's verification while its own read is in flight.
+  const [passState, setPassState] = useState({ account: "", verified: false });
+  const recordPassState = useCallback((addr, verified) =>
+    setPassState((prev) => (prev.verified === verified && sameAddress(prev.account, addr) ? prev : { account: addr, verified })), []);
+  const qiePassVerified = passState.verified && sameAddress(passState.account, account);
   const [accountDomain, setAccountDomain] = useState("");
   const [announcedProviders, setAnnouncedProviders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -93,14 +162,17 @@ export function useFluenci() {
     setErrorRaw("");
   };
 
-  // QIE Pass KYC state
-  const [kycState, setKycState] = useState({
-    status: "idle", // idle | creating | pending_kyc | pending_consent | claiming | verified | error
-    requestId: null,
-    redirectUrl: null,
-    error: null
-  });
-  const kycPollRef = useRef(null);
+  // QIE Pass verification flow.
+  // status: idle | creating | pending_kyc | pending_consent | claiming | pending_onchain | verified | expired | error
+  // "verified" is only ever set once the server confirmed the on-chain write AND
+  // our own read of the registry's adapter agrees (see passVerified below).
+  const [kycFlow, setKycState] = useState(IDLE_KYC);
+  // A flow belongs to the wallet that started it - the server binds the request to that wallet.
+  const kycState = kycFlow.account && sameAddress(kycFlow.account, account) ? kycFlow : IDLE_KYC;
+  const kycCtxRef = useRef(null);   // the running flow: { wallet, requestId, phase, ... }
+  const kycTimerRef = useRef(null);
+  const accountRef = useRef(account);
+  useEffect(() => { accountRef.current = account; }, [account]);
 
   // Transaction modal state
   const [txState, setTxState] = useState({
@@ -133,9 +205,11 @@ export function useFluenci() {
     qiedomain: ""
   });
 
-  // Automatically update contract addresses based on connected network chainId
+  // Automatically update contract addresses based on connected network chainId.
+  // Kept as state + effect because updateContractAddresses merges into it too.
   useEffect(() => {
     const config = CONTRACT_ADDRESSES_BY_CHAIN[chainId] || CONTRACT_ADDRESSES_BY_CHAIN[1990];
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setContracts(config);
   }, [chainId]);
 
@@ -159,19 +233,19 @@ export function useFluenci() {
     return { provider, signer };
   };
 
+  // No QIE testnet branch: CONTRACT_ADDRESSES_BY_CHAIN only knows mainnet, so a
+  // wallet on testnet (1983) used to have mainnet addresses read on the testnet
+  // RPC, where they have no code - balances and quotes silently came back wrong.
   const getReadProvider = useCallback(() => {
-    if (chainId === 1983) {
-      return new ethers.JsonRpcProvider("https://rpc4testnet.qie.digital/");
-    } else if (chainId === 31337 || chainId === 1337) {
+    if (chainId === 31337 || chainId === 1337) {
       return new ethers.JsonRpcProvider("http://127.0.0.1:8545");
     }
-    return new ethers.JsonRpcProvider("https://rpc1mainnet.qie.digital");
+    return mainnetProvider();
   }, [chainId]);
 
   // Wait for a transaction by polling getTransactionReceipt
   // (waitForTransaction hangs on QIE RPC due to broken eth_getFilterChanges)
-  const waitForTx = async (tx) => {
-    const readProvider = getReadProvider();
+  const waitForTx = async (tx, readProvider = getReadProvider()) => {
     const TIMEOUT_MS = 60000; // 60 second timeout
     const POLL_INTERVAL = 3000; // poll every 3 seconds
     const startTime = Date.now();
@@ -303,9 +377,17 @@ export function useFluenci() {
   const fetchAccountState = useCallback(async () => {
     if (!account) return;
 
+    // Read first and on its own, so a failing balance read below can never
+    // leave an earlier verification standing. Unreachable reads as unverified.
+    const verified = await readQiePassVerified(account).catch((err) => {
+      console.warn("Failed to fetch QIE Pass status, defaulting to unverified:", err.message);
+      return false;
+    });
+    recordPassState(account, verified);
+
     try {
       const provider = getReadProvider();
-      
+
       // Native QIE Balance
       const qieBalVal = await provider.getBalance(account);
       setQieBalance(ethers.formatEther(qieBalVal));
@@ -319,18 +401,6 @@ export function useFluenci() {
         if (contracts.registry) {
           const allow = await qusdcContract.allowance(account, contracts.registry);
           setQusdcAllowance(ethers.formatUnits(allow, 6));
-        }
-      }
-
-      // Fetch QIE Pass KYC Status
-      if (contracts.qiepass) {
-        try {
-          const passContract = new ethers.Contract(contracts.qiepass, QIEPASS_ABI, provider);
-          const isVerified = await passContract.verifyIdentity(account);
-          setQiePassVerified(isVerified);
-        } catch (err) {
-          console.warn("Failed to fetch QIE Pass status, defaulting to unverified:", err.message);
-          setQiePassVerified(false);
         }
       }
 
@@ -385,7 +455,7 @@ export function useFluenci() {
     } catch (err) {
       console.error("Failed to fetch account state", err);
     }
-  }, [account, contracts]);
+  }, [account, contracts, recordPassState]);
 
   // Fetch stream details
   const fetchSubscriptions = useCallback(async () => {
@@ -511,14 +581,26 @@ export function useFluenci() {
     }
   };
 
-  // Approve Tokens - approves a sensible cap (10,000 QUSDC) instead of unlimited
-  const approveToken = async (tokenSymbol) => {
+  // Approve Tokens - approves a sensible cap (10,000 QUSDC) instead of unlimited.
+  // amount is in whole QUSDC; "0" revokes the approval.
+  const approveToken = async (tokenSymbol, amount = "10000") => {
+    let approveAmount;
+    try {
+      approveAmount = ethers.parseUnits(String(amount), 6);
+    } catch {
+      setError("Enter a valid QUSDC amount to approve.");
+      return;
+    }
+    const revoking = approveAmount === 0n;
+    if (V3_WRITES_FROZEN && !revoking) {
+      setError(V3_FROZEN.approve);
+      return;
+    }
     setError("");
     setLoading(true);
-    setTxState({ status: "preparing", action: `Approving QUSDC`, hash: "", error: "" });
+    setTxState({ status: "preparing", action: revoking ? "Revoking QUSDC approval" : "Approving QUSDC", hash: "", error: "" });
     try {
       setTxStep("awaiting_signature");
-      const approveAmount = ethers.parseUnits("10000", 6); // 10,000 QUSDC cap
       const tx = await executeDirectTx(
         contracts.qusdc,
         ERC20_ABI,
@@ -541,135 +623,244 @@ export function useFluenci() {
   };
 
   // ==========================================
-  // QIE PASS REAL KYC VERIFICATION
+  // QIE PASS VERIFICATION
   // ==========================================
+  // /qiepass/verify binds a request to the connected wallet, /qiepass/status is
+  // polled until the user consents, and /qiepass/claim records the result on the
+  // adapter for that bound wallet. The wallet only counts as verified once our
+  // own read of the registry's adapter says so.
 
   const SERVER_URL = API_BASE_URL;
 
-  // Step 1: Start KYC verification
+  const isLiveFlow = (ctx) => kycCtxRef.current === ctx && sameAddress(accountRef.current, ctx.wallet);
+
+  const stopKycFlow = () => {
+    kycCtxRef.current = null;
+    if (kycTimerRef.current) {
+      clearTimeout(kycTimerRef.current);
+      kycTimerRef.current = null;
+    }
+  };
+
+  const failKyc = (ctx, status, message) => {
+    if (!isLiveFlow(ctx)) return;
+    stopKycFlow();
+    setKycState((prev) => ({ ...prev, status, error: message, message: null }));
+    setTxStep("error", { error: message, title: "QIE Pass verification stopped", note: "" });
+  };
+
+  // Only reached after the server confirmed the write AND our own read agrees.
+  const passVerified = (ctx, txHash) => {
+    if (!isLiveFlow(ctx)) return;
+    stopKycFlow();
+    recordPassState(ctx.wallet, true);
+    setKycState((prev) => ({ ...prev, status: "verified", error: null, message: null, txHash: txHash || null }));
+    setTxState({
+      status: "confirmed", action: "QIE Pass verified", hash: txHash || "", error: "",
+      title: "QIE Pass verified", note: "Your verification is recorded on-chain."
+    });
+  };
+
+  // One /qiepass/claim round. The server writes to the wallet it bound at
+  // /verify; walletAddress in the body only lets it refuse a mismatch.
+  const claimRound = async (ctx) => {
+    const res = await fetch(`${SERVER_URL}/qiepass/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId: ctx.requestId, walletAddress: ctx.wallet })
+    });
+    const data = await readJson(res);
+    if (res.status === 202 || data.pending) return { verified: false, message: data.error || null };
+    if (!res.ok || !data.success || !data.verified || !data.onchain) {
+      const err = new Error(data.error || "QIE Pass verification failed.");
+      err.status = res.status;
+      throw err;
+    }
+    // The server's word is not enough on its own. An RPC that lags behind the
+    // server's lands in the pending branch and is simply asked again.
+    const onChain = await readQiePassVerified(ctx.wallet).catch(() => false);
+    return { verified: onChain, txHash: data.txHash || null, message: null };
+  };
+
+  const scheduleKyc = (ctx, ms) => {
+    if (kycTimerRef.current) clearTimeout(kycTimerRef.current);
+    kycTimerRef.current = setTimeout(() => { advanceKyc(ctx); }, ms);
+  };
+
+  // Claim, then finish or keep asking: after a 202 the server is still writing,
+  // and after a dropped connection we can't know whether the claim arrived.
+  // Errors the server reports end the flow with its own text.
+  const settleClaim = async (ctx) => {
+    try {
+      const r = await claimRound(ctx);
+      if (!isLiveFlow(ctx)) return;
+      if (r.verified) {
+        passVerified(ctx, r.txHash);
+        return;
+      }
+      if (ctx.phase !== "onchain") {
+        ctx.phase = "onchain";
+        ctx.phaseSince = Date.now();
+        setTxStep("confirming", { action: "Waiting for the on-chain record" });
+      }
+      setKycState((prev) => ({ ...prev, status: "pending_onchain", error: null, message: r.message || NOT_ONCHAIN_YET }));
+    } catch (err) {
+      if (!isLiveFlow(ctx)) return;
+      if (err.status && err.status !== 429) {
+        failKyc(ctx, "error", err.message);
+        setError(err.message);
+        return;
+      }
+      console.warn("QIE Pass claim did not complete, retrying:", err.message);
+    }
+  };
+
+  const startClaim = async (ctx) => {
+    ctx.phase = "claiming";
+    ctx.phaseSince = Date.now();
+    setKycState((prev) => ({ ...prev, status: "claiming", error: null, message: null }));
+    setTxStep("confirming", { action: "Recording your QIE Pass on-chain" });
+    await settleClaim(ctx);
+  };
+
+  // One round of the flow, from the timer or from "Check status". It schedules
+  // the next round itself while there is still something to wait for.
+  const advanceKyc = async (ctx, { manual = false } = {}) => {
+    if (kycCtxRef.current !== ctx || ctx.busy) return;
+    if (!sameAddress(accountRef.current, ctx.wallet)) {
+      stopKycFlow();
+      return;
+    }
+    ctx.busy = true;
+    try {
+      if (ctx.phase === "status") {
+        if (!manual && Date.now() - ctx.startedAt > KYC_MAX_WAIT_MS) {
+          failKyc(ctx, "expired", "Stopped waiting for QIE Pass after 30 minutes. Start again when you're ready.");
+          return;
+        }
+        const res = await fetch(`${SERVER_URL}/qiepass/status/${encodeURIComponent(ctx.requestId)}`);
+        const data = await readJson(res);
+        if (!isLiveFlow(ctx)) return;
+        if (!res.ok || !data.success) {
+          // A 4xx other than rate limiting won't fix itself by asking again.
+          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+            failKyc(ctx, "error", data.error || "Could not check the QIE Pass request.");
+          }
+          return;
+        }
+        if (data.status === "consent_given") {
+          // QIE documents consent_given as the signal to claim. `ready` is an
+          // extra that may never arrive, so allow it one more round, then claim.
+          const ready = data.ready === true || data.vcMetadata?.ready === true;
+          if (ready || manual || ctx.notReady >= 1) await startClaim(ctx);
+          else ctx.notReady += 1;
+        } else if (KYC_TERMINAL[data.status]) {
+          failKyc(ctx, KYC_TERMINAL[data.status].status, KYC_TERMINAL[data.status].error);
+        } else if (data.status === "pending_consent" && ctx.lastStatus !== "pending_consent") {
+          ctx.lastStatus = "pending_consent";
+          setKycState((prev) => ({ ...prev, status: "pending_consent" }));
+          setTxStep("confirming", { action: "Approve the request in QIE Wallet" });
+        }
+      } else if (ctx.phase === "claiming" || ctx.phase === "onchain") {
+        if (manual && ctx.parked) {
+          ctx.parked = false;
+          ctx.phaseSince = Date.now();
+          setTxStep("confirming", { action: "Waiting for the on-chain record" });
+        }
+        if (!manual && Date.now() - ctx.phaseSince > CLAIM_MAX_WAIT_MS) {
+          if (ctx.phase === "claiming") {
+            failKyc(ctx, "error", "Couldn't reach the server to finish QIE Pass verification. Try again in a few minutes.");
+          } else {
+            // Stop polling but keep the request, so "Check again" can pick it up.
+            ctx.parked = true;
+            const message = "Still not recorded on-chain. Check again in a few minutes.";
+            setKycState((prev) => ({ ...prev, message }));
+            setTxState((prev) => ({ ...prev, status: "error", title: "Not recorded on-chain yet", error: message }));
+          }
+          return;
+        }
+        await settleClaim(ctx);
+      }
+    } catch (err) {
+      console.warn("QIE Pass check failed:", err.message);
+    } finally {
+      ctx.busy = false;
+      if (kycCtxRef.current === ctx && !ctx.parked) {
+        scheduleKyc(ctx, ctx.phase === "status" ? KYC_POLL_MS : CLAIM_RETRY_MS);
+      }
+    }
+  };
+
+  // Start (or restart) verification for the connected wallet.
   const startKycVerification = async () => {
     if (!account) {
       setError("Connect wallet first");
       return;
     }
+    stopKycFlow();
+    const ctx = {
+      wallet: account, requestId: null, phase: "starting", startedAt: Date.now(), phaseSince: 0,
+      notReady: 0, lastStatus: null, busy: false, parked: false
+    };
+    kycCtxRef.current = ctx;
     setError("");
-    setKycState({ status: "creating", requestId: null, redirectUrl: null, error: null });
-    setTxState({ status: "preparing", action: "Verifying Identity via QIE Pass", hash: "", error: "" });
+    setKycState({ ...IDLE_KYC, status: "creating", account: ctx.wallet });
+    setTxState({ status: "preparing", action: "Starting QIE Pass verification", hash: "", error: "" });
 
     try {
-      if (!SERVER_URL) throw new Error("Backend server not available. KYC verification requires the server to be running.");
+      if (!SERVER_URL) throw new Error("Backend server not available. QIE Pass verification requires the server to be running.");
+
+      // Nothing to do when the adapter already has this wallet.
+      if (await readQiePassVerified(ctx.wallet).catch(() => false)) {
+        if (!isLiveFlow(ctx)) return;
+        stopKycFlow();
+        recordPassState(ctx.wallet, true);
+        setKycState(IDLE_KYC);
+        setTxState({
+          status: "confirmed", action: "QIE Pass verified", hash: "", error: "",
+          title: "QIE Pass verified", note: "This wallet is already verified on-chain."
+        });
+        return;
+      }
+
       const res = await fetch(`${SERVER_URL}/qiepass/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: account })
+        body: JSON.stringify({ walletAddress: ctx.wallet })
       });
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to create verification request");
-      }
+      const data = await readJson(res);
+      if (!isLiveFlow(ctx)) return;
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not start QIE Pass verification.");
+      if (!data.requestId) throw new Error("QIE Pass did not return a request. Try again.");
+      ctx.requestId = data.requestId;
+      ctx.phase = "status";
+      ctx.lastStatus = data.status;
+      setKycState((prev) => ({ ...prev, requestId: data.requestId }));
 
       if (data.status === "pending_kyc") {
-        // User needs to complete KYC - open redirect in new tab
         const redirectUrl = data.redirectUrl?.startsWith("http")
           ? data.redirectUrl
-          : `https://qiepass.qie.digital${data.redirectUrl}`;
-        setKycState({
-          status: "pending_kyc",
-          requestId: data.requestId,
-          redirectUrl,
-          error: null
-        });
-        setTxStep("confirming", { action: "Complete KYC in QIE Wallet tab" });
+          : `https://qiepass.qie.digital${data.redirectUrl || ""}`;
+        setKycState((prev) => ({ ...prev, status: "pending_kyc", redirectUrl }));
+        setTxStep("confirming", { action: "Finish verification in the QIE Pass tab" });
+        // Can be popup-blocked after the awaits above, so the panels also link to it.
         window.open(redirectUrl, "_blank");
-        // Start polling
-        startKycPolling(data.requestId);
+        scheduleKyc(ctx, KYC_POLL_MS);
       } else if (data.status === "pending_consent") {
-        // User already verified, waiting for consent
-        setKycState({
-          status: "pending_consent",
-          requestId: data.requestId,
-          redirectUrl: null,
-          error: null
-        });
-        setTxStep("confirming", { action: "Waiting for consent approval..." });
-        startKycPolling(data.requestId);
+        setKycState((prev) => ({ ...prev, status: "pending_consent" }));
+        setTxStep("confirming", { action: "Approve the request in QIE Wallet" });
+        scheduleKyc(ctx, KYC_POLL_MS);
       } else if (data.status === "consent_given") {
-        // Ready to claim
-        setTxStep("confirming", { action: "Claiming verified credentials..." });
-        await claimKyc(data.requestId);
+        await startClaim(ctx);
+        if (kycCtxRef.current === ctx) scheduleKyc(ctx, CLAIM_RETRY_MS);
+      } else {
+        const t = KYC_TERMINAL[data.status];
+        failKyc(ctx, t ? t.status : "error",
+          t ? t.error : `QIE Pass returned an unexpected status${data.status ? ` (${data.status})` : ""}.`);
       }
     } catch (err) {
-      setKycState(prev => ({ ...prev, status: "error", error: err.message }));
-      setTxStep("error", { error: err.message });
-      setError(err.message);
-    }
-  };
-
-  // Step 2: Poll for status changes
-  const startKycPolling = (requestId) => {
-    // Clear any existing poll
-    if (kycPollRef.current) {
-      clearInterval(kycPollRef.current);
-    }
-
-    kycPollRef.current = setInterval(async () => {
-      if (!SERVER_URL) return;
-      try {
-        const res = await fetch(`${SERVER_URL}/qiepass/status/${requestId}`);
-        const data = await res.json();
-
-        if (!data.success) return;
-
-        if (data.status === "consent_given" && data.vcMetadata?.ready) {
-          clearInterval(kycPollRef.current);
-          kycPollRef.current = null;
-          setKycState(prev => ({ ...prev, status: "claiming" }));
-          setTxStep("confirming", { action: "Claiming verified credentials..." });
-          await claimKyc(requestId);
-        } else if (data.status === "consent_rejected") {
-          clearInterval(kycPollRef.current);
-          kycPollRef.current = null;
-          setKycState(prev => ({ ...prev, status: "error", error: "User rejected consent" }));
-          setTxStep("error", { error: "Consent was rejected" });
-        } else if (data.status === "pending_consent") {
-          setKycState(prev => ({ ...prev, status: "pending_consent" }));
-        }
-      } catch (err) {
-        console.warn("KYC poll error:", err.message);
-      }
-    }, 15000); // Poll every 15 seconds
-  };
-
-  // Step 3: Claim verified credentials
-  const claimKyc = async (requestId) => {
-    try {
-      if (!SERVER_URL) throw new Error("Backend server not available.");
-      setKycState(prev => ({ ...prev, status: "claiming" }));
-      setTxStep("confirming", { action: "Verifying credentials onchain..." });
-      const res = await fetch(`${SERVER_URL}/qiepass/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId, walletAddress: account })
-      });
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to claim credentials");
-      }
-
-      setQiePassVerified(true);
-      setKycState({
-        status: "verified",
-        requestId,
-        redirectUrl: null,
-        error: null
-      });
-      setTxStep("confirmed", { hash: data.txHash || "" });
-      await fetchAccountState();
-    } catch (err) {
-      setKycState(prev => ({ ...prev, status: "error", error: err.message }));
-      setTxStep("error", { error: err.message });
+      if (!isLiveFlow(ctx)) return;
+      failKyc(ctx, "error", err.message);
       setError(err.message);
     }
   };
@@ -677,27 +868,16 @@ export function useFluenci() {
   // Stop polling on unmount
   useEffect(() => {
     return () => {
-      if (kycPollRef.current) {
-        clearInterval(kycPollRef.current);
-      }
+      kycCtxRef.current = null;
+      if (kycTimerRef.current) clearTimeout(kycTimerRef.current);
     };
   }, []);
 
-  // Manual poll trigger for "Check Status" button
+  // "Check status" / "Check again": run one round of the current flow now.
   const checkKycStatus = async () => {
-    if (!kycState.requestId) return;
-    try {
-      if (!SERVER_URL) throw new Error("Backend server not available.");
-      const res = await fetch(`${SERVER_URL}/qiepass/status/${kycState.requestId}`);
-      const data = await res.json();
-      if (data.success && data.status === "consent_given" && data.vcMetadata?.ready) {
-        await claimKyc(kycState.requestId);
-      } else if (data.success) {
-        setKycState(prev => ({ ...prev, status: data.status }));
-      }
-    } catch (err) {
-      console.warn("Manual KYC check error:", err.message);
-    }
+    const ctx = kycCtxRef.current;
+    if (!ctx || !ctx.requestId || !SERVER_URL) return;
+    await advanceKyc(ctx, { manual: true });
   };
 
   // Resolve QieDomain (.qie) - forward lookup via Explorer API
@@ -761,21 +941,19 @@ export function useFluenci() {
   // Live quote for the swap panel. Deliberately mirrors swapQieForTokens: same
   // WQIE <-> qUSDC path, same read against the QieDex router (quotes are
   // read-only, so they skip FluenciRouter's attribution wrapper), same 5s cap
-  // and 5% slippage. Returns null rather than throwing so the UI can just show
-  // no quote when the pool is unreachable.
+  // and 5% slippage, same mainnet-pinned provider and addresses. Returns null
+  // rather than throwing so the UI can just show no quote when the pool is unreachable.
   const quoteSwap = async (fromToken, amount) => {
     try {
       if (!amount || Number(amount) <= 0) return null;
       const isReverse = fromToken === "QUSDC";
-      const path = isReverse
-        ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"]
-        : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc];
+      const path = isReverse ? [MAINNET.qusdc, WQIE] : [WQIE, MAINNET.qusdc];
 
       const decimalsIn = isReverse ? 6 : 18;
       const decimalsOut = isReverse ? 18 : 6;
       const parsedAmount = ethers.parseUnits(String(amount), decimalsIn);
 
-      const readDex = new ethers.Contract(contracts.qiedex, DEX_ABI, getReadProvider());
+      const readDex = new ethers.Contract(MAINNET.qiedex, DEX_ABI, mainnetProvider());
       const amounts = await Promise.race([
         readDex.getAmountsOut(parsedAmount, path),
         new Promise((_, reject) => setTimeout(() => reject(new Error("Quote timeout")), 5000))
@@ -792,7 +970,10 @@ export function useFluenci() {
     }
   };
 
-  const swapQieForTokens = async (fromToken, toToken, amount) => {
+  // opts.minOut (bigint, output-token base units): the swap must deliver at least
+  // this much. The floor sent on-chain is max(95% of a fresh quote, minOut), so a
+  // swap that would come up short reverts instead of under-delivering.
+  const swapQieForTokens = async (fromToken, toToken, amount, opts = {}) => {
     setError("");
     setLoading(true);
     setTxState({ status: "preparing", action: `Swapping ${amount} ${fromToken} → ${toToken}`, hash: "", error: "" });
@@ -809,35 +990,43 @@ export function useFluenci() {
         }
       }
 
+      // From here on everything is mainnet by construction. chainId in state, and
+      // so getReadProvider() and `contracts`, still describe the network the wallet
+      // was on when this closure was created - wrong right after the switch above.
+      const readProvider = mainnetProvider();
       const isReverse = fromToken === "QUSDC";
+      const path = isReverse ? [MAINNET.qusdc, WQIE] : [WQIE, MAINNET.qusdc];
 
-      const path = isReverse 
-        ? [contracts.qusdc, "0x0087904D95BEe9E5F24dc8852804b547981A9139"] // QUSDC → WQIE
-        : ["0x0087904D95BEe9E5F24dc8852804b547981A9139", contracts.qusdc]; // WQIE → qUSDC
-      
       const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 min deadline
-      
-      // Parse inputs and fetch quote via direct read provider
-      const decimalsIn = isReverse ? 6 : 18;
-      const parsedAmount = ethers.parseUnits(amount, decimalsIn);
-      
-      
-      // Use FluenciRouter for swap execution (falls back to qiedex if router not set)
-      const swapTarget = contracts.fluenciRouter || contracts.qiedex;
 
-      let amountOutMin = 0n;
-      try {
-        const readProvider = getReadProvider();
-        // Use QieDex directly for quotes (read-only, no attribution needed)
-        const readDex = new ethers.Contract(contracts.qiedex, DEX_ABI, readProvider);
-        const amounts = await Promise.race([
-          readDex.getAmountsOut(parsedAmount, path),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Quote timeout")), 5000))
-        ]);
-        amountOutMin = (amounts[1] * 95n) / 100n; // 5% slippage
-      } catch (e) {
-        console.warn("Failed to fetch getAmountsOut, proceeding with 0 min:", e.message);
-      }
+      const decimalsIn = isReverse ? 6 : 18;
+      const parsedAmount = ethers.parseUnits(String(amount), decimalsIn);
+      const minOut = opts?.minOut !== undefined && opts?.minOut !== null ? BigInt(opts.minOut) : 0n;
+
+      // Use FluenciRouter for swap execution (falls back to qiedex if router not set)
+      const swapTarget = MAINNET.fluenciRouter || MAINNET.qiedex;
+
+      // Fresh quote from QieDex directly (read-only, no attribution needed). No
+      // quote means no swap: sending with amountOutMin = 0 has no slippage floor.
+      const quoteFloor = async () => {
+        let out = 0n;
+        try {
+          const readDex = new ethers.Contract(MAINNET.qiedex, DEX_ABI, readProvider);
+          const amounts = await Promise.race([
+            readDex.getAmountsOut(parsedAmount, path),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Quote timeout")), 5000))
+          ]);
+          out = amounts[amounts.length - 1];
+        } catch (e) {
+          console.warn("Failed to fetch getAmountsOut:", e.message);
+        }
+        if (!out || out <= 0n) throw new Error("Couldn't get a swap price, so the swap wasn't sent. Try again.");
+        if (out < minOut) throw new Error("The price moved - this swap would return less than needed. Try again.");
+        const floor = (out * 95n) / 100n; // 5% slippage
+        return floor > minOut ? floor : minOut;
+      };
+
+      let amountOutMin = await quoteFloor();
 
       const injected = activeProviderRef.current || window.ethereum;
       if (!injected) throw new Error("No Web3 wallet detected");
@@ -845,15 +1034,14 @@ export function useFluenci() {
       // Auto-approve QUSDC if we are doing a reverse swap (QUSDC ➔ QIE)
       if (isReverse) {
         setTxState({ status: "preparing", action: "Checking QUSDC Allowance...", hash: "", error: "" });
-        const readProvider = getReadProvider();
-        const qusdcContract = new ethers.Contract(contracts.qusdc, ERC20_ABI, readProvider);
+        const qusdcContract = new ethers.Contract(MAINNET.qusdc, ERC20_ABI, readProvider);
         const allowance = await qusdcContract.allowance(account, swapTarget);
-        
+
         if (allowance < parsedAmount) {
           setTxState({ status: "preparing", action: "Approving QUSDC for Swap", hash: "", error: "" });
           setTxStep("awaiting_signature");
           const approveTx = await executeDirectTx(
-            contracts.qusdc,
+            MAINNET.qusdc,
             ERC20_ABI,
             "approve",
             [swapTarget, ethers.MaxUint256],
@@ -862,7 +1050,9 @@ export function useFluenci() {
           );
           setTxStep("broadcasting", { hash: approveTx.hash });
           setTxStep("confirming");
-          await waitForTx(approveTx);
+          await waitForTx(approveTx, readProvider);
+          // The approval can take a while; don't swap on the price from before it.
+          amountOutMin = await quoteFloor();
         }
       }
 
@@ -910,7 +1100,7 @@ export function useFluenci() {
 
       setTxStep("broadcasting", { hash: tx.hash });
       setTxStep("confirming");
-      await waitForTx(tx);
+      await waitForTx(tx, readProvider);
       setTxStep("confirmed");
 
       // Send swap telemetry to backend asynchronously
@@ -939,6 +1129,10 @@ export function useFluenci() {
 
   // Create stream NFT
   const createSubscription = async (merchant, tokenSymbol, ratePerSecond, cliffSeconds = 0, stopSeconds = 0) => {
+    if (V3_WRITES_FROZEN) {
+      setError(V3_FROZEN.create);
+      return;
+    }
     setError("");
     setLoading(true);
     setTxState({ status: "preparing", action: "Creating Subscription Stream", hash: "", error: "" });
@@ -1014,6 +1208,10 @@ export function useFluenci() {
 
   // Claim stream funds
   const claimStream = async (subId) => {
+    if (V3_WRITES_FROZEN) {
+      setError(V3_FROZEN.claim);
+      return;
+    }
     setError("");
     setLoading(true);
     setTxState({ status: "preparing", action: "Claiming Stream Funds", hash: "", error: "" });
@@ -1480,12 +1678,14 @@ export function useFluenci() {
 
       return updated ? next : prev;
     });
-
-    requestRef.current = requestAnimationFrame(animate);
   }, [subscriberStreams, merchantStreams]);
 
   useEffect(() => {
-    requestRef.current = requestAnimationFrame(animate);
+    const tick = () => {
+      animate();
+      requestRef.current = requestAnimationFrame(tick);
+    };
+    requestRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(requestRef.current);
   }, [animate]);
 

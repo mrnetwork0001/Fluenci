@@ -9,7 +9,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalDev ? "http:
 // Shows the "Fluenci v2 is being built" banner on every view.
 export const V2_BUILD_NOTICE = false;
 
-// Blocks new stream creation against the v3 registry while v4 is deployed.
-// Existing streams keep settling; only createSubscription is frozen.
-// Set back to false in the same window that VITE_REGISTRY_ADDRESS moves to v4.
-export const V3_WRITES_FROZEN = false;
+// Freezes the legacy v3 registry (the v1 dashboard's). Its owner key is burned
+// and its QIE Pass gate is the retired mock anyone can self-verify on, so the
+// app puts nothing new into it: no new streams, no new qUSDC approvals, no
+// merchant claims. Cancelling a stream and revoking an approval stay available,
+// so existing subscribers can always get out.
+export const V3_WRITES_FROZEN = true;

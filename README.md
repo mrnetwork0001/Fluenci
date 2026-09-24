@@ -214,7 +214,10 @@ verified mark on mainnet. The backend only talks to QIE Pass when `QIEPASS_API_U
 `/qiepass/verify`, `/qiepass/status/:id` and `/qiepass/claim` answer 503 without calling QIE,
 and nothing is written to the adapter, including queued retries. `QIEPASS_ALLOW_SANDBOX=true`
 lifts this for local test chains only. It is ignored on QIE mainnet (chain 1990) and while the
-connected chain is unknown. `GET /status` reports `qiePassWriter.production`.
+connected chain is unknown. `GET /status` reports `qiePassWriter.production`. Queued retries
+record which environment accepted them; on production keys, any entry accepted by the sandbox
+(or queued before this was recorded) is moved to `quarantined` in `server/data/qiepass.json`
+and never written.
 
 ### QIE Reputation - offchain, consumed via signed attestation
 

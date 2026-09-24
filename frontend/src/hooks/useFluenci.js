@@ -767,8 +767,9 @@ export function useFluenci() {
         const data = await readJson(res);
         if (!isLiveFlow(ctx)) return;
         if (!res.ok || !data.success) {
-          // A 4xx other than rate limiting won't fix itself by asking again.
-          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+          // A 4xx other than rate limiting won't fix itself by asking again,
+          // and neither will QIE Pass being switched off on the server.
+          if (data.off || (res.status >= 400 && res.status < 500 && res.status !== 429)) {
             failKyc(ctx, "error", data.error || "Could not check the QIE Pass request.");
           }
           return;

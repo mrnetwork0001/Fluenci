@@ -1502,7 +1502,9 @@ function qiePassAllowed() {
 // Routes call this before anything reaches QIE.
 function requireQiePassAllowed(res) {
   if (qiePassAllowed()) return true;
-  res.status(503).json({ success: false, error: QIEPASS_OFF });
+  // off:true lets an app flow that is already running stop, rather than
+  // treating this like a temporary outage and polling forever.
+  res.status(503).json({ success: false, off: true, error: QIEPASS_OFF });
   return false;
 }
 
@@ -1641,17 +1643,38 @@ const QIEPASS_DATA_FILE = path.join(__dirname, "data", "qiepass.json");
 function loadQiePassData() {
   try {
     const raw = JSON.parse(fs.readFileSync(QIEPASS_DATA_FILE, "utf8"));
-    return { pending: raw?.pending || {}, subjects: raw?.subjects || {} };
+    return { pending: raw?.pending || {}, subjects: raw?.subjects || {}, quarantined: raw?.quarantined || {} };
   } catch (err) {
     if (err.code !== "ENOENT") {
       console.error(`[QIEPASS] Could not read ${QIEPASS_DATA_FILE}: ${err.message}`);
       // Keep the unreadable file for inspection instead of overwriting it.
       try { fs.renameSync(QIEPASS_DATA_FILE, `${QIEPASS_DATA_FILE}.bad-${Date.now()}`); } catch { /* ignore */ }
     }
-    return { pending: {}, subjects: {} };
+    return { pending: {}, subjects: {}, quarantined: {} };
   }
 }
 let qiePassData = loadQiePassData();
+
+// A queued write is only as good as the QIE environment that accepted it. On
+// production keys, an entry accepted by the sandbox (or queued before entries
+// were stamped) must never reach mainnet: it is set aside, logged, and kept
+// for inspection instead of written.
+function pendingUsable(entry) {
+  return !QIEPASS_ENV.production || entry?.production === true;
+}
+function quarantineForeignPending() {
+  let moved = 0;
+  for (const [key, entry] of Object.entries(qiePassData.pending)) {
+    if (pendingUsable(entry)) continue;
+    qiePassData.quarantined[key] = { ...entry, quarantinedAt: new Date().toISOString() };
+    delete qiePassData.pending[key];
+    moved += 1;
+  }
+  if (moved) {
+    console.warn(`[QIEPASS] Set aside ${moved} queued write(s) accepted outside QIE production; they will not be written onchain.`);
+    saveQiePassData();
+  }
+}
 
 function saveQiePassData() {
   try {
@@ -1667,7 +1690,12 @@ function saveQiePassData() {
 function queuePendingQiePass(wallet, subject) {
   const key = wallet.toLowerCase();
   const prev = qiePassData.pending[key];
-  qiePassData.pending[key] = { wallet, subject: subject || prev?.subject || null, at: prev?.at || new Date().toISOString() };
+  qiePassData.pending[key] = {
+    wallet,
+    subject: subject || prev?.subject || null,
+    at: prev?.at || new Date().toISOString(),
+    production: QIEPASS_ENV.production,
+  };
   saveQiePassData();
 }
 
@@ -1692,9 +1720,11 @@ function recordQiePassSubject(subject, wallet) {
 
 let qiePassRetrying = false;
 async function retryPendingQiePassWrites() {
-  const entries = Object.values(qiePassData.pending);
   // Entries are kept, not dropped, while QIE Pass is off.
-  if (qiePassRetrying || entries.length === 0 || !qiePassAllowed()) return;
+  if (qiePassRetrying || !qiePassAllowed()) return;
+  quarantineForeignPending();
+  const entries = Object.values(qiePassData.pending);
+  if (entries.length === 0) return;
   qiePassRetrying = true;
   try {
     for (const entry of entries) {
@@ -1732,7 +1762,10 @@ async function finishQiePassWrite(res, wallet, subject, requestId = null) {
     // Kept (until its TTL) so a re-check from an app whose RPC lags is
     // answered from the chain instead of "expired or unknown".
     const binding = requestId ? qiePassRequests.get(requestId) : null;
-    if (binding) binding.accepted = true;
+    if (binding) {
+      binding.accepted = true;
+      binding.txHash = txHash || binding.txHash || null;
+    }
     logTelemetry("QIEPASS", txHash ? `Identity registered onchain for ${wallet}. TX: ${txHash}` : `${wallet} is already verified onchain`);
     return res.json({ success: true, verified: true, onchain: true, txHash });
   } catch (err) {
@@ -1884,6 +1917,7 @@ app.post("/qiepass/claim", async (req, res) => {
   try {
     // QIE already accepted a credential for this wallet earlier: finish that
     // write instead of spending another consent.
+    quarantineForeignPending();
     const pending = qiePassData.pending[wallet.toLowerCase()];
     if (pending) {
       return await finishQiePassWrite(res, wallet, pending.subject, requestId);
@@ -1894,7 +1928,7 @@ app.post("/qiepass/claim", async (req, res) => {
     if (binding.accepted) {
       const writer = await checkQiePassWriter();
       if (writer.adapter && await readQiePassVerified(writer.adapter, wallet)) {
-        return res.json({ success: true, verified: true, onchain: true, txHash: null });
+        return res.json({ success: true, verified: true, onchain: true, txHash: binding.txHash || null });
       }
       return res.status(202).json(QIEPASS_PENDING_BODY);
     }
